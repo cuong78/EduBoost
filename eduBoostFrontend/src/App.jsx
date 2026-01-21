@@ -1,5 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Hero from './components/sections/Hero';
 import Features from './components/sections/Features';
 import CourseList from './components/sections/CourseList';
@@ -8,7 +10,8 @@ import DynamicBackground from './components/ui/DynamicBackground';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-
+import VerifyEmail from './pages/auth/VerifyEmail';
+import ResetPassword from './pages/auth/ResetPassword';
 
 // Layouts
 import StudentLayout from './layouts/StudentLayout';
@@ -42,6 +45,18 @@ const DashboardPlaceholder = ({ title }) => (
 function App() {
   return (
     <Router>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <div className="app-container">
         {/* Global Liquid Background */}
         <div className="liquid-bg">
@@ -63,7 +78,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
 
           {/* Student Dashboard Routes */}

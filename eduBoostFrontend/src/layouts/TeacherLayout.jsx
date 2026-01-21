@@ -1,10 +1,16 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import { BookOpen, FileQuestion, PenTool, LayoutDashboard, LogOut, CheckSquare, FileText } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const TeacherLayout = () => {
     const location = useLocation();
+    const { user, logout } = useAuth();
     const isActive = (path) => location.pathname === path;
+
+    const handleLogout = async () => {
+        await logout();
+    };
 
     return (
         <div className="teacher-layout">
@@ -35,14 +41,14 @@ const TeacherLayout = () => {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <button className="nav-item logout">
+                    <button className="nav-item logout" onClick={handleLogout}>
                         <LogOut size={20} /> Đăng xuất
                     </button>
                     <div className="user-profile">
-                        <div className="avatar">GV</div>
+                        <div className="avatar">{user?.username?.substring(0, 2).toUpperCase() || 'GV'}</div>
                         <div className="user-info">
-                            <span className="name">Nguyễn Văn B</span>
-                            <span className="role">Giáo viên Toán</span>
+                            <span className="name">{user?.username || user?.fullName || 'Giáo viên'}</span>
+                            <span className="role">Giáo viên</span>
                         </div>
                     </div>
                 </div>

@@ -187,6 +187,79 @@ const AuthLayout = () => {
                     grid-template-columns: 1fr 1fr;
                     gap: 1rem;
                 }
+                
+                /* Error styling */
+                .error-message {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    color: #DC2626;
+                    font-size: 0.875rem;
+                    margin-top: 0.5rem;
+                    font-weight: 500;
+                }
+                
+                input.error {
+                    border-color: #DC2626 !important;
+                    background: rgba(220, 38, 38, 0.05);
+                }
+                
+                input.error:focus {
+                    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+                }
+                
+                /* Password toggle button */
+                .password-toggle {
+                    position: absolute;
+                    right: 1rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: none;
+                    border: none;
+                    color: var(--color-text-secondary);
+                    cursor: pointer;
+                    padding: 0.25rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: color 0.2s;
+                }
+                
+                .password-toggle:hover {
+                    color: var(--color-accent-1);
+                }
+                
+                .password-toggle:focus {
+                    outline: none;
+                }
+                
+                /* Loading state */
+                button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+                
+                input:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+                
+                /* Spinner animation */
+                @keyframes spin {
+                    from {
+                        transform: rotate(0deg);
+                    }
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+                
+                button .btn {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
             `}</style>
         </div>
     );

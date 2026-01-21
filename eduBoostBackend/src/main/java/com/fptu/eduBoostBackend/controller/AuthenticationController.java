@@ -1,28 +1,44 @@
 package com.fptu.eduBoostBackend.controller;
 
 
-import com.fptu.eduBoostBackend.constant.ResponseObject;
-import com.fptu.eduBoostBackend.dto.request.*;
-import com.fptu.eduBoostBackend.dto.response.TokenRefreshResponse;
-import com.fptu.eduBoostBackend.dto.response.UserResponse;
-import com.fptu.eduBoostBackend.entities.User;
-import com.fptu.eduBoostBackend.exception.exceptions.*;
-import com.fptu.eduBoostBackend.service.AuthenticationService;
-import com.fptu.eduBoostBackend.service.EmailService;
-import com.fptu.eduBoostBackend.service.RefreshTokenService;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
+import com.fptu.eduBoostBackend.constant.ResponseObject;
+import com.fptu.eduBoostBackend.dto.request.ChangePasswordRequest;
+import com.fptu.eduBoostBackend.dto.request.ForgotPasswordRequest;
+import com.fptu.eduBoostBackend.dto.request.LoginRequest;
+import com.fptu.eduBoostBackend.dto.request.ResetPasswordWithTokenRequest;
+import com.fptu.eduBoostBackend.dto.request.TokenRefreshRequest;
+import com.fptu.eduBoostBackend.dto.request.UserRegistrationRequest;
+import com.fptu.eduBoostBackend.dto.response.TokenRefreshResponse;
+import com.fptu.eduBoostBackend.dto.response.UserResponse;
+import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
+import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
+import com.fptu.eduBoostBackend.exception.exceptions.InternalServerErrorException;
+import com.fptu.eduBoostBackend.exception.exceptions.NotFoundException;
+import com.fptu.eduBoostBackend.exception.exceptions.TokenRefreshException;
+import com.fptu.eduBoostBackend.service.AuthenticationService;
+import com.fptu.eduBoostBackend.service.EmailService;
+import com.fptu.eduBoostBackend.service.RefreshTokenService;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("api/auth")
@@ -104,7 +120,7 @@ public class AuthenticationController {
             authenticationService.createPasswordResetTokenForAccount(user, token);
 
             // Tạo link reset password
-            String resetPasswordLink = frontendUrl + "reset-password?token=" + token;
+            String resetPasswordLink = frontendUrl + "/reset-password?token=" + token;
 
             String emailSubject = "Yêu cầu đặt lại mật khẩu";
             String emailText = "Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu của bạn:\n\n"
