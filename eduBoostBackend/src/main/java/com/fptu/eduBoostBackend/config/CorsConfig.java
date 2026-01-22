@@ -13,7 +13,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    @Value("${frontend.url:http://localhost:3000}")
+    @Value("${frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
     @Override
@@ -26,7 +26,8 @@ public class CorsConfig implements WebMvcConfigurer {
                 .exposedHeaders(
                         "Access-Control-Allow-Origin",
                         "Access-Control-Allow-Methods",
-                        "Access-Control-Allow-Headers")
+                        "Access-Control-Allow-Headers",
+                        "Authorization")
                 .maxAge(3600);
     }
 

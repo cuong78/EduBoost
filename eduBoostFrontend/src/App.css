@@ -1,0 +1,11 @@
+/* App specific layout styles can go here */
+.app-container {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+main {
+  padding-top: 80px;
+  /* Space for fixed navbar */
+}
