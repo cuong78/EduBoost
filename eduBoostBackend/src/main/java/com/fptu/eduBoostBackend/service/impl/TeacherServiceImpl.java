@@ -43,6 +43,8 @@ public class TeacherServiceImpl implements TeacherService {
     private final StudentRepository studentRepository;
     private final StudentInvitationRepository studentInvitationRepository;
     private final RoleRepository roleRepository;
+    private final EmailLogRepository emailLogRepository;
+    private final InvitationLogRepository invitationLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final Random random = new Random();
@@ -393,6 +395,7 @@ public class TeacherServiceImpl implements TeacherService {
         StudentInvitation savedInvitation = studentInvitationRepository.save(invitation);
         
         return InvitationResponse.builder()
+                .invitationId(savedInvitation.getInvitationId())
                 .invitationCode(savedInvitation.getInvitationCode())
                 .expiresAt(savedInvitation.getExpiresAt())
                 .build();
@@ -416,4 +419,53 @@ public class TeacherServiceImpl implements TeacherService {
         
         emailService.sendEmail(email, subject, text);
     }
+    @Override
+    @Transactional
+    public void sendInvitation(String invitationId, String parentEmail) {
+
+        StudentInvitation invitation = studentInvitationRepository.findById(invitationId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Invitation", "invitationId", invitationId)
+                );
+
+        // Validate status
+        if (invitation.getStatus() != InvitationStatus.ACTIVE) {
+            throw new BadRequestException("Invitation is not active");
+        }
+
+        // Validate expiry
+        if (invitation.getExpiresAt().isBefore(LocalDateTime.now())) {
+            invitation.setStatus(InvitationStatus.EXPIRED);
+            studentInvitationRepository.save(invitation);
+            throw new BadRequestException("Invitation has expired");
+        }
+
+        // Update recipient email
+        invitation.setRecipientEmail(parentEmail);
+        studentInvitationRepository.save(invitation);
+
+        // Send email
+        sendInvitationEmail(parentEmail, invitation);
+
+        log.info("Invitation {} sent to {}", invitationId, parentEmail);
+    }
+    private void sendInvitationEmail(String email, StudentInvitation invitation) {
+
+        String subject = "";
+
+        String text = String.format(
+                "Bạn đã được mời gia nhập lớp học EduBoost.\n\n" +
+                        "Invite Code: %s\n" +
+                        "Hết hạn vào: %s\n\n" +
+                        "Xin hãy dùng code này để kết nối vào hệ thống EduBoost.\n\n" +
+                        "Trân trọng,\n" +
+                        "Hệ thống EduBoost",
+
+                invitation.getInvitationCode(),
+                invitation.getExpiresAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+        );
+
+        emailService.sendEmail(email, subject, text);
+    }
+
 }

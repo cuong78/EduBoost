@@ -26,7 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     private final TeacherRepository teacherRepository;
     private final ParentRepository parentRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final TeacherRepository teacherRepository;
     @Override
     public void run(String... args) throws Exception {
         if (userRepository.count() > 0) {
@@ -54,7 +54,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!roleRepository.existsByName("TEACHER")) {
             roleRepository.save(teachRole);
         }
-        
+
         Role studentRole = Role.builder()
                 .name(STUDENT_ROLE)
                 .description("Student")
@@ -87,6 +87,24 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         userRepository.save(adminUser);
 
+        Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
+        User teacherUser = User.builder()
+                .username("teacher")
+                .email("teacher@eduboost.com")
+                .phone("0123456789")
+                .password(passwordEncoder.encode("teacher123"))
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(teacherRole))
+                .build();
+        userRepository.save(teacherUser);
+        Teacher teacher = Teacher.builder()
+                .user(teacherUser)
+
+                .build();
+
+        teacherRepository.save(teacher);
+
         // Teacher User
         Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
         User teacherUser = User.builder()
@@ -100,7 +118,7 @@ public class DataInitializer implements CommandLineRunner {
                 .roles(Set.of(teacherRole))
                 .build();
         User savedTeacher = userRepository.save(teacherUser);
-        
+
         // Create Teacher record
         Teacher teacher = Teacher.builder()
                 .user(savedTeacher)
@@ -122,7 +140,7 @@ public class DataInitializer implements CommandLineRunner {
                 .roles(Set.of(parentRole))
                 .build();
         User savedParent1 = userRepository.save(parentUser1);
-        
+
         // Create Parent record 1
         Parent parent1 = Parent.builder()
                 .user(savedParent1)
@@ -142,7 +160,7 @@ public class DataInitializer implements CommandLineRunner {
                 .roles(Set.of(parentRole))
                 .build();
         User savedParent2 = userRepository.save(parentUser2);
-        
+
         // Create Parent record 2
         Parent parent2 = Parent.builder()
                 .user(savedParent2)
@@ -150,6 +168,8 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         parentRepository.save(parent2);
     }
+
+
 }
 
 

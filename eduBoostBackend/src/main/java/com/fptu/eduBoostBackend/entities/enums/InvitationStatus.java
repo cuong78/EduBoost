@@ -4,5 +4,6 @@ public enum InvitationStatus {
     ACTIVE,
     USED,
     EXPIRED,
-    REVOKED
+    REVOKED,
+    EMAIL_FAILED
 }
