@@ -3,6 +3,7 @@ package com.fptu.eduBoostBackend.controller;
 import com.fptu.eduBoostBackend.constant.ResponseObject;
 import com.fptu.eduBoostBackend.dto.request.CreateClassRequest;
 import com.fptu.eduBoostBackend.dto.request.CreateStudentRequest;
+import com.fptu.eduBoostBackend.dto.request.SendInvitationRequest;
 import com.fptu.eduBoostBackend.dto.request.UpdateStudentRequest;
 import com.fptu.eduBoostBackend.dto.response.ClassResponse;
 import com.fptu.eduBoostBackend.dto.response.CreateStudentResponse;
@@ -106,14 +107,18 @@ public class TeacherController {
                         "Xóa học sinh thành công",
                         null));
     }
-    @PostMapping("/invitations/{invitationId}/send")
-    @Operation(summary = "Send invitation email",
-            description = "Send student invitation code to parent email")
+    @PostMapping("/invitations/send")
+    @Operation(
+            summary = "Send invitation email",
+            description = "Send student invitation code to parent email"
+    )
     public ResponseEntity<ResponseObject> sendInvitation(
-            @PathVariable String invitationId,
-            @RequestParam String parentEmail) {
+            @Valid @RequestBody SendInvitationRequest request) {
 
-        teacherService.sendInvitation(invitationId, parentEmail);
+        teacherService.sendInvitation(
+                request.getInvitationId(),
+                request.getParentEmail()
+        );
 
         return ResponseEntity.ok(
                 new ResponseObject(

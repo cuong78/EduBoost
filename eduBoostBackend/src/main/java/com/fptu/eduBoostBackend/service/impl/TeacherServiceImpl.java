@@ -450,7 +450,7 @@ public class TeacherServiceImpl implements TeacherService {
     }
     private void sendInvitationEmail(String email, StudentInvitation invitation) {
 
-        String subject = "Please connect account";
+        String subject = "";
 
         String text = String.format(
                 "Bạn đã được mời gia nhập lớp học EduBoost.\n\n" +
