@@ -94,11 +94,12 @@ export const teacherService = {
             : apiClient.post(API.TEACHER_STUDENT_INVITATIONS(studentId), body).then((res) => res.data?.data ?? res.data).catch((err) => useMockOrFail(err) ? mockResolve(mockInv) : Promise.reject(err));
     },
 
-    sendInvitation: (invitationId, body) => {
-        const mockSent = { sentTo: body.recipientEmail, sentAt: new Date().toISOString(), invitationCode: 'ABC123XY' };
+    sendInvitation: (invitationId, parentEmail) => {
+        const body = { invitationId, parentEmail };
+        const mockSent = { sentTo: parentEmail, sentAt: new Date().toISOString(), invitationCode: 'ABC123XY' };
         return useMock()
             ? mockResolve(mockSent)
-            : apiClient.post(API.TEACHER_INVITATION_SEND(invitationId), body).then((res) => res.data?.data ?? res.data).catch((err) => useMockOrFail(err) ? mockResolve(mockSent) : Promise.reject(err));
+            : apiClient.post(API.TEACHER_INVITATION_SEND, body).then((res) => res.data?.data ?? res.data).catch((err) => useMockOrFail(err) ? mockResolve(mockSent) : Promise.reject(err));
     },
 
     revokeInvitation: (invitationId) =>

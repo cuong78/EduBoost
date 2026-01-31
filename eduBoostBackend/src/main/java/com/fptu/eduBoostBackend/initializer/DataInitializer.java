@@ -1,22 +1,31 @@
 package com.fptu.eduBoostBackend.initializer;
 
 
-import com.fptu.eduBoostBackend.entities.Parent;
-import com.fptu.eduBoostBackend.entities.Role;
-import com.fptu.eduBoostBackend.entities.Teacher;
-import com.fptu.eduBoostBackend.entities.User;
-import com.fptu.eduBoostBackend.repositories.ParentRepository;
-import com.fptu.eduBoostBackend.repositories.RoleRepository;
-import com.fptu.eduBoostBackend.repositories.TeacherRepository;
-import com.fptu.eduBoostBackend.repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDate;
+import java.util.Set;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
+import static com.fptu.eduBoostBackend.constant.PredefinedRole.ADMIN_ROLE;
+import static com.fptu.eduBoostBackend.constant.PredefinedRole.STUDENT_ROLE;
+import static com.fptu.eduBoostBackend.constant.PredefinedRole.TEACH_ROLE;
+import com.fptu.eduBoostBackend.entities.Parent;
+import com.fptu.eduBoostBackend.entities.Role;
+import com.fptu.eduBoostBackend.entities.Student;
+import com.fptu.eduBoostBackend.entities.Teacher;
+import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.entities.enums.Gender;
+import com.fptu.eduBoostBackend.entities.enums.StudentStatus;
+import com.fptu.eduBoostBackend.repositories.ClassRepository;
+import com.fptu.eduBoostBackend.repositories.ParentRepository;
+import com.fptu.eduBoostBackend.repositories.RoleRepository;
+import com.fptu.eduBoostBackend.repositories.StudentRepository;
+import com.fptu.eduBoostBackend.repositories.TeacherRepository;
+import com.fptu.eduBoostBackend.repositories.UserRepository;
 
-import static com.fptu.eduBoostBackend.constant.PredefinedRole.*;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -25,8 +34,10 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final TeacherRepository teacherRepository;
     private final ParentRepository parentRepository;
+    private final StudentRepository studentRepository;
+    private final ClassRepository classRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TeacherRepository teacherRepository;
+    
     @Override
     public void run(String... args) throws Exception {
         if (userRepository.count() > 0) {
@@ -34,6 +45,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         initializeRoles();
         initializeUsers();
+        initializeClasses();
     }
 
 
@@ -86,24 +98,6 @@ public class DataInitializer implements CommandLineRunner {
                 .roles(Set.of(adminRole))
                 .build();
         userRepository.save(adminUser);
-
-        Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
-        User teacherUser = User.builder()
-                .username("teacher")
-                .email("teacher@eduboost.com")
-                .phone("0123456789")
-                .password(passwordEncoder.encode("teacher123"))
-                .isVerify(true)
-                .tokenVersion(0)
-                .roles(Set.of(teacherRole))
-                .build();
-        userRepository.save(teacherUser);
-        Teacher teacher = Teacher.builder()
-                .user(teacherUser)
-
-                .build();
-
-        teacherRepository.save(teacher);
 
         // Teacher User
         Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
@@ -169,7 +163,74 @@ public class DataInitializer implements CommandLineRunner {
         parentRepository.save(parent2);
     }
 
+    private void initializeClasses() {
+        // Get teacher
+        Teacher teacher = teacherRepository.findAll().get(0);
+        Role studentRole = roleRepository.findByName("STUDENT").orElseThrow();
 
+        // Create Class 10A1
+        com.fptu.eduBoostBackend.entities.Class class10A1 = com.fptu.eduBoostBackend.entities.Class.builder()
+                .className("10A1")
+                .classCode("10A1-2024")
+                .teacher(teacher)
+                .schoolYear("2024-2025")
+                .description("Class 10A1 - Mathematics")
+                .status("ACTIVE")
+                .build();
+        classRepository.save(class10A1);
+
+        // Create Class 10A2
+        com.fptu.eduBoostBackend.entities.Class class10A2 = com.fptu.eduBoostBackend.entities.Class.builder()
+                .className("10A2")
+                .classCode("10A2-2024")
+                .teacher(teacher)
+                .schoolYear("2024-2025")
+                .description("Class 10A2 - Mathematics")
+                .status("ACTIVE")
+                .build();
+        classRepository.save(class10A2);
+
+        // Create students for Class 10A1
+        createStudent("student1", "student1@eduboost.com", "0945678901", "Nguyen Van Nam", "S001", class10A1, studentRole, LocalDate.of(2008, 5, 15), Gender.MALE);
+        createStudent("student2", "student2@eduboost.com", "0945678902", "Tran Thi Mai", "S002", class10A1, studentRole, LocalDate.of(2008, 8, 20), Gender.FEMALE);
+        createStudent("student3", "student3@eduboost.com", "0945678903", "Le Van Tuan", "S003", class10A1, studentRole, LocalDate.of(2008, 3, 10), Gender.MALE);
+        createStudent("student4", "student4@eduboost.com", "0945678904", "Pham Thi Lan", "S004", class10A1, studentRole, LocalDate.of(2008, 12, 5), Gender.FEMALE);
+        createStudent("student5", "student5@eduboost.com", "0945678905", "Hoang Van Long", "S005", class10A1, studentRole, LocalDate.of(2008, 7, 25), Gender.MALE);
+
+        // Create students for Class 10A2
+        createStudent("student6", "student6@eduboost.com", "0945678906", "Vu Thi Hoa", "S006", class10A2, studentRole, LocalDate.of(2008, 4, 18), Gender.FEMALE);
+        createStudent("student7", "student7@eduboost.com", "0945678907", "Dang Van Minh", "S007", class10A2, studentRole, LocalDate.of(2008, 9, 22), Gender.MALE);
+        createStudent("student8", "student8@eduboost.com", "0945678908", "Bui Thi Huong", "S008", class10A2, studentRole, LocalDate.of(2008, 6, 30), Gender.FEMALE);
+        createStudent("student9", "student9@eduboost.com", "0945678909", "Ngo Van Hai", "S009", class10A2, studentRole, LocalDate.of(2008, 11, 12), Gender.MALE);
+        createStudent("student10", "student10@eduboost.com", "0945678910", "Do Thi Thao", "S010", class10A2, studentRole, LocalDate.of(2008, 2, 8), Gender.FEMALE);
+    }
+
+    private void createStudent(String username, String email, String phone, String fullName, 
+                               String studentCode, com.fptu.eduBoostBackend.entities.Class classEntity, 
+                               Role studentRole, LocalDate dateOfBirth, Gender gender) {
+        User studentUser = User.builder()
+                .username(username)
+                .email(email)
+                .phone(phone)
+                .password(passwordEncoder.encode("student123"))
+                .fullName(fullName)
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(studentRole))
+                .build();
+        User savedStudent = userRepository.save(studentUser);
+
+        Student student = Student.builder()
+                .user(savedStudent)
+                .studentCode(studentCode)
+                .classEntity(classEntity)
+                .dateOfBirth(dateOfBirth)
+                .gender(gender)
+                .enrollmentDate(LocalDate.of(2024, 9, 1))
+                .status(StudentStatus.ACTIVE)
+                .build();
+        studentRepository.save(student);
+    }
 }
 
 
