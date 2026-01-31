@@ -17,4 +17,5 @@ public interface TeacherService {
     StudentResponse getStudentById(String studentId);
     StudentResponse updateStudent(String studentId, UpdateStudentRequest request);
     void deleteStudent(String studentId);
+    void sendInvitation(String invitationId, String parentEmail);
 }

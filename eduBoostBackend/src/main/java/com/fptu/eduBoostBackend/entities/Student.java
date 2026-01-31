@@ -29,7 +29,7 @@ public class Student {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "student_code", nullable = false, unique = true, length = 10)
+    @Column(name = "student_code", nullable = false, unique = true, length = 20)
     private String studentCode;
 
     @ManyToOne

@@ -2,8 +2,10 @@ package com.fptu.eduBoostBackend.initializer;
 
 
 import com.fptu.eduBoostBackend.entities.Role;
+import com.fptu.eduBoostBackend.entities.Teacher;
 import com.fptu.eduBoostBackend.entities.User;
 import com.fptu.eduBoostBackend.repositories.RoleRepository;
+import com.fptu.eduBoostBackend.repositories.TeacherRepository;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -20,7 +22,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final TeacherRepository teacherRepository;
     @Override
     public void run(String... args) throws Exception {
         if (userRepository.count() > 0) {
@@ -69,7 +71,27 @@ public class DataInitializer implements CommandLineRunner {
                 .roles(Set.of(adminRole))
                 .build();
         userRepository.save(adminUser);
+
+        Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
+        User teacherUser = User.builder()
+                .username("teacher")
+                .email("teacher@eduboost.com")
+                .phone("0123456789")
+                .password(passwordEncoder.encode("teacher123"))
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(teacherRole))
+                .build();
+        userRepository.save(teacherUser);
+        Teacher teacher = Teacher.builder()
+                .user(teacherUser)
+
+                .build();
+
+        teacherRepository.save(teacher);
     }
+
+
 }
 
 

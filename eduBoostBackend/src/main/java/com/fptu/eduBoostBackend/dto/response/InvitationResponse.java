@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class InvitationResponse {
+    private String invitationId;
     private String invitationCode;
     private LocalDateTime expiresAt;
 }

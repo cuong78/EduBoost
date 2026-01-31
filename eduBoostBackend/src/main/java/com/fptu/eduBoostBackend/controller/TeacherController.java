@@ -106,4 +106,22 @@ public class TeacherController {
                         "Xóa học sinh thành công",
                         null));
     }
+    @PostMapping("/invitations/{invitationId}/send")
+    @Operation(summary = "Send invitation email",
+            description = "Send student invitation code to parent email")
+    public ResponseEntity<ResponseObject> sendInvitation(
+            @PathVariable String invitationId,
+            @RequestParam String parentEmail) {
+
+        teacherService.sendInvitation(invitationId, parentEmail);
+
+        return ResponseEntity.ok(
+                new ResponseObject(
+                        HttpStatus.OK.value(),
+                        "Invite code sent successfully",
+                        null
+                )
+        );
+    }
+
 }
