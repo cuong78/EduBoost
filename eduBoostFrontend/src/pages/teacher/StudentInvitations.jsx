@@ -11,38 +11,38 @@ export default function StudentInvitations() {
     const { studentId } = useParams();
     const [student, setStudent] = useState(null);
     const [invitations, setInvitations] = useState([]);
+    const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10 });
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showSendModal, setShowSendModal] = useState(null);
     const [showLogsDrawer, setShowLogsDrawer] = useState(null);
     const [revokeTarget, setRevokeTarget] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [logs, setLogs] = useState([]);
     const [createForm, setCreateForm] = useState({
-        type: 'manual',
-        recipientEmail: '',
-        recipientPhone: '',
+        parentEmail: '',
         expiresInDays: 7,
         maxUses: 1,
-        autoSend: false,
     });
-    const [sendForm, setSendForm] = useState({ recipientEmail: '', language: 'vi' });
 
-    const loadData = async () => {
+    const loadData = async (page = 1, size = 10) => {
         if (!studentId) return;
         setLoading(true);
         try {
-            const [studentData, invData] = await Promise.all([
+            const [studentData, invResponse] = await Promise.all([
                 teacherService.getStudentById(studentId),
-                teacherService.getInvitationsByStudent(studentId).catch(() => []),
+                teacherService.getInvitationsByStudent(studentId, { page, size }).catch(() => ({ success: true, data: [], pagination: { total: 0, page: 1, limit: 10 } })),
             ]);
             setStudent(studentData);
-            setInvitations(Array.isArray(invData) ? invData : invData?.data ?? []);
+            // Backend trả về { success, data, pagination }
+            const response = invResponse || {};
+            setInvitations(Array.isArray(response.data) ? response.data : []);
+            setPagination(response.pagination || { total: 0, page: 1, limit: 10 });
         } catch (err) {
             showErrorToast(err?.response?.data?.message || 'Không tải được dữ liệu');
             setStudent(null);
             setInvitations([]);
+            setPagination({ total: 0, page: 1, limit: 10 });
         } finally {
             setLoading(false);
         }
@@ -54,40 +54,19 @@ export default function StudentInvitations() {
 
     const handleCreateInvitation = async (e) => {
         e.preventDefault();
-        setSubmitting(true);
-        try {
-            const body = {
-                type: createForm.type.toUpperCase(),
-                expiresInDays: createForm.expiresInDays,
-                maxUses: createForm.maxUses,
-                autoSend: createForm.autoSend,
-            };
-            if (createForm.type === 'email') body.recipientEmail = createForm.recipientEmail;
-            if (createForm.type === 'sms') body.recipientPhone = createForm.recipientPhone;
-            await teacherService.createInvitation(studentId, body);
-            showSuccessToast('Mã mời đã được tạo');
-            setShowCreateModal(false);
-            setCreateForm({ type: 'manual', recipientEmail: '', recipientPhone: '', expiresInDays: 7, maxUses: 1, autoSend: false });
-            loadData();
-        } catch (err) {
-            showErrorToast(err?.response?.data?.message || 'Tạo mã mời thất bại');
-        } finally {
-            setSubmitting(false);
+        if (!createForm.parentEmail?.trim()) {
+            showErrorToast('Vui lòng nhập email phụ huynh');
+            return;
         }
-    };
-
-    const handleSendInvitation = async (e) => {
-        e.preventDefault();
-        if (!showSendModal) return;
         setSubmitting(true);
         try {
-            await teacherService.sendInvitation(showSendModal.invitationId, sendForm);
-            showSuccessToast('Đã gửi mã mời qua email');
-            setShowSendModal(null);
-            setSendForm({ recipientEmail: '', language: 'vi' });
-            loadData();
+            await teacherService.createAndSendInvitation(studentId, createForm.parentEmail.trim());
+            showSuccessToast('Mã mời đã được tạo và gửi email thành công');
+            setShowCreateModal(false);
+            setCreateForm({ parentEmail: '', expiresInDays: 7, maxUses: 1 });
+            loadData(pagination.page, pagination.limit);
         } catch (err) {
-            showErrorToast(err?.response?.data?.message || 'Gửi email thất bại');
+            showErrorToast(err?.response?.data?.message || 'Tạo và gửi mã mời thất bại');
         } finally {
             setSubmitting(false);
         }
@@ -186,24 +165,19 @@ export default function StudentInvitations() {
                             {invList.map((inv) => (
                                 <tr key={inv.invitationId}>
                                     <td><code>{inv.invitationCode}</code></td>
-                                    <td>{INVITATION_TYPE_LABELS[inv.invitationType?.toLowerCase()] ?? inv.invitationType}</td>
-                                    <td>{inv.recipientEmail ?? inv.recipientPhone ?? '—'}</td>
+                                    <td>{INVITATION_TYPE_LABELS[inv.invitationType?.toLowerCase()] ?? inv.invitationType ?? '—'}</td>
+                                    <td>{inv.recipientEmail ?? '—'}</td>
                                     <td><StatusBadge status={inv.status} /></td>
                                     <td>{inv.expiresAt ? new Date(inv.expiresAt).toLocaleString('vi-VN') : '—'}</td>
-                                    <td>{inv.usedAt ? new Date(inv.usedAt).toLocaleString('vi-VN') : (inv.currentUses ?? 0) + '/' + (inv.maxUses ?? 1)}</td>
+                                    <td>{inv.usedAt ? new Date(inv.usedAt).toLocaleString('vi-VN') : ((inv.currentUses ?? 0) + '/' + (inv.maxUses ?? 1))}</td>
                                     <td>
                                         <div className="action-btns">
-                                            {inv.status === 'active' && (
-                                                <>
-                                                    <button type="button" className="btn-icon" title="Gửi email" onClick={() => setShowSendModal({ invitationId: inv.invitationId, invitationCode: inv.invitationCode })}>
-                                                        <Mail size={16} />
-                                                    </button>
-                                                    <button type="button" className="btn-icon" title="Thu hồi" onClick={() => setRevokeTarget(inv.invitationId)}>
-                                                        <RotateCcw size={16} />
-                                                    </button>
-                                                </>
+                                            {inv.status === 'ACTIVE' && (
+                                                <button type="button" className="btn-icon" title="Thu hồi" onClick={() => setRevokeTarget(inv.invitationId)}>
+                                                    <RotateCcw size={16} />
+                                                </button>
                                             )}
-                                            {inv.status === 'used' && inv.usedBy && (
+                                            {inv.status === 'USED' && inv.usedBy && (
                                                 <span className="used-by" title="Phụ huynh đã dùng">
                                                     <User size={14} /> {inv.usedBy.fullName ?? inv.usedBy.email ?? '—'}
                                                 </span>
@@ -220,6 +194,32 @@ export default function StudentInvitations() {
                             ))}
                         </tbody>
                     </table>
+                    {pagination.total > 0 && (
+                        <div className="pagination-controls">
+                            <div className="pagination-info">
+                                Hiển thị {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} / {pagination.total}
+                            </div>
+                            <div className="pagination-buttons">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-glass btn-sm" 
+                                    onClick={() => loadData(pagination.page - 1, pagination.limit)}
+                                    disabled={pagination.page <= 1 || loading}
+                                >
+                                    Trước
+                                </button>
+                                <span className="page-info">Trang {pagination.page} / {Math.ceil(pagination.total / pagination.limit) || 1}</span>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-glass btn-sm" 
+                                    onClick={() => loadData(pagination.page + 1, pagination.limit)}
+                                    disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit) || loading}
+                                >
+                                    Sau
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -230,71 +230,19 @@ export default function StudentInvitations() {
                         <h3>Tạo mã mời</h3>
                         <form onSubmit={handleCreateInvitation}>
                             <div className="form-group">
-                                <label>Loại</label>
-                                <select value={createForm.type} onChange={(e) => setCreateForm((f) => ({ ...f, type: e.target.value }))}>
-                                    <option value="manual">Thủ công</option>
-                                    <option value="email">Email</option>
-                                    <option value="sms">SMS</option>
-                                </select>
+                                <label>Email phụ huynh <span className="required">*</span></label>
+                                <input 
+                                    type="email" 
+                                    value={createForm.parentEmail} 
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, parentEmail: e.target.value }))} 
+                                    placeholder="parent@gmail.com" 
+                                    required 
+                                />
                             </div>
-                            {createForm.type === 'email' && (
-                                <div className="form-group">
-                                    <label>Email phụ huynh</label>
-                                    <input type="email" value={createForm.recipientEmail} onChange={(e) => setCreateForm((f) => ({ ...f, recipientEmail: e.target.value }))} placeholder="parent@gmail.com" />
-                                </div>
-                            )}
-                            {createForm.type === 'sms' && (
-                                <div className="form-group">
-                                    <label>Số điện thoại</label>
-                                    <input type="tel" value={createForm.recipientPhone} onChange={(e) => setCreateForm((f) => ({ ...f, recipientPhone: e.target.value }))} placeholder="0912345678" />
-                                </div>
-                            )}
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Thời hạn (ngày)</label>
-                                    <input type="number" min={1} max={365} value={createForm.expiresInDays} onChange={(e) => setCreateForm((f) => ({ ...f, expiresInDays: Number(e.target.value) || 7 }))} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Số lần dùng tối đa</label>
-                                    <input type="number" min={1} value={createForm.maxUses} onChange={(e) => setCreateForm((f) => ({ ...f, maxUses: Number(e.target.value) || 1 }))} />
-                                </div>
-                            </div>
-                            <div className="form-group checkbox-group">
-                                <label className="checkbox-label">
-                                    <input type="checkbox" checked={createForm.autoSend} onChange={(e) => setCreateForm((f) => ({ ...f, autoSend: e.target.checked }))} />
-                                    Tự động gửi email/SMS
-                                </label>
-                            </div>
+                           
                             <div className="modal-actions">
                                 <button type="button" className="btn btn-glass" onClick={() => setShowCreateModal(false)} disabled={submitting}>Hủy</button>
                                 <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Đang tạo...' : 'Tạo mã'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Send email modal */}
-            {showSendModal && (
-                <div className="modal-overlay" onClick={() => !submitting && setShowSendModal(null)}>
-                    <div className="modal glass" onClick={(e) => e.stopPropagation()}>
-                        <h3>Gửi mã mời qua email</h3>
-                        <p className="modal-note">Mã: <code>{showSendModal.invitationCode}</code></p>
-                        <form onSubmit={handleSendInvitation}>
-                            <div className="form-group">
-                                <label>Email người nhận</label>
-                                <input type="email" value={sendForm.recipientEmail} onChange={(e) => setSendForm((f) => ({ ...f, recipientEmail: e.target.value }))} placeholder="parent@gmail.com" required />
-                            </div>
-                            <div className="form-group">
-                                <label>Ngôn ngữ</label>
-                                <select value={sendForm.language} onChange={(e) => setSendForm((f) => ({ ...f, language: e.target.value }))}>
-                                    <option value="vi">Tiếng Việt</option>
-                                    <option value="en">English</option>
-                                </select>
-                            </div>
-                            <div className="modal-actions">
-                                <button type="button" className="btn btn-glass" onClick={() => setShowSendModal(null)} disabled={submitting}>Hủy</button>
-                                <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Đang gửi...' : 'Gửi'}</button>
                             </div>
                         </form>
                     </div>
@@ -362,6 +310,12 @@ export default function StudentInvitations() {
                 .log-time { color: var(--color-text-secondary); font-size: 0.85rem; }
                 .log-meta { display: block; font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.25rem; }
                 .text-muted { color: var(--color-text-secondary); font-size: 0.9rem; }
+                .pagination-controls { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-top: 1px solid var(--glass-border); }
+                .pagination-info { color: var(--color-text-secondary); font-size: 0.9rem; }
+                .pagination-buttons { display: flex; align-items: center; gap: 0.75rem; }
+                .page-info { color: var(--color-text-secondary); font-size: 0.9rem; }
+                .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+                .required { color: #dc2626; }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </div>

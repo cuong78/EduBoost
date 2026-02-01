@@ -18,7 +18,14 @@ target/
 *.iws
 *.iml
 *.ipr
+# Environment variables
+.env
+.env.*
 *.env
+*.env.local
+*.env.development
+*.env.production
+*.env.test
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

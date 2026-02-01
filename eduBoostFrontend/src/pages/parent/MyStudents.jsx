@@ -39,20 +39,7 @@ export default function MyStudents() {
         loadStudents();
     }, [filters.status, filters.sortBy, filters.order]);
 
-    const handleUnlink = async () => {
-        if (!unlinkTarget) return;
-        setUnlinking(true);
-        try {
-            await parentService.unlinkStudent(unlinkTarget);
-            showSuccessToast('Đã hủy kết nối với học sinh');
-            setUnlinkTarget(null);
-            loadStudents();
-        } catch (err) {
-            showErrorToast(err?.response?.data?.message || 'Hủy kết nối thất bại');
-        } finally {
-            setUnlinking(false);
-        }
-    };
+   
 
     const list = Array.isArray(students) ? students : [];
 
@@ -107,9 +94,7 @@ export default function MyStudents() {
                                     <Link to={`/parent/students/${s.studentId}`} className="btn btn-primary btn-sm">
                                         <User size={14} /> Chi tiết
                                     </Link>
-                                    <button type="button" className="btn btn-glass btn-sm danger" onClick={() => setUnlinkTarget(s.studentId)}>
-                                        <Unlink size={14} /> Hủy kết nối
-                                    </button>
+                                   
                                 </div>
                             </div>
                         );
@@ -117,17 +102,7 @@ export default function MyStudents() {
                 </div>
             )}
 
-            <ConfirmModal
-                open={!!unlinkTarget}
-                title="Hủy kết nối"
-                message="Bạn có chắc muốn hủy kết nối với học sinh này? Bạn có thể kết nối lại bằng mã mời mới từ giáo viên."
-                confirmLabel="Hủy kết nối"
-                cancelLabel="Đóng"
-                onConfirm={handleUnlink}
-                onCancel={() => setUnlinkTarget(null)}
-                loading={unlinking}
-                variant="danger"
-            />
+          
 
             <style>{`
                 .my-students-page { max-width: 1000px; }

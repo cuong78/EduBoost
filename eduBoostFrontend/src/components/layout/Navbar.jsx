@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown, Users } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [showParentMenu, setShowParentMenu] = useState(false);
+  const parentMenuRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -12,6 +15,23 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (parentMenuRef.current && !parentMenuRef.current.contains(event.target)) {
+        setShowParentMenu(false);
+      }
+    };
+
+    if (showParentMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showParentMenu]);
 
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
@@ -24,6 +44,27 @@ const Navbar = () => {
         <div className="nav-links">
           <Link to="/" className="nav-link">Trang chủ</Link>
           <a href="#quiz" className="nav-link">Quiz AI</a>
+          <div className="parent-menu-wrapper" ref={parentMenuRef}>
+            <button 
+              className="nav-link parent-menu-trigger"
+              onClick={() => setShowParentMenu(!showParentMenu)}
+              onMouseEnter={() => setShowParentMenu(true)}
+            >
+              <Users size={16} style={{ marginRight: '0.5rem' }} />
+              Phụ huynh
+              <ChevronDown size={14} style={{ marginLeft: '0.5rem', transition: 'transform 0.3s', transform: showParentMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+            </button>
+            {showParentMenu && (
+              <div className="parent-dropdown" onMouseLeave={() => setShowParentMenu(false)}>
+                <Link to="/parent/login" className="dropdown-item" onClick={() => setShowParentMenu(false)}>
+                  Đăng nhập
+                </Link>
+                <Link to="/parent/register" className="dropdown-item" onClick={() => setShowParentMenu(false)}>
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
           <Link to="/register" className="nav-link">Đăng ký</Link>
           <Link to="/login" className="nav-link">Đăng nhập</Link>
         </div>
@@ -111,6 +152,60 @@ const Navbar = () => {
           box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
+        .parent-menu-wrapper {
+          position: relative;
+        }
+
+        .parent-menu-trigger {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          border: none;
+          background: none;
+          font-family: inherit;
+        }
+
+        .parent-dropdown {
+          position: absolute;
+          top: calc(100% + 0.5rem);
+          left: 50%;
+          transform: translateX(-50%);
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          padding: 0.5rem;
+          min-width: 160px;
+          z-index: 1000;
+          animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+
+        .dropdown-item {
+          display: block;
+          padding: 0.75rem 1rem;
+          color: var(--color-text-primary);
+          text-decoration: none;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          font-size: 0.9rem;
+        }
+
+        .dropdown-item:hover {
+          background: rgba(99, 102, 241, 0.1);
+          color: var(--color-accent-1);
+        }
+
         @media (max-width: 968px) {
           .navbar {
             top: 0;
@@ -135,6 +230,12 @@ const Navbar = () => {
           
           .logo {
              margin: 0;
+          }
+
+          .parent-dropdown {
+            left: auto;
+            right: 0;
+            transform: none;
           }
         }
       `}</style>

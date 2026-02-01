@@ -39,7 +39,5 @@ public class CreateStudentRequest {
 
     private LocalDate enrollmentDate;
 
-    private Boolean autoCreateInvitation = false;
-
-    private InvitationOptions invitationOptions;
+    private String contact;
 }

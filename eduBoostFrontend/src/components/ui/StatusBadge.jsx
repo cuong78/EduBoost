@@ -9,8 +9,9 @@ const statusClassMap = {
 };
 
 export default function StatusBadge({ status }) {
-    const label = INVITATION_STATUS_LABELS[status] ?? status;
-    const className = statusClassMap[status?.toLowerCase()] ?? 'status-default';
+    const statusLower = status?.toLowerCase();
+    const label = INVITATION_STATUS_LABELS[statusLower] ?? status;
+    const className = statusClassMap[statusLower] ?? 'status-default';
 
     return <span className={clsx('status-badge', className)}>{label}</span>;
 }

@@ -8,7 +8,6 @@ import com.fptu.eduBoostBackend.dto.response.*;
 import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.Class;
 import com.fptu.eduBoostBackend.entities.enums.InvitationStatus;
-import com.fptu.eduBoostBackend.entities.enums.InvitationType;
 import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
@@ -19,6 +18,10 @@ import com.fptu.eduBoostBackend.service.EmailService;
 import com.fptu.eduBoostBackend.service.TeacherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,8 +46,6 @@ public class TeacherServiceImpl implements TeacherService {
     private final StudentRepository studentRepository;
     private final StudentInvitationRepository studentInvitationRepository;
     private final RoleRepository roleRepository;
-    private final EmailLogRepository emailLogRepository;
-    private final InvitationLogRepository invitationLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final Random random = new Random();
@@ -195,13 +196,15 @@ public class TeacherServiceImpl implements TeacherService {
                 .address(request.getAddress())
                 .enrollmentDate(request.getEnrollmentDate() != null ? 
                         request.getEnrollmentDate() : LocalDate.now())
+
                 .build();
         Student savedStudent = studentRepository.save(student);
         
         // Create invitation if requested
         InvitationResponse invitation = null;
-        if (Boolean.TRUE.equals(request.getAutoCreateInvitation())) {
-            invitation = createInvitation(savedStudent, teacher.getUser(), request.getInvitationOptions());
+        if (Boolean.TRUE.equals(request.getContact() != null)) {
+            invitation = createInvitation(savedStudent, teacher.getUser());
+            sendInvitation(invitation.getInvitationId(), request.getEmail());
         }
         
         // Send email with credentials
@@ -299,6 +302,141 @@ public class TeacherServiceImpl implements TeacherService {
         log.info("Student deleted: {} by teacher", studentId);
     }
 
+
+    @Override
+    @Transactional
+    public InvitationResponse createAndSendInvitation(String studentId, String parentEmail) {
+        Teacher teacher = getCurrentTeacher();
+
+        // Get student
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
+
+        // Validate teacher has access to student's class
+        if (student.getClassEntity() != null) {
+            validateTeacherHasClassAccess(student.getClassEntity());
+        } else {
+            throw new BadRequestException("Student is not assigned to any class");
+        }
+
+        // Check if there's an active invitation for this student
+        List<StudentInvitation> existingInvitations = studentInvitationRepository.findByStudentAndStatus(
+                student, InvitationStatus.ACTIVE);
+
+        StudentInvitation invitation;
+        User currentUser = teacher.getUser();
+
+        if (!existingInvitations.isEmpty()) {
+            // Use existing active invitation
+            invitation = existingInvitations.get(0);
+        } else {
+            // Create new invitation
+            String invitationCode = generateInvitationCode();
+            int expiresInDays = 30;
+
+            invitation = StudentInvitation.builder()
+                    .student(student)
+                    .invitationCode(invitationCode)
+                    .createdBy(currentUser)
+                    .expiresAt(LocalDateTime.now().plusDays(expiresInDays))
+                    .status(InvitationStatus.ACTIVE)
+                    .build();
+
+            invitation = studentInvitationRepository.save(invitation);
+
+            log.info("Invitation created: {} for student: {} by teacher: {}",
+                    invitation.getInvitationId(), studentId, teacher.getTeacherId());
+        }
+
+        // Update recipient email
+        invitation.setRecipientEmail(parentEmail);
+        studentInvitationRepository.save(invitation);
+
+        // Send invitation email
+        sendInvitationEmail(parentEmail, invitation);
+
+        log.info("Invitation sent to {} for student: {}", parentEmail, studentId);
+
+        return InvitationResponse.builder()
+                .invitationId(invitation.getInvitationId())
+                .invitationCode(invitation.getInvitationCode())
+                .expiresAt(invitation.getExpiresAt())
+                .status(invitation.getStatus())
+                .build();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentInvitationsResponse getStudentInvitations(String studentId, int page, int size) {
+        Teacher teacher = getCurrentTeacher();
+
+        // Get student
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
+
+        // Validate teacher has access to student's class
+        if (student.getClassEntity() != null) {
+            validateTeacherHasClassAccess(student.getClassEntity());
+        } else {
+            throw new BadRequestException("Student is not assigned to any class");
+        }
+
+        // Tính toán page (Spring Data JPA page bắt đầu từ 0)
+        int pageNumber = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(pageNumber, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // Lấy danh sách invitations với phân trang
+        Page<StudentInvitation> invitationsPage = studentInvitationRepository.findByStudent(student, pageable);
+
+        // Convert to response
+        List<StudentInvitationDetailResponse> invitations = invitationsPage.getContent().stream()
+                .map(this::mapToStudentInvitationDetailResponse)
+                .collect(Collectors.toList());
+
+        // Create pagination info
+        PaginationResponse pagination = PaginationResponse.builder()
+                .total(invitationsPage.getTotalElements())
+                .page(page)
+                .limit(size)
+                .build();
+
+        return StudentInvitationsResponse.builder()
+                .success(true)
+                .data(invitations)
+                .pagination(pagination)
+                .build();
+    }
+
+    private StudentInvitationDetailResponse mapToStudentInvitationDetailResponse(StudentInvitation invitation) {
+        // Determine invitation type
+        String invitationType = invitation.getRecipientEmail() != null ? "email" : "manual";
+
+        // Map parent info if used
+        ParentInfo usedBy = null;
+        if (invitation.getUsedBy() != null) {
+            User parentUser = invitation.getUsedBy().getUser();
+            usedBy = ParentInfo.builder()
+                    .parentId(invitation.getUsedBy().getParentId())
+                    .fullName(parentUser.getFullName())
+                    .email(parentUser.getEmail())
+                    .build();
+        }
+
+        return StudentInvitationDetailResponse.builder()
+                .invitationId(invitation.getInvitationId())
+                .invitationCode(invitation.getInvitationCode())
+                .invitationType(invitationType)
+                .recipientEmail(invitation.getRecipientEmail())
+                .status(invitation.getStatus())
+                .createdAt(invitation.getCreatedAt())
+                .expiresAt(invitation.getExpiresAt())
+                .usedAt(invitation.getUsedAt())
+                .usedBy(usedBy)
+                .maxUses(invitation.getMaxUses() != null ? invitation.getMaxUses() : 1)
+                .currentUses(invitation.getCurrentUses() != null ? invitation.getCurrentUses() : 0)
+                .build();
+    }
     private StudentResponse mapToStudentResponse(Student student) {
         User user = student.getUser();
         Class classEntity = student.getClassEntity();
@@ -373,20 +511,16 @@ public class TeacherServiceImpl implements TeacherService {
         return code;
     }
 
-    private InvitationResponse createInvitation(Student student, User createdBy, 
-                                                com.fptu.eduBoostBackend.dto.request.InvitationOptions options) {
-        if (options == null) {
-            options = new com.fptu.eduBoostBackend.dto.request.InvitationOptions();
-        }
+    private InvitationResponse createInvitation(Student student, User createdBy
+                                                ) {
+
         
         String invitationCode = generateInvitationCode();
-        int expiresInDays = options.getExpiresInDays() != null ? options.getExpiresInDays() : 30;
-        InvitationType type = options.getType() != null ? options.getType() : InvitationType.MANUAL;
-        
+        int expiresInDays = 30;
+
         StudentInvitation invitation = StudentInvitation.builder()
                 .student(student)
                 .invitationCode(invitationCode)
-                .invitationType(type)
                 .createdBy(createdBy)
                 .expiresAt(LocalDateTime.now().plusDays(expiresInDays))
                 .status(InvitationStatus.ACTIVE)
@@ -402,23 +536,147 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     private void sendStudentCredentialsEmail(String email, String fullName, String username, String password) {
-        String subject = "Thông tin đăng nhập tài khoản học sinh";
-        String text = String.format(
-                "Xin chào %s,\n\n" +
-                "Tài khoản học sinh của bạn đã được tạo thành công.\n\n" +
-                "Thông tin đăng nhập:\n" +
-                "Email/Username: %s\n" +
-                "Mật khẩu tạm thời: %s\n\n" +
-                "Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu.\n\n" +
-                "Trân trọng,\n" +
-                "Hệ thống EduBoost",
+        String subject = "Thông tin đăng nhập tài khoản học sinh - Hệ thống EduBoost";
+        String htmlContent = buildStudentCredentialsHtml(
                 fullName != null ? fullName : "Học sinh",
                 username,
                 password
         );
-        
-        emailService.sendEmail(email, subject, text);
+
+        emailService.sendHtmlEmail(email, subject, htmlContent);
     }
+
+    private String buildStudentCredentialsHtml(String studentName, String username, String password) {
+        // Tạo login link
+        String loginLink = "https://eduboost.edu.vn/login"; // Thay bằng URL thực tế
+
+        // Tạo thời gian hiện tại
+        String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+
+        return "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "  <meta charset=\"UTF-8\">\n" +
+                "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                "  <title>Thông tin đăng nhập tài khoản học sinh</title>\n" +
+                "  <style>\n" +
+                "    @media only screen and (max-width: 600px) {\n" +
+                "      .container { width: 100% !important; padding: 10px !important; }\n" +
+                "      .button { width: 100% !important; }\n" +
+                "    }\n" +
+                "  </style>\n" +
+                "</head>\n" +
+                "<body style=\"margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;\">\n" +
+                "  <div class=\"container\" style=\"max-width: 600px; margin: 0 auto; background-color: #ffffff;\">\n" +
+                "    <!-- Header -->\n" +
+                "    <div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;\">\n" +
+                "      <h1 style=\"margin: 0; color: white; font-size: 28px;\">🎓 EduBoost</h1>\n" +
+                "      <p style=\"margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 16px;\">Nền tảng học tập thông minh</p>\n" +
+                "    </div>\n" +
+                "    \n" +
+                "    <!-- Content -->\n" +
+                "    <div style=\"padding: 40px 30px;\">\n" +
+                "      <h2 style=\"color: #333333; margin-bottom: 25px;\">Chào mừng " + escapeHtml(studentName) + " đến với EduBoost!</h2>\n" +
+                "      \n" +
+                "      <p style=\"color: #555555; line-height: 1.6; margin-bottom: 25px;\">\n" +
+                "        Tài khoản học sinh của bạn đã được tạo thành công. \n" +
+                "        Dưới đây là thông tin đăng nhập để bạn có thể bắt đầu sử dụng hệ thống:\n" +
+                "      </p>\n" +
+                "      \n" +
+                "      <!-- Credentials Box -->\n" +
+                "      <div style=\"background: #f8f9ff; border-left: 4px solid #667eea; padding: 20px; margin: 30px 0; border-radius: 0 8px 8px 0;\">\n" +
+                "        <h3 style=\"color: #333333; margin-top: 0;\">📋 Thông tin đăng nhập</h3>\n" +
+                "        \n" +
+                "        <table style=\"width: 100%; border-collapse: collapse;\">\n" +
+                "          <tr>\n" +
+                "            <td style=\"padding: 12px 0; border-bottom: 1px solid #eaeaea; color: #666666;\">\n" +
+                "              <strong>👤 Họ tên:</strong>\n" +
+                "            </td>\n" +
+                "            <td style=\"padding: 12px 0; border-bottom: 1px solid #eaeaea; color: #333333; font-weight: 500;\">\n" +
+                "              " + escapeHtml(studentName) + "\n" +
+                "            </td>\n" +
+                "          </tr>\n" +
+                "          <tr>\n" +
+                "            <td style=\"padding: 12px 0; border-bottom: 1px solid #eaeaea; color: #666666;\">\n" +
+                "              <strong>📧 Email/Tên đăng nhập:</strong>\n" +
+                "            </td>\n" +
+                "            <td style=\"padding: 12px 0; border-bottom: 1px solid #eaeaea; color: #333333; font-weight: 500;\">\n" +
+                "              " + escapeHtml(username) + "\n" +
+                "            </td>\n" +
+                "          </tr>\n" +
+                "          <tr>\n" +
+                "            <td style=\"padding: 12px 0; color: #666666;\">\n" +
+                "              <strong>🔑 Mật khẩu tạm thời:</strong>\n" +
+                "            </td>\n" +
+                "            <td style=\"padding: 12px 0; color: #333333; font-weight: 500;\">\n" +
+                "              <span style=\"background: #fff3cd; padding: 6px 12px; border-radius: 4px; font-family: monospace; letter-spacing: 1px;\">\n" +
+                "                " + password + "\n" +
+                "              </span>\n" +
+                "            </td>\n" +
+                "          </tr>\n" +
+                "        </table>\n" +
+                "        \n" +
+                "        <div style=\"margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 6px;\">\n" +
+                "          <p style=\"margin: 0; color: #2e7d32; font-size: 14px;\">\n" +
+                "            ⚠️ <strong>Lưu ý quan trọng:</strong> Vui lòng đổi mật khẩu ngay sau khi đăng nhập lần đầu tiên.\n" +
+                "          </p>\n" +
+                "        </div>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <!-- Action Button -->\n" +
+                "      <div style=\"text-align: center; margin: 40px 0;\">\n" +
+                "        <a href=\"" + loginLink + "\" \n" +
+                "           style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); \n" +
+                "                  color: white; padding: 16px 32px; text-decoration: none; \n" +
+                "                  border-radius: 50px; font-weight: bold; font-size: 16px;\n" +
+                "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);\">\n" +
+                "          🚀 Bắt đầu đăng nhập\n" +
+                "        </a>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <!-- Instructions -->\n" +
+                "      <div style=\"background: #f9f9f9; padding: 25px; border-radius: 8px; margin-top: 30px;\">\n" +
+                "        <h4 style=\"color: #333333; margin-top: 0;\">📝 Hướng dẫn đăng nhập lần đầu:</h4>\n" +
+                "        <ol style=\"color: #555555; line-height: 1.8; padding-left: 20px; margin-bottom: 0;\">\n" +
+                "          <li>Nhấn nút <strong>\"Bắt đầu đăng nhập\"</strong> hoặc truy cập: " + loginLink + "</li>\n" +
+                "          <li>Nhập email và mật khẩu tạm thời như trên</li>\n" +
+                "          <li>Hệ thống sẽ yêu cầu bạn đổi mật khẩu mới</li>\n" +
+                "          <li>Chọn mật khẩu mạnh và dễ nhớ</li>\n" +
+                "          <li>Hoàn tất và bắt đầu học tập!</li>\n" +
+                "        </ol>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <!-- Support Info -->\n" +
+                "      <div style=\"margin-top: 40px; padding-top: 20px; border-top: 1px solid #eeeeee; text-align: center;\">\n" +
+                "        <p style=\"color: #777777; font-size: 14px; margin-bottom: 5px;\">\n" +
+                "          <strong>🆘 Cần hỗ trợ?</strong>\n" +
+                "        </p>\n" +
+                "        <p style=\"color: #777777; font-size: 14px; margin: 5px 0;\">\n" +
+                "          📧 Email: support@eduboost.edu.vn\n" +
+                "        </p>\n" +
+                "        <p style=\"color: #777777; font-size: 14px; margin: 5px 0;\">\n" +
+                "          📞 Hotline: 1900 1234\n" +
+                "        </p>\n" +
+                "        <p style=\"color: #777777; font-size: 12px; margin-top: 20px;\">\n" +
+                "          Email được gửi vào: " + currentTime + "\n" +
+                "        </p>\n" +
+                "      </div>\n" +
+                "    </div>\n" +
+                "    \n" +
+                "    <!-- Footer -->\n" +
+                "    <div style=\"background: #2c3e50; color: #ecf0f1; padding: 20px; text-align: center;\">\n" +
+                "      <p style=\"margin: 0; font-size: 14px;\">\n" +
+                "        © " + LocalDate.now().getYear() + " Hệ thống EduBoost. Tất cả các quyền được bảo lưu.\n" +
+                "      </p>\n" +
+                "      <p style=\"margin: 10px 0 0 0; font-size: 12px; color: #bdc3c7;\">\n" +
+                "        Đây là email tự động, vui lòng không trả lời email này.\n" +
+                "      </p>\n" +
+                "    </div>\n" +
+                "  </div>\n" +
+                "</body>\n" +
+                "</html>";
+    }
+
     @Override
     @Transactional
     public void sendInvitation(String invitationId, String parentEmail) {
@@ -450,22 +708,117 @@ public class TeacherServiceImpl implements TeacherService {
         log.info("Invitation {} sent to {}", invitationId, parentEmail);
     }
     private void sendInvitationEmail(String email, StudentInvitation invitation) {
+        Student student = invitation.getStudent();
+        User studentUser = student.getUser();
+        Class classEntity = student.getClassEntity();
 
-        String subject = "";
+        // Format thời gian hết hạn
+        String expiresAt = formatExpiresAt(invitation.getExpiresAt());
 
-        String text = String.format(
-                "Bạn đã được mời gia nhập lớp học EduBoost.\n\n" +
-                        "Invite Code: %s\n" +
-                        "Hết hạn vào: %s\n\n" +
-                        "Xin hãy dùng code này để kết nối vào hệ thống EduBoost.\n\n" +
-                        "Trân trọng,\n" +
-                        "Hệ thống EduBoost",
+        // Tạo register link (có thể lấy từ cấu hình hoặc frontend URL)
+        String registerLink = "https://eduboost.edu.vn/parent/register"; // Thay bằng URL thực tế
 
+        // Tạo nội dung HTML
+        String subject = "Mời kết nối tài khoản phụ huynh";
+        String htmlContent = buildInvitationHtml(
+                studentUser.getFullName() != null ? studentUser.getFullName() : "Học sinh",
+                classEntity != null ? classEntity.getClassName() : "Chưa xác định",
                 invitation.getInvitationCode(),
-                invitation.getExpiresAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                expiresAt,
+                registerLink
         );
 
-        emailService.sendEmail(email, subject, text);
+        emailService.sendHtmlEmail(email, subject, htmlContent);
     }
+
+    private String formatExpiresAt(LocalDateTime expiresAt) {
+        LocalDateTime now = LocalDateTime.now();
+        long daysBetween = java.time.Duration.between(now, expiresAt).toDays();
+
+        if (daysBetween > 0) {
+            return daysBetween + " ngày";
+        } else {
+            long hoursBetween = java.time.Duration.between(now, expiresAt).toHours();
+            if (hoursBetween > 0) {
+                return hoursBetween + " giờ";
+            } else {
+                return "Ít hơn 1 giờ";
+            }
+        }
+    }
+
+    private String buildInvitationHtml(String studentName, String className,
+                                       String invitationCode, String expiresAt,
+                                       String registerLink) {
+        return "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "  <meta charset=\"UTF-8\">\n" +
+                "  <title>Mời kết nối tài khoản phụ huynh</title>\n" +
+                "</head>\n" +
+                "<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n" +
+                "  <div style=\"background: #f8f9fa; padding: 20px;\">\n" +
+                "    <h2 style=\"color: #2c3e50;\">🎓 Hệ thống EduBoost</h2>\n" +
+                "    \n" +
+                "    <div style=\"background: white; padding: 30px; border-radius: 8px; margin-top: 20px;\">\n" +
+                "      <h3>Kính gửi Phụ huynh,</h3>\n" +
+                "      \n" +
+                "      <p>Chúng tôi xin gửi đến quý phụ huynh mã mời để kết nối tài khoản và theo dõi quá trình học tập của con em:</p>\n" +
+                "      \n" +
+                "      <div style=\"background: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0;\">\n" +
+                "        <p><strong>Thông tin học sinh:</strong></p>\n" +
+                "        <ul style=\"list-style: none; padding: 0;\">\n" +
+                "          <li>📝 Họ tên: <strong>" + escapeHtml(studentName) + "</strong></li>\n" +
+                "          <li>🏫 Lớp: <strong>" + escapeHtml(className) + "</strong></li>\n" +
+                "        </ul>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <div style=\"background: #fff3cd; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center;\">\n" +
+                "        <p style=\"margin: 0; color: #856404;\">Mã mời của bạn:</p>\n" +
+                "        <h1 style=\"margin: 10px 0; color: #856404; letter-spacing: 3px;\">" + invitationCode + "</h1>\n" +
+                "        <p style=\"margin: 0; font-size: 14px; color: #856404;\">\n" +
+                "          ⏰ Có hiệu lực trong " + expiresAt + "\n" +
+                "        </p>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <div style=\"text-align: center; margin: 30px 0;\">\n" +
+                "        <a href=\"" + registerLink + "\" \n" +
+                "           style=\"background: #007bff; color: white; padding: 15px 40px; \n" +
+                "                  text-decoration: none; border-radius: 5px; display: inline-block;\">\n" +
+                "          Đăng ký ngay\n" +
+                "        </a>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <div style=\"border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 20px;\">\n" +
+                "        <p style=\"font-size: 14px; color: #6c757d;\">\n" +
+                "          <strong>Hướng dẫn:</strong><br>\n" +
+                "          1. Truy cập link phía trên hoặc vào trang đăng ký phụ huynh<br>\n" +
+                "          2. Điền thông tin cá nhân và tạo mật khẩu<br>\n" +
+                "          3. Nhập mã mời <strong>" + invitationCode + "</strong><br>\n" +
+                "          4. Hoàn tất đăng ký\n" +
+                "        </p>\n" +
+                "      </div>\n" +
+                "    </div>\n" +
+                "    \n" +
+                "    <div style=\"text-align: center; margin-top: 20px; color: #6c757d; font-size: 12px;\">\n" +
+                "      <p>Hệ thống EduBoost - Email: support@eduboost.edu.vn</p>\n" +
+                "    </div>\n" +
+                "  </div>\n" +
+                "</body>\n" +
+                "</html>";
+    }
+
+    private String escapeHtml(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
 
 }

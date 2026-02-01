@@ -108,12 +108,7 @@ export default function StudentDetail() {
                 </dl>
             </div>
 
-            <div className="invitation-cta glass">
-                <p>Quản lý mã mời để phụ huynh kết nối với học sinh.</p>
-                <Link to={`/teacher/students/${studentId}/invitations`} className="btn btn-primary">
-                    Xem / Tạo mã mời
-                </Link>
-            </div>
+            
 
             <ConfirmModal
                 open={showDeleteModal}

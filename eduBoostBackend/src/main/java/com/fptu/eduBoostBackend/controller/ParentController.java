@@ -26,17 +26,7 @@ public class ParentController {
 
     private final ParentService parentService;
 
-        @PostMapping("/validate-invitation")
-        @Operation(
-            summary = "Validate invitation code",
-            description = "Validates an invitation code before submission. This is a public endpoint that doesn't require authentication. Returns student information if the invitation is valid, or error details if invalid."
-        )
-        public ResponseEntity<ValidateInvitationResponse> validateInvitation(
-                @Valid @RequestBody ValidateInvitationRequest request) {
-            ValidateInvitationResponse response = parentService.validateInvitation(request);
-            return ResponseEntity.ok(response);
-        }
-
+    
     @PostMapping("/link-student")
     @SecurityRequirement(name = "api")
     @PreAuthorize("hasRole('PARENT')")

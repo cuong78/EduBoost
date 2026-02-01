@@ -1,7 +1,6 @@
 package com.fptu.eduBoostBackend.entities;
 
 import com.fptu.eduBoostBackend.entities.enums.InvitationStatus;
-import com.fptu.eduBoostBackend.entities.enums.InvitationType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -30,16 +29,9 @@ public class StudentInvitation {
     @Column(name = "invitation_code", nullable = false, unique = true, length = 10)
     private String invitationCode;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "invitation_type", length = 20)
-    @Builder.Default
-    private InvitationType invitationType = InvitationType.MANUAL;
-
     @Column(name = "recipient_email", length = 255)
     private String recipientEmail;
 
-    @Column(name = "recipient_phone", length = 20)
-    private String recipientPhone;
 
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
@@ -54,6 +46,12 @@ public class StudentInvitation {
 
     @Column(name = "used_at")
     private LocalDateTime usedAt;
+
+    @Column(name = "max_uses")
+    private Integer maxUses = 1;
+
+    @Column(name = "current_uses")
+    private Integer currentUses = 0;
 
     @ManyToOne
     @JoinColumn(name = "used_by")

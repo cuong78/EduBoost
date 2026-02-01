@@ -70,14 +70,33 @@ export const teacherService = {
     deleteStudent: (studentId) =>
         useMock() ? mockResolve({}) : apiClient.delete(API.TEACHER_STUDENT(studentId)).then((res) => res.data).catch((err) => useMockOrFail(err) ? mockResolve({}) : Promise.reject(err)),
 
-    getInvitationsByStudent: (studentId, params) =>
-        withMockFallback(
+    getInvitationsByStudent: (studentId, params = {}) => {
+        const { page = 1, size = 10 } = params;
+        return withMockFallback(
             () =>
                 apiClient
-                    .get(API.TEACHER_STUDENT_INVITATIONS(studentId), { params })
-                    .then((res) => res.data?.data ?? res.data),
-            () => mockInvitations
-        ),
+                    .get(API.TEACHER_STUDENT_INVITATIONS(studentId), { params: { page, size } })
+                    .then((res) => {
+                        const response = res.data?.data ?? res.data;
+                        // Backend trả về { success, data, pagination }
+                        return response;
+                    }),
+            () => ({ success: true, data: mockInvitations, pagination: { total: mockInvitations.length, page: 1, limit: 10 } })
+        );
+    },
+
+    createAndSendInvitation: (studentId, parentEmail) => {
+        const body = { studentId, parentEmail };
+        const mockInv = {
+            invitationId: 'inv-new',
+            invitationCode: 'NEWCODE99',
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'ACTIVE',
+        };
+        return useMock()
+            ? mockResolve(mockInv)
+            : apiClient.post(API.TEACHER_INVITATION_CREATE_AND_SEND, body).then((res) => res.data?.data ?? res.data).catch((err) => useMockOrFail(err) ? mockResolve(mockInv) : Promise.reject(err));
+    },
 
     createInvitation: (studentId, body) => {
         const mockInv = {

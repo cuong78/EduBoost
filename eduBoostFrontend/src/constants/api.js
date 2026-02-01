@@ -13,6 +13,7 @@ export const API = {
     TEACHER_STUDENTS: `${BASE_URL}/teacher/students`,
     TEACHER_STUDENT: (studentId) => `${BASE_URL}/teacher/students/${studentId}`,
     TEACHER_STUDENT_INVITATIONS: (studentId) => `${BASE_URL}/teacher/students/${studentId}/invitations`,
+    TEACHER_INVITATION_CREATE_AND_SEND: `${BASE_URL}/teacher/invitations/create-and-send`,
     TEACHER_INVITATION_SEND: `${BASE_URL}/teacher/invitations/send`,
     TEACHER_INVITATION_REVOKE: (invitationId) => `${BASE_URL}/teacher/invitations/${invitationId}/revoke`,
     TEACHER_INVITATION: (invitationId) => `${BASE_URL}/teacher/invitations/${invitationId}`,

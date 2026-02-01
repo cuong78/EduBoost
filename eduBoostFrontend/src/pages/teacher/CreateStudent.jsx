@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Loader2, UserPlus, Copy, CheckCircle } from 'lucide-react';
 import { teacherService } from '../../services/teacherService';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
-import { INVITATION_TYPE, INVITATION_TYPE_LABELS } from '../../constants/invitation';
 
 const GENDER_OPTIONS = [
     { value: 'MALE', label: 'Nam' },
@@ -27,11 +26,7 @@ export default function CreateStudentPage() {
         dateOfBirth: '',
         gender: 'OTHER',
         address: '',
-        autoCreateInvitation: true,
-        invitationOptions: {
-            expiresInDays: 30,
-            type: 'MANUAL',
-        },
+        contact: '',
     });
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
@@ -56,12 +51,6 @@ export default function CreateStudentPage() {
         if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
     };
 
-    const handleInvitationOptionChange = (key, value) => {
-        setForm((prev) => ({
-            ...prev,
-            invitationOptions: { ...prev.invitationOptions, [key]: value },
-        }));
-    };
 
     const validate = () => {
         const next = {};
@@ -87,8 +76,7 @@ export default function CreateStudentPage() {
                 dateOfBirth: form.dateOfBirth || undefined,
                 gender: form.gender,
                 address: form.address?.trim() || undefined,
-                autoCreateInvitation: form.autoCreateInvitation,
-                invitationOptions: form.autoCreateInvitation ? form.invitationOptions : undefined,
+                contact: form.contact?.trim() || undefined,
             };
             if (form.password?.trim()) payload.password = form.password.trim();
             const data = await teacherService.createStudent(payload);
@@ -156,9 +144,7 @@ export default function CreateStudentPage() {
                         )}
                     </div>
                     <div className="success-actions">
-                        <Link to={`/teacher/students/${created.student?.studentId}/invitations`} className="btn btn-primary">
-                            Mã mời / Gửi email
-                        </Link>
+                       
                         <Link to={`/teacher/classes/${form.classId}/students`} className="btn btn-glass">
                             Về danh sách lớp
                         </Link>
@@ -204,28 +190,16 @@ export default function CreateStudentPage() {
                         {errors.email && <span className="error-message">{errors.email}</span>}
                     </div>
                     <div className="form-group">
-                        <label>Mật khẩu (để trống = tự sinh)</label>
+                        <label>Họ tên <span className="required">*</span></label>
                         <input
-                            name="password"
-                            type="password"
-                            value={form.password}
+                            name="fullName"
+                            value={form.fullName}
                             onChange={handleChange}
-                            placeholder="Tối thiểu 6 ký tự"
-                            className={errors.password ? 'error' : ''}
+                            placeholder="Nguyễn Văn A"
+                            className={errors.fullName ? 'error' : ''}
                         />
-                        {errors.password && <span className="error-message">{errors.password}</span>}
+                        {errors.fullName && <span className="error-message">{errors.fullName}</span>}
                     </div>
-                </div>
-                <div className="form-group">
-                    <label>Họ tên <span className="required">*</span></label>
-                    <input
-                        name="fullName"
-                        value={form.fullName}
-                        onChange={handleChange}
-                        placeholder="Nguyễn Văn A"
-                        className={errors.fullName ? 'error' : ''}
-                    />
-                    {errors.fullName && <span className="error-message">{errors.fullName}</span>}
                 </div>
                 <div className="form-row">
                     <div className="form-group">
@@ -283,45 +257,18 @@ export default function CreateStudentPage() {
                     />
                 </div>
 
-                <div className="form-group checkbox-group">
-                    <label className="checkbox-label">
-                        <input
-                            name="autoCreateInvitation"
-                            type="checkbox"
-                            checked={form.autoCreateInvitation}
-                            onChange={handleChange}
-                        />
-                        Tự động tạo mã mời
-                    </label>
+                <div className="form-group">
+                    <label>Thông Tin Phụ Huynh</label>
+                    <input
+                        name="contact"
+                        value={form.contact}
+                        onChange={handleChange}
+                        placeholder="Nhập email phụ huynh"
+                    />
                 </div>
-                {form.autoCreateInvitation && (
-                    <div className="invitation-options">
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Thời hạn mã (ngày)</label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={365}
-                                    value={form.invitationOptions.expiresInDays}
-                                    onChange={(e) => handleInvitationOptionChange('expiresInDays', Number(e.target.value) || 30)}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Loại mã mời</label>
-                                <select
-                                    value={form.invitationOptions.type}
-                                    onChange={(e) => handleInvitationOptionChange('type', e.target.value)}
-                                >
-                                    {Object.entries(INVITATION_TYPE_LABELS).map(([k, v]) => (
-                                        <option key={k} value={k.toUpperCase()}>{v}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
+
+                
                 <div className="form-actions">
                     <Link to={form.classId ? `/teacher/classes/${form.classId}/students` : '/teacher/classes'} className="btn btn-glass">
                         Hủy

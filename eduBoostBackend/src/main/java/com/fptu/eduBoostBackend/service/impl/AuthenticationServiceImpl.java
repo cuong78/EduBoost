@@ -38,8 +38,7 @@ import java.util.*;
 @Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
 
-    // Constants to avoid duplicate literals
-    private static final String MEMBER_ROLE_NOT_FOUND = "MEMBER role not found";
+
 
     @Value("${frontend.url.email.verification}")
     private String emailVerificationUrl;
@@ -133,8 +132,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return savedUser;
     }
-
-
 
     private void createVerificationToken(User user, String token) {
         VerificationToken verificationToken = new VerificationToken(token, user);

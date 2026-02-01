@@ -30,21 +30,7 @@ export default function ParentStudentDetail() {
         loadData();
     }, [studentId]);
 
-    const handleUnlink = async () => {
-        if (!studentId) return;
-        setUnlinking(true);
-        try {
-            await parentService.unlinkStudent(studentId);
-            showSuccessToast('Đã hủy kết nối');
-            setShowUnlinkModal(false);
-            setData(null);
-            window.history.back();
-        } catch (err) {
-            showErrorToast(err?.response?.data?.message || 'Hủy kết nối thất bại');
-        } finally {
-            setUnlinking(false);
-        }
-    };
+    
 
     if (loading) {
         return (
@@ -78,13 +64,7 @@ export default function ParentStudentDetail() {
                 <span>{student.fullName}</span>
             </nav>
 
-            <div className="detail-header">
-                <h2>{student.fullName}</h2>
-                <button type="button" className="btn btn-glass danger-btn" onClick={() => setShowUnlinkModal(true)}>
-                    <Unlink size={16} /> Hủy kết nối
-                </button>
-            </div>
-
+           
             <div className="detail-card glass">
                 <h3>Thông tin học sinh</h3>
                 <dl className="info-grid">
@@ -112,18 +92,7 @@ export default function ParentStudentDetail() {
                 </div>
             )}
 
-            <ConfirmModal
-                open={showUnlinkModal}
-                title="Hủy kết nối"
-                message="Bạn có chắc muốn hủy kết nối với học sinh này? Bạn có thể kết nối lại bằng mã mời mới từ giáo viên."
-                confirmLabel="Hủy kết nối"
-                cancelLabel="Đóng"
-                onConfirm={handleUnlink}
-                onCancel={() => setShowUnlinkModal(false)}
-                loading={unlinking}
-                variant="danger"
-            />
-
+           
             <style>{`
                 .parent-student-detail-page { max-width: 720px; }
                 .breadcrumb { margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--color-text-secondary); }
