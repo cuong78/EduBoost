@@ -711,13 +711,18 @@ public class TeacherServiceImpl implements TeacherService {
             studentInvitationRepository.save(invitation);
             throw new BadRequestException("Invitation has expired");
         }
+        String parentTemporaryPassword = null;
+        if (!userRepository.existsByEmail(parentEmail)) {
+            parentTemporaryPassword = createParentAccount(parentEmail);
+            log.info("Parent account created for email: {}", parentEmail);
+        }
 
         // Update recipient email
         invitation.setRecipientEmail(parentEmail);
         studentInvitationRepository.save(invitation);
 
         // Send email (no credentials since this is just resending)
-        sendInvitationEmail(parentEmail, invitation, null, null);
+        sendInvitationEmail(parentEmail, invitation, parentEmail, parentTemporaryPassword);
 
         log.info("Invitation {} sent to {}", invitationId, parentEmail);
     }
