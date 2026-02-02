@@ -1,0 +1,104 @@
+version: '3.8'
+
+# Production docker-compose file
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: eduboost-db-prod
+    environment:
+      POSTGRES_DB: ${DB_NAME:-eduboost}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - eduboost-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    # Không expose port ra ngoài trong production
+    # ports:
+    #   - "5432:5432"
+
+  # Backend Service
+  backend:
+    build:
+      context: ./eduBoostBackend
+      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME:-eduboost}/backend:latest
+    container_name: eduboost-backend-prod
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-eduboost}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
+      JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-86400000}
+      SPRING_MAIL_HOST: ${MAIL_HOST}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+      FRONTEND_URL_BASE: ${FRONTEND_URL_BASE}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - eduboost-network
+    restart: always
+    volumes:
+      - ./logs:/app/logs
+    # Không expose port, chỉ dùng qua nginx
+    # ports:
+    #   - "8080:8080"
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./eduBoostFrontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    image: ${DOCKER_USERNAME:-eduboost}/frontend:latest
+    container_name: eduboost-frontend-prod
+    depends_on:
+      - backend
+    networks:
+      - eduboost-network
+    restart: always
+    # Không expose port, chỉ dùng qua nginx
+    # ports:
+    #   - "80:80"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: eduboost-nginx-prod
+    ports:
+      - "${NGINX_PORT:-443}:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - eduboost-network
+    restart: always
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  eduboost-network:
+    driver: bridge
