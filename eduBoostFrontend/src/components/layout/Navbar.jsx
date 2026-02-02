@@ -59,9 +59,6 @@ const Navbar = () => {
                 <Link to="/parent/login" className="dropdown-item" onClick={() => setShowParentMenu(false)}>
                   Đăng nhập
                 </Link>
-                <Link to="/parent/register" className="dropdown-item" onClick={() => setShowParentMenu(false)}>
-                  Đăng ký
-                </Link>
               </div>
             )}
           </div>

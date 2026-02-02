@@ -78,13 +78,9 @@ export default function LinkStudent() {
                             >
                                 Đăng nhập
                             </Link>
-                            <Link 
-                                to="/parent/register" 
-                                state={{ from: '/parent/link', invitationCode: invitationCode || undefined }}
-                                className="btn btn-glass full-width"
-                            >
-                                Đăng ký phụ huynh
-                            </Link>
+                            <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                                Liên hệ giáo viên để được cấp tài khoản phụ huynh
+                            </p>
                         </div>
                     </div>
                 </div>

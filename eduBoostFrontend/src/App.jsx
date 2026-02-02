@@ -11,7 +11,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import RegisterMethod from './pages/RegisterMethod';
 import ParentLogin from './pages/parent/ParentLogin';
-import ParentRegister from './pages/parent/ParentRegister';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
 import ResetPassword from './pages/auth/ResetPassword';
@@ -115,7 +114,6 @@ function App() {
             <Route path="/parent/link" element={<LinkStudent />} />
             {/* Parent Authentication */}
             <Route path="/parent/login" element={<ParentLogin />} />
-            <Route path="/parent/register" element={<ParentRegister />} />
           </Route>
 
           {/* Student Dashboard Routes */}

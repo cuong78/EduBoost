@@ -18,6 +18,7 @@ import com.fptu.eduBoostBackend.service.EmailService;
 import com.fptu.eduBoostBackend.service.TeacherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,10 +47,15 @@ public class TeacherServiceImpl implements TeacherService {
     private final ClassRepository classRepository;
     private final StudentRepository studentRepository;
     private final StudentInvitationRepository studentInvitationRepository;
+    private final ParentRepository parentRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final VerificationTokenRepository verificationTokenRepository;
     private final Random random = new Random();
+
+    @Value("${frontend.url.email.verification}")
+    private String emailVerificationUrl;
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -200,7 +207,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
         Student savedStudent = studentRepository.save(student);
         
-        // Create invitation if requested
+            // Create invitation if requested
         InvitationResponse invitation = null;
         if (Boolean.TRUE.equals(request.getContact() != null)) {
             invitation = createInvitation(savedStudent, teacher.getUser());
@@ -319,6 +326,13 @@ public class TeacherServiceImpl implements TeacherService {
             throw new BadRequestException("Student is not assigned to any class");
         }
 
+        // Check if parent account exists, if not create one
+        String parentTemporaryPassword = null;
+        if (!userRepository.existsByEmail(parentEmail)) {
+            parentTemporaryPassword = createParentAccount(parentEmail);
+            log.info("Parent account created for email: {}", parentEmail);
+        }
+
         // Check if there's an active invitation for this student
         List<StudentInvitation> existingInvitations = studentInvitationRepository.findByStudentAndStatus(
                 student, InvitationStatus.ACTIVE);
@@ -352,8 +366,8 @@ public class TeacherServiceImpl implements TeacherService {
         invitation.setRecipientEmail(parentEmail);
         studentInvitationRepository.save(invitation);
 
-        // Send invitation email
-        sendInvitationEmail(parentEmail, invitation);
+        // Send invitation email with credentials if account was just created
+        sendInvitationEmail(parentEmail, invitation, parentEmail, parentTemporaryPassword);
 
         log.info("Invitation sent to {} for student: {}", parentEmail, studentId);
 
@@ -702,12 +716,12 @@ public class TeacherServiceImpl implements TeacherService {
         invitation.setRecipientEmail(parentEmail);
         studentInvitationRepository.save(invitation);
 
-        // Send email
-        sendInvitationEmail(parentEmail, invitation);
+        // Send email (no credentials since this is just resending)
+        sendInvitationEmail(parentEmail, invitation, null, null);
 
         log.info("Invitation {} sent to {}", invitationId, parentEmail);
     }
-    private void sendInvitationEmail(String email, StudentInvitation invitation) {
+    private void sendInvitationEmail(String email, StudentInvitation invitation, String username, String password) {
         Student student = invitation.getStudent();
         User studentUser = student.getUser();
         Class classEntity = student.getClassEntity();
@@ -716,16 +730,18 @@ public class TeacherServiceImpl implements TeacherService {
         String expiresAt = formatExpiresAt(invitation.getExpiresAt());
 
         // Tạo register link (có thể lấy từ cấu hình hoặc frontend URL)
-        String registerLink = "https://eduboost.edu.vn/parent/register"; // Thay bằng URL thực tế
+        String registerLink = "https://eduboost.edu.vn/parent/login"; // Thay bằng URL thực tế
 
         // Tạo nội dung HTML
-        String subject = "Mời kết nối tài khoản phụ huynh";
+        String subject = password != null ? "Thông tin tài khoản và mã mời kết nối - EduBoost" : "Mời kết nối tài khoản phụ huynh";
         String htmlContent = buildInvitationHtml(
                 studentUser.getFullName() != null ? studentUser.getFullName() : "Học sinh",
                 classEntity != null ? classEntity.getClassName() : "Chưa xác định",
                 invitation.getInvitationCode(),
                 expiresAt,
-                registerLink
+                registerLink,
+                username,
+                password
         );
 
         emailService.sendHtmlEmail(email, subject, htmlContent);
@@ -749,12 +765,46 @@ public class TeacherServiceImpl implements TeacherService {
 
     private String buildInvitationHtml(String studentName, String className,
                                        String invitationCode, String expiresAt,
-                                       String registerLink) {
+                                       String registerLink, String username, String password) {
+        // Build credentials section if password is provided
+        String credentialsSection = "";
+        if (password != null && username != null) {
+            credentialsSection = "      <div style=\"background: #f8f9ff; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;\">\n" +
+                    "        <h3 style=\"color: #333333; margin-top: 0;\">📋 Thông tin đăng nhập</h3>\n" +
+                    "        <p style=\"color: #555555; margin-bottom: 15px;\">Tài khoản của bạn đã được tạo thành công:</p>\n" +
+                    "        <table style=\"width: 100%; border-collapse: collapse;\">\n" +
+                    "          <tr>\n" +
+                    "            <td style=\"padding: 12px 0; border-bottom: 1px solid #eaeaea; color: #666666;\">\n" +
+                    "              <strong>📧 Email/Tên đăng nhập:</strong>\n" +
+                    "            </td>\n" +
+                    "            <td style=\"padding: 12px 0; border-bottom: 1px solid #eaeaea; color: #333333; font-weight: 500;\">\n" +
+                    "              " + escapeHtml(username) + "\n" +
+                    "            </td>\n" +
+                    "          </tr>\n" +
+                    "          <tr>\n" +
+                    "            <td style=\"padding: 12px 0; color: #666666;\">\n" +
+                    "              <strong>🔑 Mật khẩu tạm thời:</strong>\n" +
+                    "            </td>\n" +
+                    "            <td style=\"padding: 12px 0; color: #333333; font-weight: 500;\">\n" +
+                    "              <span style=\"background: #fff3cd; padding: 6px 12px; border-radius: 4px; font-family: monospace; letter-spacing: 1px;\">\n" +
+                    "                " + password + "\n" +
+                    "              </span>\n" +
+                    "            </td>\n" +
+                    "          </tr>\n" +
+                    "        </table>\n" +
+                    "        <div style=\"margin-top: 15px; padding: 12px; background: #e8f5e9; border-radius: 6px;\">\n" +
+                    "          <p style=\"margin: 0; color: #2e7d32; font-size: 14px;\">\n" +
+                    "            ⚠️ <strong>Lưu ý:</strong> Vui lòng đổi mật khẩu ngay sau khi đăng nhập lần đầu tiên.\n" +
+                    "          </p>\n" +
+                    "        </div>\n" +
+                    "      </div>\n";
+        }
+        
         return "<!DOCTYPE html>\n" +
                 "<html>\n" +
                 "<head>\n" +
                 "  <meta charset=\"UTF-8\">\n" +
-                "  <title>Mời kết nối tài khoản phụ huynh</title>\n" +
+                "  <title>" + (password != null ? "Thông tin tài khoản và mã mời" : "Mời kết nối tài khoản phụ huynh") + "</title>\n" +
                 "</head>\n" +
                 "<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n" +
                 "  <div style=\"background: #f8f9fa; padding: 20px;\">\n" +
@@ -763,7 +813,9 @@ public class TeacherServiceImpl implements TeacherService {
                 "    <div style=\"background: white; padding: 30px; border-radius: 8px; margin-top: 20px;\">\n" +
                 "      <h3>Kính gửi Phụ huynh,</h3>\n" +
                 "      \n" +
-                "      <p>Chúng tôi xin gửi đến quý phụ huynh mã mời để kết nối tài khoản và theo dõi quá trình học tập của con em:</p>\n" +
+                "      <p>Chúng tôi xin gửi đến quý phụ huynh " + (password != null ? "thông tin tài khoản và " : "") + "mã mời để kết nối " + (password != null ? "" : "tài khoản và ") + "theo dõi quá trình học tập của con em:</p>\n" +
+                "      \n" +
+                credentialsSection +
                 "      \n" +
                 "      <div style=\"background: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0;\">\n" +
                 "        <p><strong>Thông tin học sinh:</strong></p>\n" +
@@ -806,6 +858,56 @@ public class TeacherServiceImpl implements TeacherService {
                 "  </div>\n" +
                 "</body>\n" +
                 "</html>";
+    }
+
+    private String createParentAccount(String email) {
+        // Generate random password
+        String temporaryPassword = generatePassword();
+
+        // Get PARENT role
+        Role parentRole = roleRepository.findByName(PredefinedRole.PARENT_ROLE)
+                .orElseThrow(() -> new ResourceNotFoundException("PARENT role not found"));
+
+        // Create User
+        User user = User.builder()
+                .username(email)
+                .email(email)
+                .password(passwordEncoder.encode(temporaryPassword))
+                .fullName(email.split("@")[0]) // Use email prefix as default name
+                .status(UserStatus.ACTIVE)
+                .isVerify(false) // Parent needs to verify email
+                .build();
+        user.addRole(parentRole);
+        User savedUser = userRepository.save(user);
+
+        // Create Parent entity
+        Parent parent = Parent.builder()
+                .user(savedUser)
+                .build();
+        parentRepository.save(parent);
+
+        // Create verification token and send verification email
+        String verificationToken = UUID.randomUUID().toString();
+        createVerificationToken(savedUser, verificationToken);
+        sendParentVerificationEmail(savedUser, verificationToken);
+
+        return temporaryPassword;
+    }
+
+    private void createVerificationToken(User user, String token) {
+        VerificationToken verificationToken = new VerificationToken(token, user);
+        verificationTokenRepository.save(verificationToken);
+    }
+
+    private void sendParentVerificationEmail(User user, String token) {
+        String subject = "Xác thực tài khoản";
+        String verificationUrl = emailVerificationUrl + "?token=" + token;
+        String text = "Chào " + user.getUsername() + ",\n\n"
+                + "Vui lòng nhấp vào liên kết sau để xác thực tài khoản của bạn:\n"
+                + verificationUrl + "\n\n"
+                + "Liên kết có hiệu lực trong 24 giờ.";
+
+        emailService.sendEmail(user.getEmail(), subject, text);
     }
 
     private String escapeHtml(String input) {
