@@ -1,0 +1,14 @@
+target
+.mvn
+.idea
+*.iml
+*.iws
+*.ipr
+.env
+.env.*
+*.log
+.git
+.gitignore
+README.md
+HELP.md
+build_error.log

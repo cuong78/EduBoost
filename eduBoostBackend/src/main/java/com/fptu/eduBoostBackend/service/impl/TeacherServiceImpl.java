@@ -204,7 +204,7 @@ public class TeacherServiceImpl implements TeacherService {
         InvitationResponse invitation = null;
         if (Boolean.TRUE.equals(request.getContact() != null)) {
             invitation = createInvitation(savedStudent, teacher.getUser());
-            sendInvitation(invitation.getInvitationId(), request.getEmail());
+            sendInvitation(invitation.getInvitationId(), request.getContact());
         }
         
         // Send email with credentials
