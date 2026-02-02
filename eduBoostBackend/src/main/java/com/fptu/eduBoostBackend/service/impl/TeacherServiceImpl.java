@@ -215,13 +215,17 @@ public class TeacherServiceImpl implements TeacherService {
         InvitationResponse invitation = null;
         String invitationEmail = null;
         String parentTemporaryPassword = null;
+        StudentInvitation savedInvitation = null;
         if (Boolean.TRUE.equals(request.getContact() != null)) {
             invitation = createInvitation(savedStudent, teacher.getUser());
             invitationEmail = request.getContact();
             
+            // Load full invitation object for async email sending
+            savedInvitation = studentInvitationRepository.findById(invitation.getInvitationId()).orElseThrow();
+            
             // Check if parent account exists, if not create one
             if (!userRepository.existsByEmail(invitationEmail)) {
-                parentTemporaryPassword = createParentAccount(invitationEmail);
+                parentTemporaryPassword = createParentAccountAsync(invitationEmail);
                 log.info("Parent account created for email: {}", invitationEmail);
             }
         }
@@ -232,7 +236,9 @@ public class TeacherServiceImpl implements TeacherService {
         String finalTemporaryPassword = temporaryPassword;
         String finalInvitationEmail = invitationEmail;
         String finalParentPassword = parentTemporaryPassword;
-        InvitationResponse finalInvitation = invitation;
+        StudentInvitation finalSavedInvitation = savedInvitation;
+        String studentEmail = savedUser.getEmail();
+        String studentFullName = savedUser.getFullName();
         
         // Use Spring's @Async or CompletableFuture to send emails outside transaction
         // This prevents blocking the response
@@ -240,24 +246,22 @@ public class TeacherServiceImpl implements TeacherService {
             // Schedule async email sending
             CompletableFuture.runAsync(() -> {
                 try {
-                    sendStudentCredentialsEmail(savedUser.getEmail(), savedUser.getFullName(), 
-                            savedUser.getEmail(), finalTemporaryPassword);
+                    sendStudentCredentialsEmail(studentEmail, studentFullName, 
+                            studentEmail, finalTemporaryPassword);
                 } catch (Exception e) {
                     log.error("Failed to send student credentials email to {}: {}", 
-                            savedUser.getEmail(), e.getMessage());
+                            studentEmail, e.getMessage());
                 }
             });
         }
         
-        if (finalInvitation != null && finalInvitationEmail != null) {
+        if (finalSavedInvitation != null && finalInvitationEmail != null) {
             // Schedule async invitation sending
             CompletableFuture.runAsync(() -> {
                 try {
                     // Send invitation with parent credentials if account was just created
-                    sendInvitationEmail(finalInvitationEmail, 
-                            studentInvitationRepository.findById(finalInvitation.getInvitationId()).orElseThrow(), 
-                            finalInvitationEmail, 
-                            finalParentPassword);
+                    sendInvitationEmail(finalInvitationEmail, finalSavedInvitation, 
+                            finalInvitationEmail, finalParentPassword);
                 } catch (Exception e) {
                     log.error("Failed to send invitation to {}: {}", 
                             finalInvitationEmail, e.getMessage());
@@ -372,7 +376,7 @@ public class TeacherServiceImpl implements TeacherService {
         // Check if parent account exists, if not create one
         String parentTemporaryPassword = null;
         if (!userRepository.existsByEmail(parentEmail)) {
-            parentTemporaryPassword = createParentAccount(parentEmail);
+            parentTemporaryPassword = createParentAccountAsync(parentEmail);
             log.info("Parent account created for email: {}", parentEmail);
         }
 
@@ -407,12 +411,19 @@ public class TeacherServiceImpl implements TeacherService {
 
         // Update recipient email
         invitation.setRecipientEmail(parentEmail);
-        studentInvitationRepository.save(invitation);
+        StudentInvitation savedInvitation = studentInvitationRepository.save(invitation);
 
-        // Send invitation email with credentials if account was just created
-        sendInvitationEmail(parentEmail, invitation, parentEmail, parentTemporaryPassword);
+        // Send invitation email asynchronously with credentials if account was just created
+        String finalParentPassword = parentTemporaryPassword;
+        CompletableFuture.runAsync(() -> {
+            try {
+                sendInvitationEmail(parentEmail, savedInvitation, parentEmail, finalParentPassword);
+            } catch (Exception e) {
+                log.error("Failed to send invitation email to {}: {}", parentEmail, e.getMessage());
+            }
+        });
 
-        log.info("Invitation sent to {} for student: {}", parentEmail, studentId);
+        log.info("Invitation scheduled to send to {} for student: {}", parentEmail, studentId);
 
         return InvitationResponse.builder()
                 .invitationId(invitation.getInvitationId())
@@ -933,6 +944,52 @@ public class TeacherServiceImpl implements TeacherService {
         String verificationToken = UUID.randomUUID().toString();
         createVerificationToken(savedUser, verificationToken);
         sendParentVerificationEmail(savedUser, verificationToken);
+
+        return temporaryPassword;
+    }
+
+    private String createParentAccountAsync(String email) {
+        // Generate random password
+        String temporaryPassword = generatePassword();
+        
+        // Pre-encode password outside transaction to save time
+        String encodedPassword = passwordEncoder.encode(temporaryPassword);
+
+        // Get PARENT role
+        Role parentRole = roleRepository.findByName(PredefinedRole.PARENT_ROLE)
+                .orElseThrow(() -> new ResourceNotFoundException("PARENT role not found"));
+
+        // Create User
+        User user = User.builder()
+                .username(email)
+                .email(email)
+                .password(encodedPassword)
+                .fullName(email.split("@")[0]) // Use email prefix as default name
+                .status(UserStatus.ACTIVE)
+                .isVerify(false) // Parent needs to verify email
+                .build();
+        user.addRole(parentRole);
+        User savedUser = userRepository.save(user);
+
+        // Create Parent entity
+        Parent parent = Parent.builder()
+                .user(savedUser)
+                .build();
+        parentRepository.save(parent);
+
+        // Create verification token
+        String verificationToken = UUID.randomUUID().toString();
+        createVerificationToken(savedUser, verificationToken);
+        
+        // Send verification email asynchronously
+        String username = savedUser.getUsername();
+        CompletableFuture.runAsync(() -> {
+            try {
+                sendParentVerificationEmail(savedUser, verificationToken);
+            } catch (Exception e) {
+                log.error("Failed to send verification email to {}: {}", username, e.getMessage());
+            }
+        });
 
         return temporaryPassword;
     }
