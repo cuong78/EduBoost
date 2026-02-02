@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Loader2, User, Unlink } from 'lucide-react';
+import { Users, Loader2, User, Unlink, UserPlus } from 'lucide-react';
 import { parentService } from '../../services/parentService';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -50,6 +50,9 @@ export default function MyStudents() {
                     <h2>Con của tôi</h2>
                     <p>Danh sách học sinh đã kết nối</p>
                 </div>
+                <Link to="/parent/link" className="btn btn-primary">
+                    <UserPlus size={18} /> Thêm học sinh
+                </Link>
             </div>
 
             {loading ? (
@@ -106,7 +109,7 @@ export default function MyStudents() {
 
             <style>{`
                 .my-students-page { max-width: 1000px; }
-                .page-header { margin-bottom: 2rem; }
+                .page-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
                 .page-header h2 { margin-bottom: 0.25rem; }
                 .page-header p { color: var(--color-text-secondary); font-size: 0.95rem; }
                 .students-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
