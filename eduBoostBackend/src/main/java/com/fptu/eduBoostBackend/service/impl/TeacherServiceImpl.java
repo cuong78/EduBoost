@@ -35,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -173,15 +174,21 @@ public class TeacherServiceImpl implements TeacherService {
             password = temporaryPassword;
         }
         
+        // Pre-encode password before transaction to save time
+        String encodedPassword = passwordEncoder.encode(password);
+        
         // Get STUDENT role
         Role studentRole = roleRepository.findByName(PredefinedRole.STUDENT_ROLE)
                 .orElseThrow(() -> new ResourceNotFoundException("STUDENT role not found"));
+        
+        // Generate student code before creating user
+        String studentCode = generateStudentCode();
         
         // Create User
         User user = User.builder()
                 .username(request.getEmail()) // Use email as username
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(password))
+                .password(encodedPassword)
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
                 .status(UserStatus.ACTIVE)
@@ -189,9 +196,6 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
         user.addRole(studentRole);
         User savedUser = userRepository.save(user);
-        
-        // Generate student code
-        String studentCode = generateStudentCode();
         
         // Create Student
         Student student = Student.builder()
@@ -207,20 +211,59 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
         Student savedStudent = studentRepository.save(student);
         
-            // Create invitation if requested
+        // Create invitation if requested (without sending email yet)
         InvitationResponse invitation = null;
+        String invitationEmail = null;
+        String parentTemporaryPassword = null;
         if (Boolean.TRUE.equals(request.getContact() != null)) {
             invitation = createInvitation(savedStudent, teacher.getUser());
-            sendInvitation(invitation.getInvitationId(), request.getContact());
-        }
-        
-        // Send email with credentials
-        if (temporaryPassword != null) {
-            sendStudentCredentialsEmail(savedUser.getEmail(), savedUser.getFullName(), 
-                    savedUser.getEmail(), temporaryPassword);
+            invitationEmail = request.getContact();
+            
+            // Check if parent account exists, if not create one
+            if (!userRepository.existsByEmail(invitationEmail)) {
+                parentTemporaryPassword = createParentAccount(invitationEmail);
+                log.info("Parent account created for email: {}", invitationEmail);
+            }
         }
         
         log.info("Student created: {} by teacher: {}", savedStudent.getStudentId(), teacher.getTeacherId());
+        
+        // Send emails asynchronously after transaction completes
+        String finalTemporaryPassword = temporaryPassword;
+        String finalInvitationEmail = invitationEmail;
+        String finalParentPassword = parentTemporaryPassword;
+        InvitationResponse finalInvitation = invitation;
+        
+        // Use Spring's @Async or CompletableFuture to send emails outside transaction
+        // This prevents blocking the response
+        if (finalTemporaryPassword != null) {
+            // Schedule async email sending
+            CompletableFuture.runAsync(() -> {
+                try {
+                    sendStudentCredentialsEmail(savedUser.getEmail(), savedUser.getFullName(), 
+                            savedUser.getEmail(), finalTemporaryPassword);
+                } catch (Exception e) {
+                    log.error("Failed to send student credentials email to {}: {}", 
+                            savedUser.getEmail(), e.getMessage());
+                }
+            });
+        }
+        
+        if (finalInvitation != null && finalInvitationEmail != null) {
+            // Schedule async invitation sending
+            CompletableFuture.runAsync(() -> {
+                try {
+                    // Send invitation with parent credentials if account was just created
+                    sendInvitationEmail(finalInvitationEmail, 
+                            studentInvitationRepository.findById(finalInvitation.getInvitationId()).orElseThrow(), 
+                            finalInvitationEmail, 
+                            finalParentPassword);
+                } catch (Exception e) {
+                    log.error("Failed to send invitation to {}: {}", 
+                            finalInvitationEmail, e.getMessage());
+                }
+            });
+        }
         
         return CreateStudentResponse.builder()
                 .student(mapToStudentResponse(savedStudent))
@@ -711,18 +754,13 @@ public class TeacherServiceImpl implements TeacherService {
             studentInvitationRepository.save(invitation);
             throw new BadRequestException("Invitation has expired");
         }
-        String parentTemporaryPassword = null;
-        if (!userRepository.existsByEmail(parentEmail)) {
-            parentTemporaryPassword = createParentAccount(parentEmail);
-            log.info("Parent account created for email: {}", parentEmail);
-        }
 
         // Update recipient email
         invitation.setRecipientEmail(parentEmail);
         studentInvitationRepository.save(invitation);
 
         // Send email (no credentials since this is just resending)
-        sendInvitationEmail(parentEmail, invitation, parentEmail, parentTemporaryPassword);
+        sendInvitationEmail(parentEmail, invitation, null, null);
 
         log.info("Invitation {} sent to {}", invitationId, parentEmail);
     }
