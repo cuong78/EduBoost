@@ -60,13 +60,13 @@ public class TeacherBatchServiceImpl implements TeacherBatchService {
     // Headers for the template
     private static final String[] HEADERS = {
             "Email*",
-            "Full Name*",
-            "Phone",
-            "Date of Birth (MM/DD/YYYY)",
-            "Gender*",
-            "Address",
-            "Enrollment Date (MM/DD/YYYY)",
-            "Parent Email (Contact)"
+            "Họ và tên*",
+            "Số điện thoại",
+            "Ngày sinh",
+            "Giới tính*",
+            "Địa chỉ",
+            "Ngày nhập học",
+            "Email phụ huynh"
     };
 
     private Teacher getCurrentTeacher() {
