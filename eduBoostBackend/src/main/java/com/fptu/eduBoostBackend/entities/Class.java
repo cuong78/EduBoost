@@ -28,6 +28,9 @@ public class Class {
     @Column(name = "class_code", nullable = false, unique = true, length = 50)
     private String classCode;
 
+    @Column(name = "grade_level", nullable = false, unique = true, length = 50)
+    private String gradeLevel;
+
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
     private Teacher teacher;
