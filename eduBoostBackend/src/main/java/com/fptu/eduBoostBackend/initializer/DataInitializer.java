@@ -50,7 +50,7 @@ public class DataInitializer implements CommandLineRunner {
     private final LessonRepository lessonRepository;
     private final LessonResourceRepository lessonResourceRepository;
     private final PasswordEncoder passwordEncoder;
-    
+
     @Override
     public void run(String... args) throws Exception {
         if (userRepository.count() > 0) {
@@ -450,8 +450,8 @@ public class DataInitializer implements CommandLineRunner {
         createStudent("student10", "student10@eduboost.com", "0945678910", "Do Thi Thao", "S010", class10A2, studentRole, LocalDate.of(2008, 2, 8), Gender.FEMALE);
     }
 
-    private void createStudent(String username, String email, String phone, String fullName, 
-                               String studentCode, com.fptu.eduBoostBackend.entities.Class classEntity, 
+    private void createStudent(String username, String email, String phone, String fullName,
+                               String studentCode, com.fptu.eduBoostBackend.entities.Class classEntity,
                                Role studentRole, LocalDate dateOfBirth, Gender gender) {
         User studentUser = User.builder()
                 .username(username)
