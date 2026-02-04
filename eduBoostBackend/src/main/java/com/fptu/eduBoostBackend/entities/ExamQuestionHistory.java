@@ -22,7 +22,7 @@ public class ExamQuestionHistory {
     @JoinColumn(name = "exam_question_id", nullable = false)
     private ExamQuestion examQuestion;
 
-    @Column(name = "old_question_text", columnDefinition = "LONGTEXT")
+    @Column(name = "old_question_text", columnDefinition = "TEXT")
     private String oldQuestionText;
 
     @Column(name = "old_correct_answer", columnDefinition = "TEXT")
@@ -31,7 +31,7 @@ public class ExamQuestionHistory {
     @Column(name = "old_explanation", columnDefinition = "TEXT")
     private String oldExplanation;
 
-    @Column(name = "new_question_text", columnDefinition = "LONGTEXT")
+    @Column(name = "new_question_text", columnDefinition = "TEXT")
     private String newQuestionText;
 
     @Column(name = "new_correct_answer", columnDefinition = "TEXT")

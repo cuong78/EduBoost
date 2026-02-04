@@ -96,6 +96,7 @@ public class TeacherServiceImpl implements TeacherService {
                     .classId(classEntity.getClassId())
                     .className(classEntity.getClassName())
                     .classCode(classEntity.getClassCode())
+                    .gradeLevel(classEntity.getGradeLevel())
                     .teacherId(teacher.getTeacherId())
                     .teacherName(teacher.getUser().getFullName() != null ? 
                             teacher.getUser().getFullName() : teacher.getUser().getUsername())
@@ -120,6 +121,7 @@ public class TeacherServiceImpl implements TeacherService {
         Class newClass = Class.builder()
                 .className(request.getClassName())
                 .classCode(request.getClassCode())
+                .gradeLevel(request.getGradeLevel())
                 .teacher(teacher)
                 .schoolYear(request.getSchoolYear())
                 .description(request.getDescription())
@@ -133,6 +135,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .classId(savedClass.getClassId())
                 .className(savedClass.getClassName())
                 .classCode(savedClass.getClassCode())
+                .gradeLevel(savedClass.getGradeLevel())
                 .teacherId(teacher.getTeacherId())
                 .teacherName(teacher.getUser().getFullName() != null ? 
                         teacher.getUser().getFullName() : teacher.getUser().getUsername())

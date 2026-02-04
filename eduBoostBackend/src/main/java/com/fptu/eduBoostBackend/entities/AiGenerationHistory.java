@@ -28,10 +28,10 @@ public class AiGenerationHistory {
     @JoinColumn(name = "resource_id")
     private LessonResource resource;
 
-    @Column(name = "prompt_text", columnDefinition = "LONGTEXT")
+    @Column(name = "prompt_text", columnDefinition = "TEXT")
     private String promptText;
 
-    @Column(name = "response_text", columnDefinition = "LONGTEXT")
+    @Column(name = "response_text", columnDefinition = "TEXT")
     private String responseText;
 
     @Enumerated(EnumType.STRING)

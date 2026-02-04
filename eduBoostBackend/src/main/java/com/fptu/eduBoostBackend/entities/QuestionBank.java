@@ -26,7 +26,8 @@ public class QuestionBank {
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
-    @Column(name = "question_text", columnDefinition = "LONGTEXT", nullable = false)
+    @Lob
+    @Column(nullable = false)
     private String questionText;
 
     @Column(name = "correct_answer", columnDefinition = "TEXT", nullable = false)

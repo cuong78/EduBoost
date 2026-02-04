@@ -17,6 +17,7 @@ public class ClassResponse {
     private String classId;
     private String className;
     private String classCode;
+    private String gradeLevel;
     private String teacherId;
     private String teacherName;
     private String schoolYear;
