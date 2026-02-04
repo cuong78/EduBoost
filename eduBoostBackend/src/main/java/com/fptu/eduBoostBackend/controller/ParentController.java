@@ -1,10 +1,8 @@
 package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.request.LinkStudentRequest;
-import com.fptu.eduBoostBackend.dto.request.ValidateInvitationRequest;
 import com.fptu.eduBoostBackend.dto.response.LinkStudentResponse;
 import com.fptu.eduBoostBackend.dto.response.ParentStudentDetailResponse;
-import com.fptu.eduBoostBackend.dto.response.ValidateInvitationResponse;
 import com.fptu.eduBoostBackend.service.ParentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

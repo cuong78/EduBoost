@@ -32,10 +32,10 @@
            ├─► CÁCH 1: Nhập thủ công
            │   └─► Form tạo câu hỏi + đáp án đúng
            │
-           ├─► CÁCH 2: Import từ Excel/CSV
+           ├─► CÁCH 2: Import từ excel/pdf 
            │   └─► Template có sẵn
            │
-           ├─► CÁCH 3: AI tự sinh từ tài nguyên
+           ├─► CÁCH 3: AI tự sinh từ tài nguyên,
            │   ├─► Chọn bài học + tài nguyên
            │   ├─► Cấu hình: số câu, mức độ, độ khó
            │   ├─► AI đọc nội dung → Tạo câu hỏi
@@ -44,7 +44,7 @@
            └─► CÁCH 4: AI sinh dựa trên câu có sẵn
                ├─► Chọn câu hỏi mẫu
                ├─► AI tạo biến thể (variation)
-               └─► Lưu vào ngân hàng
+               └─► Lưu vào ngân hàng  
            │
            ▼
 ┌──────────────────────────────────────────────────────────┐
@@ -169,7 +169,7 @@ POST   /api/lessons/{lessonId}/resources // Upload tài nguyên (PDF, DOCX, URL)
 GET    /api/resources/{id}          // Chi tiết tài nguyên
 GET    /api/resources/{id}/download // Download file
 DELETE /api/resources/{id}          // Xóa tài nguyên
-POST   /api/resources/{id}/extract  // Extract nội dung từ file
+
 
 
 
@@ -204,9 +204,7 @@ DELETE /api/question-bank/{id}      // Xóa câu hỏi
 PUT    /api/question-bank/{id}/verify  // Verify câu hỏi (giáo viên senior)
 
 // Import/Export
-POST   /api/question-bank/import    // Import từ Excel/CSV
-GET    /api/question-bank/export ?lessonId=1&format=EXCEL
-    // Export ra Excel 
+POST   /api/question-bank/import    // Import từ Excel
 
 GET    /api/question-bank/template  // Download template Excel
 
@@ -285,7 +283,6 @@ Response: {
     "Đáp án sai 3"
   ]
 }
-
 ghi chú: {API độc lập, không liên quan đến đề thi cụ thể
 Dùng khi giáo viên đang tạo/sửa câu hỏi trong ngân hàng
 Hoặc khi cần preview/test đáp án sai  (không lưu xuống database)

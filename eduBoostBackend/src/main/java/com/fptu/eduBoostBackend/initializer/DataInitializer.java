@@ -23,8 +23,10 @@ import com.fptu.eduBoostBackend.entities.User;
 import com.fptu.eduBoostBackend.entities.enums.Gender;
 import com.fptu.eduBoostBackend.entities.enums.LessonResourceType;
 import com.fptu.eduBoostBackend.entities.enums.StudentStatus;
+import com.fptu.eduBoostBackend.entities.CognitiveLevel;
 import com.fptu.eduBoostBackend.repositories.ChapterRepository;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
+import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.LessonResourceRepository;
 import com.fptu.eduBoostBackend.repositories.ParentRepository;
@@ -49,6 +51,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ChapterRepository chapterRepository;
     private final LessonRepository lessonRepository;
     private final LessonResourceRepository lessonResourceRepository;
+    private final CognitiveLevelRepository cognitiveLevelRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -59,8 +62,47 @@ public class DataInitializer implements CommandLineRunner {
         initializeRoles();
         initializeUsers();
         initializeSubjects();
+        initializeCognitiveLevels();
         initializeChaptersAndLessons();
         initializeClasses();
+    }
+
+    /**
+     * Khởi tạo các mức độ nhận thức theo chuẩn giáo dục Việt Nam
+     * 4 mức độ: Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao
+     */
+    private void initializeCognitiveLevels() {
+        // Mức 1: Nhận biết
+        CognitiveLevel level1 = CognitiveLevel.builder()
+                .level("Nhận biết")
+                .description("Học sinh nhận ra, nhớ lại các khái niệm, định nghĩa, công thức, định lý đã học. Yêu cầu tái hiện kiến thức.")
+                .displayOrder(1)
+                .build();
+        cognitiveLevelRepository.save(level1);
+
+        // Mức 2: Thông hiểu
+        CognitiveLevel level2 = CognitiveLevel.builder()
+                .level("Thông hiểu")
+                .description("Học sinh hiểu được ý nghĩa, giải thích, diễn đạt lại kiến thức bằng ngôn ngữ của mình. Có thể suy luận đơn giản.")
+                .displayOrder(2)
+                .build();
+        cognitiveLevelRepository.save(level2);
+
+        // Mức 3: Vận dụng
+        CognitiveLevel level3 = CognitiveLevel.builder()
+                .level("Vận dụng")
+                .description("Học sinh áp dụng kiến thức để giải quyết các bài tập, tình huống quen thuộc hoặc tương tự.")
+                .displayOrder(3)
+                .build();
+        cognitiveLevelRepository.save(level3);
+
+        // Mức 4: Vận dụng cao
+        CognitiveLevel level4 = CognitiveLevel.builder()
+                .level("Vận dụng cao")
+                .description("Học sinh vận dụng kiến thức để giải quyết vấn đề mới, tình huống phức tạp, có tính sáng tạo và tổng hợp.")
+                .displayOrder(4)
+                .build();
+        cognitiveLevelRepository.save(level4);
     }
 
 

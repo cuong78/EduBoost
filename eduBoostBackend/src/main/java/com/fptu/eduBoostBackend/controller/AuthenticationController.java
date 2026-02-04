@@ -222,15 +222,7 @@ public class AuthenticationController {
         }
     }
 
-    /**
-     * Auto-login endpoint using one-time token.
-     *
-     * Lưu ý:
-     * - Email hiện tại đang gửi link dạng: GET https://.../api/auth/auto-login?token=xxx
-     * - Frontend cũng có thể gọi POST cùng endpoint này.
-     *
-     * Vì vậy endpoint này chấp nhận cả GET và POST để tránh lỗi 403/405 khi user click link trong email.
-     */
+   
     @org.springframework.web.bind.annotation.RequestMapping(
             value = "/auto-login",
             method = {org.springframework.web.bind.annotation.RequestMethod.GET,

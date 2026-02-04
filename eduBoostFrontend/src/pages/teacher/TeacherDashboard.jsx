@@ -41,7 +41,7 @@ const TeacherDashboard = () => {
                     <h1 className="page-title">Bảng điều khiển Giáo viên</h1>
                     <p className="page-subtitle">Chào mừng trở lại, Cô Lan! Dưới đây là hoạt động hôm nay.</p>
                 </div>
-                <Link to="/teacher/create-quiz" className="btn btn-primary create-quiz-btn">
+                <Link to="/teacher/create-question" className="btn btn-primary create-quiz-btn">
                     + Tạo bài kiểm tra mới
                 </Link>
             </div>
