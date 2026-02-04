@@ -130,14 +130,5 @@ public class LessonResourceController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/resources/{id}/extract")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Extract content from resource",
-            description = "Extracts text content from a resource (PDF/DOCX/TEXT) (Admin only)")
-    public ResponseEntity<String> extractContent(
-            @Parameter(description = "Resource ID", required = true)
-            @PathVariable Long id) {
-        String extractedContent = lessonResourceService.extractContent(id);
-        return ResponseEntity.ok(extractedContent);
-    }
+
 }

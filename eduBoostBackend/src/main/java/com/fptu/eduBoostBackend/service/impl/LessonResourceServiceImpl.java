@@ -198,36 +198,6 @@ public class LessonResourceServiceImpl implements LessonResourceService {
         log.info("Resource deleted successfully with id: {}", id);
     }
 
-    @Override
-    @Transactional
-    public String extractContent(Long id) {
-        log.info("Extracting content from resource with id: {}", id);
-
-        LessonResource resource = lessonResourceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
-
-        // If content already extracted, return it
-        if (resource.getExtractedContent() != null && !resource.getExtractedContent().trim().isEmpty()) {
-            return resource.getExtractedContent();
-        }
-
-        // Only extract from PDF/DOCX/TEXT resources
-        if (resource.getResourceType() != PDF &&
-                resource.getResourceType() != DOCX &&
-                resource.getResourceType() != LessonResourceType.TEXT) {
-            throw new BadRequestException("Content extraction not supported for " +
-                    resource.getResourceType() + " resources");
-        }
-
-        String extractedContent = "Content extraction not implemented yet. " +
-                "Consider using Apache Tika or PDFBox for PDF/DOCX extraction.";
-
-        // For now, just save the placeholder
-        resource.setExtractedContent(extractedContent);
-        lessonResourceRepository.save(resource);
-
-        return extractedContent;
-    }
 
     private void validateResourceRequest(LessonResourceRequest request, MultipartFile file) {
         switch (request.getResourceType()) {
