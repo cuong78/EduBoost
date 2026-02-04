@@ -15,7 +15,11 @@ COPY . .
 
 # Build arguments for environment variables
 ARG VITE_API_URL=http://localhost:8080/api
+ARG VITE_GOOGLE_CLIENT_ID
+
+# Expose build-time env vars to Vite
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 # Build application
 RUN npm run build
