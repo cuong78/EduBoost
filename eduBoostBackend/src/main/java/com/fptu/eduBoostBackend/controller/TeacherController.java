@@ -3,6 +3,10 @@ package com.fptu.eduBoostBackend.controller;
 import com.fptu.eduBoostBackend.constant.ResponseObject;
 import com.fptu.eduBoostBackend.dto.request.*;
 import com.fptu.eduBoostBackend.dto.response.*;
+
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
+import com.fptu.eduBoostBackend.service.TeacherBatchService;
 import com.fptu.eduBoostBackend.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -10,13 +14,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 
 import java.util.List;
-
+@Slf4j
 @RestController
 @RequestMapping("/api/teacher")
 @RequiredArgsConstructor
@@ -24,6 +31,8 @@ import java.util.List;
 @Tag(name = "Teacher", description = "Teacher management APIs - Quản lý lớp học và học sinh")
 public class TeacherController {
 
+
+    private final TeacherBatchService teacherBatchService;
     private final TeacherService teacherService;
 
     @GetMapping("/classes")
@@ -144,6 +153,101 @@ public class TeacherController {
                         "Lấy danh sách mã mời thành công",
                         response));
     }
+    @GetMapping("/students/template/download")
+    @Operation(
+            summary = "Download student import template",
+            description = "Tải xuống template Excel để nhập danh sách học sinh"
+    )
+    public ResponseEntity<byte[]> downloadStudentImportTemplate() {
+        try {
+            TemplateDownloadResponse response = teacherBatchService.downloadTemplate();
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(response.getContentType()));
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename(response.getFileName())
+                    .build());
+            headers.setContentLength(response.getSize());
 
+            return new ResponseEntity<>(response.getContent(), headers, HttpStatus.OK);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate template", e);
+        }
+    }
+
+    @PostMapping(value = "/students/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Import students from Excel",
+            description = "Nhập danh sách học sinh từ file Excel. File phải theo đúng template."
+    )
+    public ResponseEntity<ResponseObject> importStudents(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("classId") @NotBlank String classId) {
+
+        try {
+            // Validate file BEFORE calling service (outside transaction)
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseObject(
+                                HttpStatus.BAD_REQUEST.value(),
+                                "File không được để trống",
+                                null));
+            }
+
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || !fileName.toLowerCase().endsWith(".xlsx")) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseObject(
+                                HttpStatus.BAD_REQUEST.value(),
+                                "Chỉ hỗ trợ file .xlsx",
+                                null));
+            }
+
+            if (file.getSize() > 10 * 1024 * 1024) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseObject(
+                                HttpStatus.BAD_REQUEST.value(),
+                                "Kích thước file phải nhỏ hơn 10MB",
+                                null));
+            }
+
+            // Create request object
+            BatchImportStudentRequest request = BatchImportStudentRequest.builder()
+                    .classId(classId)
+                    .build();
+
+            // Call service
+            BatchImportStudentResponse response = teacherBatchService.importStudents(file, request);
+
+            String message = String.format("Nhập danh sách học sinh thành công: %d thành công, %d thất bại",
+                    response.getSuccessfulImports(), response.getFailedImports());
+
+            return ResponseEntity.ok()
+                    .body(new ResponseObject(
+                            HttpStatus.OK.value(),
+                            message,
+                            response));
+        } catch (BadRequestException e) {
+            // Handle validation errors
+            return ResponseEntity.badRequest()
+                    .body(new ResponseObject(
+                            HttpStatus.BAD_REQUEST.value(),
+                            e.getMessage(),
+                            null));
+        } catch (ForbiddenException e) {
+            // Handle access denied
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ResponseObject(
+                            HttpStatus.FORBIDDEN.value(),
+                            e.getMessage(),
+                            null));
+        } catch (Exception e) {
+                log.error("Lỗi khi nhập danh sách học sinh: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseObject(
+                            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "Lỗi hệ thống: " + e.getMessage(),
+                            null));
+        }
+    }
 }

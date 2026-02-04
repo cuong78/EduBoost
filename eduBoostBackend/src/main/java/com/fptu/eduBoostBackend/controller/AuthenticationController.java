@@ -25,6 +25,7 @@ import com.fptu.eduBoostBackend.dto.request.TokenRefreshRequest;
 import com.fptu.eduBoostBackend.dto.request.UserRegistrationRequest;
 import com.fptu.eduBoostBackend.dto.response.TokenRefreshResponse;
 import com.fptu.eduBoostBackend.dto.response.UserResponse;
+import com.fptu.eduBoostBackend.entities.RefreshToken;
 import com.fptu.eduBoostBackend.entities.User;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
@@ -34,7 +35,9 @@ import com.fptu.eduBoostBackend.exception.exceptions.NotFoundException;
 import com.fptu.eduBoostBackend.exception.exceptions.TokenRefreshException;
 import com.fptu.eduBoostBackend.service.AuthenticationService;
 import com.fptu.eduBoostBackend.service.EmailService;
+import com.fptu.eduBoostBackend.service.OneTimeLoginTokenService;
 import com.fptu.eduBoostBackend.service.RefreshTokenService;
+import com.fptu.eduBoostBackend.service.TokenService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.transaction.Transactional;
@@ -53,6 +56,8 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private final OneTimeLoginTokenService oneTimeLoginTokenService;
+    private final TokenService tokenService;
 
     @Value("${frontend.url.base}")
     private String frontendUrl;
@@ -214,6 +219,36 @@ public class AuthenticationController {
             throw e;
         } catch (Exception e) {
             throw new BadRequestException("Google login failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Auto-login endpoint using one-time token
+     * Token được gửi qua email khi tạo tài khoản mới
+     * Frontend sẽ gọi endpoint này với token, nhận JWT và tự động đăng nhập
+     */
+    @PostMapping("/auto-login")
+    public ResponseEntity<ResponseObject> autoLogin(@RequestParam String token) {
+        try {
+            // Validate và sử dụng one-time token
+            User user = oneTimeLoginTokenService.validateAndUseToken(token);
+            
+            // Generate JWT token cho user
+            String jwtToken = tokenService.generateToken(user);
+            
+            // Tạo refresh token
+            RefreshToken refreshTokenEntity = refreshTokenService.createRefreshToken(user);
+            
+            // Build UserResponse (chỉ có token và refreshToken)
+            UserResponse userResponse = UserResponse.builder()
+                    .token(jwtToken)
+                    .refreshToken(refreshTokenEntity.getToken())
+                    .build();
+            
+            return ResponseEntity.ok()
+                    .body(new ResponseObject(HttpStatus.OK.value(), "Auto-login successful", userResponse));
+        } catch (RuntimeException e) {
+            throw new BadRequestException(e.getMessage(), e);
         }
     }
 }

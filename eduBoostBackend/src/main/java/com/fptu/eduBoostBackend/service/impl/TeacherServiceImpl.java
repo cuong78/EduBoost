@@ -1,9 +1,7 @@
 package com.fptu.eduBoostBackend.service.impl;
 
 import com.fptu.eduBoostBackend.constant.PredefinedRole;
-import com.fptu.eduBoostBackend.dto.request.CreateClassRequest;
-import com.fptu.eduBoostBackend.dto.request.CreateStudentRequest;
-import com.fptu.eduBoostBackend.dto.request.UpdateStudentRequest;
+import com.fptu.eduBoostBackend.dto.request.*;
 import com.fptu.eduBoostBackend.dto.response.*;
 import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.Class;
@@ -15,6 +13,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.*;
 import com.fptu.eduBoostBackend.service.EmailService;
+import com.fptu.eduBoostBackend.service.OneTimeLoginTokenService;
 import com.fptu.eduBoostBackend.service.TeacherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,10 +52,17 @@ public class TeacherServiceImpl implements TeacherService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final VerificationTokenRepository verificationTokenRepository;
+    private final OneTimeLoginTokenService oneTimeLoginTokenService;
     private final Random random = new Random();
 
     @Value("${frontend.url.email.verification}")
     private String emailVerificationUrl;
+
+    @Value("${frontend.url.student.login}")
+    private String studentLoginUrl;
+
+    @Value("${frontend.url.parent.login}")
+    private String parentLoginUrl;
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -169,9 +175,11 @@ public class TeacherServiceImpl implements TeacherService {
         // Generate password if not provided
         String password = request.getPassword();
         String temporaryPassword = null;
+        String plainPassword = password; // Lưu password gốc để gửi email
         if (password == null || password.isBlank()) {
             temporaryPassword = generatePassword();
             password = temporaryPassword;
+            plainPassword = temporaryPassword; // Password được auto-generate
         }
         
         // Pre-encode password before transaction to save time
@@ -216,7 +224,7 @@ public class TeacherServiceImpl implements TeacherService {
         String invitationEmail = null;
         String parentTemporaryPassword = null;
         StudentInvitation savedInvitation = null;
-        if (Boolean.TRUE.equals(request.getContact() != null)) {
+        if (request.getContact() != null && !request.getContact().isBlank()) {
             invitation = createInvitation(savedStudent, teacher.getUser());
             invitationEmail = request.getContact();
             
@@ -234,34 +242,49 @@ public class TeacherServiceImpl implements TeacherService {
         
         // Send emails asynchronously after transaction completes
         String finalTemporaryPassword = temporaryPassword;
+        String finalPlainPassword = plainPassword; // Password gốc để gửi email
         String finalInvitationEmail = invitationEmail;
         String finalParentPassword = parentTemporaryPassword;
         StudentInvitation finalSavedInvitation = savedInvitation;
         String studentEmail = savedUser.getEmail();
         String studentFullName = savedUser.getFullName();
+        User finalStudentUser = savedUser; // For token generation
         
         // Use Spring's @Async or CompletableFuture to send emails outside transaction
         // This prevents blocking the response
-        if (finalTemporaryPassword != null) {
-            // Schedule async email sending
-            CompletableFuture.runAsync(() -> {
-                try {
-                    sendStudentCredentialsEmail(studentEmail, studentFullName, 
-                            studentEmail, finalTemporaryPassword);
-                } catch (Exception e) {
-                    log.error("Failed to send student credentials email to {}: {}", 
-                            studentEmail, e.getMessage());
-                }
-            });
-        }
+        
+        // Luôn gửi email cho học sinh với thông tin đăng nhập và auto-login token
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Generate one-time login token cho student
+                String studentAutoLoginToken = oneTimeLoginTokenService.generateToken(finalStudentUser);
+                
+                sendStudentCredentialsEmail(studentEmail, studentFullName, 
+                        studentEmail, finalPlainPassword, studentAutoLoginToken);
+            } catch (Exception e) {
+                log.error("Failed to send student credentials email to {}: {}", 
+                        studentEmail, e.getMessage());
+            }
+        });
         
         if (finalSavedInvitation != null && finalInvitationEmail != null) {
             // Schedule async invitation sending
             CompletableFuture.runAsync(() -> {
                 try {
+                    // Generate one-time login token cho parent (nếu có password - account mới tạo)
+                    String parentAutoLoginToken = null;
+                    if (finalParentPassword != null) {
+                        // Lấy parent user để generate token
+                        User parentUser = userRepository.findByEmail(finalInvitationEmail)
+                                .orElse(null);
+                        if (parentUser != null) {
+                            parentAutoLoginToken = oneTimeLoginTokenService.generateToken(parentUser);
+                        }
+                    }
+                    
                     // Send invitation with parent credentials if account was just created
                     sendInvitationEmail(finalInvitationEmail, finalSavedInvitation, 
-                            finalInvitationEmail, finalParentPassword);
+                            finalInvitationEmail, finalParentPassword, parentAutoLoginToken);
                 } catch (Exception e) {
                     log.error("Failed to send invitation to {}: {}", 
                             finalInvitationEmail, e.getMessage());
@@ -417,7 +440,18 @@ public class TeacherServiceImpl implements TeacherService {
         String finalParentPassword = parentTemporaryPassword;
         CompletableFuture.runAsync(() -> {
             try {
-                sendInvitationEmail(parentEmail, savedInvitation, parentEmail, finalParentPassword);
+                // Generate one-time login token cho parent (nếu có password - account mới tạo)
+                String parentAutoLoginToken = null;
+                if (finalParentPassword != null) {
+                    // Lấy parent user để generate token
+                    User parentUser = userRepository.findByEmail(parentEmail)
+                            .orElse(null);
+                    if (parentUser != null) {
+                        parentAutoLoginToken = oneTimeLoginTokenService.generateToken(parentUser);
+                    }
+                }
+                
+                sendInvitationEmail(parentEmail, savedInvitation, parentEmail, finalParentPassword, parentAutoLoginToken);
             } catch (Exception e) {
                 log.error("Failed to send invitation email to {}: {}", parentEmail, e.getMessage());
             }
@@ -603,20 +637,24 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
     }
 
-    private void sendStudentCredentialsEmail(String email, String fullName, String username, String password) {
+    private void sendStudentCredentialsEmail(String email, String fullName, String username, String password, String autoLoginToken) {
         String subject = "Thông tin đăng nhập tài khoản học sinh - Hệ thống EduBoost";
         String htmlContent = buildStudentCredentialsHtml(
                 fullName != null ? fullName : "Học sinh",
                 username,
-                password
+                password,
+                autoLoginToken
         );
 
         emailService.sendHtmlEmail(email, subject, htmlContent);
     }
 
-    private String buildStudentCredentialsHtml(String studentName, String username, String password) {
-        // Tạo login link
-        String loginLink = "https://eduboost.edu.vn/login"; // Thay bằng URL thực tế
+    private String buildStudentCredentialsHtml(String studentName, String username, String password, String autoLoginToken) {
+        // Sử dụng login link từ cấu hình
+        String loginLink = studentLoginUrl;
+        
+        // Tạo auto-login link
+        String autoLoginLink = studentLoginUrl.replace("/login", "") + "/api/auth/auto-login?token=" + autoLoginToken;
 
         // Tạo thời gian hiện tại
         String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
@@ -693,13 +731,24 @@ public class TeacherServiceImpl implements TeacherService {
                 "      \n" +
                 "      <!-- Action Button -->\n" +
                 "      <div style=\"text-align: center; margin: 40px 0;\">\n" +
-                "        <a href=\"" + loginLink + "\" \n" +
+                "        <a href=\"" + autoLoginLink + "\" \n" +
                 "           style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); \n" +
-                "                  color: white; padding: 16px 32px; text-decoration: none; \n" +
-                "                  border-radius: 50px; font-weight: bold; font-size: 16px;\n" +
+                "                  color: white; padding: 16px 40px; text-decoration: none; \n" +
+                "                  border-radius: 50px; font-weight: bold; font-size: 18px;\n" +
                 "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);\">\n" +
-                "          🚀 Bắt đầu đăng nhập\n" +
+                "          🚀 Đăng nhập ngay (Tự động)\n" +
                 "        </a>\n" +
+                "        <p style=\"margin-top: 15px; color: #999; font-size: 13px;\">\n" +
+                "          Nhấn vào nút trên để đăng nhập tự động, không cần nhập mật khẩu lần đầu!<br>\n" +
+                "          <span style=\"color: #e74c3c;\">⚠️ Link chỉ có hiệu lực trong 24 giờ</span>\n" +
+                "        </p>\n" +
+                "        <div style=\"margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ddd;\">\n" +
+                "          <p style=\"color: #666; font-size: 14px; margin-bottom: 10px;\">Hoặc đăng nhập thủ công:</p>\n" +
+                "          <a href=\"" + loginLink + "\" \n" +
+                "             style=\"color: #667eea; text-decoration: none; font-size: 15px;\">\n" +
+                "            👉 Trang đăng nhập thông thường\n" +
+                "          </a>\n" +
+                "        </div>\n" +
                 "      </div>\n" +
                 "      \n" +
                 "      <!-- Instructions -->\n" +
@@ -771,11 +820,11 @@ public class TeacherServiceImpl implements TeacherService {
         studentInvitationRepository.save(invitation);
 
         // Send email (no credentials since this is just resending)
-        sendInvitationEmail(parentEmail, invitation, null, null);
+        sendInvitationEmail(parentEmail, invitation, null, null, null);
 
         log.info("Invitation {} sent to {}", invitationId, parentEmail);
     }
-    private void sendInvitationEmail(String email, StudentInvitation invitation, String username, String password) {
+    private void sendInvitationEmail(String email, StudentInvitation invitation, String username, String password, String autoLoginToken) {
         Student student = invitation.getStudent();
         User studentUser = student.getUser();
         Class classEntity = student.getClassEntity();
@@ -783,8 +832,8 @@ public class TeacherServiceImpl implements TeacherService {
         // Format thời gian hết hạn
         String expiresAt = formatExpiresAt(invitation.getExpiresAt());
 
-        // Tạo register link (có thể lấy từ cấu hình hoặc frontend URL)
-        String registerLink = "https://eduboost.edu.vn/parent/login"; // Thay bằng URL thực tế
+        // Sử dụng register link từ cấu hình
+        String registerLink = parentLoginUrl;
 
         // Tạo nội dung HTML
         String subject = password != null ? "Thông tin tài khoản và mã mời kết nối - EduBoost" : "Mời kết nối tài khoản phụ huynh";
@@ -795,7 +844,8 @@ public class TeacherServiceImpl implements TeacherService {
                 expiresAt,
                 registerLink,
                 username,
-                password
+                password,
+                autoLoginToken
         );
 
         emailService.sendHtmlEmail(email, subject, htmlContent);
@@ -819,7 +869,8 @@ public class TeacherServiceImpl implements TeacherService {
 
     private String buildInvitationHtml(String studentName, String className,
                                        String invitationCode, String expiresAt,
-                                       String registerLink, String username, String password) {
+                                       String registerLink, String username, String password,
+                                       String autoLoginToken) {
         // Build credentials section if password is provided
         String credentialsSection = "";
         if (password != null && username != null) {
@@ -888,11 +939,32 @@ public class TeacherServiceImpl implements TeacherService {
                 "      </div>\n" +
                 "      \n" +
                 "      <div style=\"text-align: center; margin: 30px 0;\">\n" +
+                (autoLoginToken != null && password != null ?
+                "        <a href=\"" + registerLink.replace("/parent/login", "") + "/api/auth/auto-login?token=" + autoLoginToken + "\" \n" +
+                "           style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); \n" +
+                "                  color: white; padding: 16px 40px; text-decoration: none; \n" +
+                "                  border-radius: 50px; font-weight: bold; font-size: 18px;\n" +
+                "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); margin-bottom: 15px;\">\n" +
+                "          🚀 Đăng nhập ngay (Tự động)\n" +
+                "        </a>\n" +
+                "        <p style=\"margin-top: 15px; color: #999; font-size: 13px;\">\n" +
+                "          Nhấn vào nút trên để đăng nhập tự động, không cần nhập mật khẩu!<br>\n" +
+                "          <span style=\"color: #e74c3c;\">⚠️ Link chỉ có hiệu lực trong 24 giờ</span>\n" +
+                "        </p>\n" +
+                "        <div style=\"margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ddd;\">\n" +
+                "          <p style=\"color: #666; font-size: 14px; margin-bottom: 10px;\">Hoặc đăng nhập thủ công:</p>\n" +
+                "          <a href=\"" + registerLink + "\" \n" +
+                "             style=\"color: #667eea; text-decoration: none; font-size: 15px;\">\n" +
+                "            👉 Trang đăng nhập phụ huynh\n" +
+                "          </a>\n" +
+                "        </div>\n"
+                :
                 "        <a href=\"" + registerLink + "\" \n" +
                 "           style=\"background: #007bff; color: white; padding: 15px 40px; \n" +
                 "                  text-decoration: none; border-radius: 5px; display: inline-block;\">\n" +
                 "          Đăng ký ngay\n" +
-                "        </a>\n" +
+                "        </a>\n"
+                ) +
                 "      </div>\n" +
                 "      \n" +
                 "      <div style=\"border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 20px;\">\n" +

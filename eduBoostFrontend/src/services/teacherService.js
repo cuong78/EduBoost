@@ -137,4 +137,34 @@ export const teacherService = {
                     .then((res) => res.data?.data ?? res.data),
             () => mockInvitationLogs
         ),
+
+    importStudents: (classId, formData) => {
+        // formData should contain the file with key 'file'
+        return apiClient.post(
+            `${API.TEACHER_STUDENTS}/import?classId=${classId}`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        ).then((res) => res.data?.data ?? res.data);
+    },
+
+    downloadTemplate: () => {
+        return apiClient.get(`${API.TEACHER_STUDENTS}/template/download`, {
+            responseType: 'blob',
+        }).then((res) => {
+            const blob = new Blob([res.data], {
+                type: res.headers['content-type'] || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'student_import_template.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        });
+    },
 };
