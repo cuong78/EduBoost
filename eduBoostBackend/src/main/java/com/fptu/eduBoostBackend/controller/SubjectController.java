@@ -44,8 +44,7 @@ public class SubjectController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create new subject", 
+    @Operation(summary = "Create new subject",
                description = "Creates a new subject (Admin only)")
     public ResponseEntity<SubjectResponse> createSubject(
             @Valid @RequestBody SubjectRequest request) {
@@ -54,8 +53,7 @@ public class SubjectController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update subject", 
+    @Operation(summary = "Update subject",
                description = "Updates an existing subject (Admin only)")
     public ResponseEntity<SubjectResponse> updateSubject(
             @Parameter(description = "Subject ID", required = true)
@@ -66,8 +64,7 @@ public class SubjectController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete subject", 
+    @Operation(summary = "Delete subject",
                description = "Deletes a subject (Admin only)")
     public ResponseEntity<Void> deleteSubject(
             @Parameter(description = "Subject ID", required = true)

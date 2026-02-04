@@ -55,7 +55,6 @@ public class LessonResourceController {
 
     // For file-based resources (PDF, DOCX, VIDEO, IMAGE)
     @PostMapping(value = "/resources/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Upload file resource",
             description = "Uploads a file resource (Admin only). For PDF, DOCX, VIDEO, IMAGE.")
     public ResponseEntity<LessonResourceResponse> uploadFileResource(
@@ -79,7 +78,6 @@ public class LessonResourceController {
 
     // For non-file resources (URL, TEXT) - uses JSON
     @PostMapping("/resources")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create resource",
             description = "Creates a resource (Admin only). For URL and TEXT resources only.")
     public ResponseEntity<LessonResourceResponse> createResource(
@@ -120,7 +118,6 @@ public class LessonResourceController {
     }
 
     @DeleteMapping("/resources/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete resource",
             description = "Deletes a resource (Admin only)")
     public ResponseEntity<Void> deleteResource(

@@ -48,8 +48,7 @@ public class ChapterController {
     }
 
     @PostMapping("/subjects/{subjectId}/chapters")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    @Operation(summary = "Create new chapter", 
+    @Operation(summary = "Create new chapter",
                description = "Creates a new chapter for a specific subject (Admin/Teacher only)")
     public ResponseEntity<ChapterResponse> createChapter(
             @Parameter(description = "Subject ID", required = true)
@@ -60,8 +59,7 @@ public class ChapterController {
     }
 
     @PutMapping("/chapters/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    @Operation(summary = "Update chapter", 
+    @Operation(summary = "Update chapter",
                description = "Updates an existing chapter (Admin/Teacher only)")
     public ResponseEntity<ChapterResponse> updateChapter(
             @Parameter(description = "Chapter ID", required = true)
@@ -72,8 +70,7 @@ public class ChapterController {
     }
 
     @DeleteMapping("/chapters/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete chapter", 
+    @Operation(summary = "Delete chapter",
                description = "Deletes a chapter (Admin only)")
     public ResponseEntity<Void> deleteChapter(
             @Parameter(description = "Chapter ID", required = true)

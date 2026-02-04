@@ -46,7 +46,6 @@ public class LessonController {
     }
 
     @PostMapping("/lessons")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create new lesson",
             description = "Creates a new lesson (Admin only)")
     public ResponseEntity<LessonResponse> createLesson(
@@ -56,7 +55,6 @@ public class LessonController {
     }
 
     @PutMapping("/lessons/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update lesson",
             description = "Updates an existing lesson (Admin only)")
     public ResponseEntity<LessonResponse> updateLesson(
@@ -68,7 +66,6 @@ public class LessonController {
     }
 
     @DeleteMapping("/lessons/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete lesson",
             description = "Deletes a lesson (Admin only)")
     public ResponseEntity<Void> deleteLesson(

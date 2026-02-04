@@ -1,5 +1,6 @@
 package com.fptu.eduBoostBackend.service.impl;
 
+import com.fptu.eduBoostBackend.dto.DocumentExtractionResult;
 import com.fptu.eduBoostBackend.dto.request.LessonResourceRequest;
 import com.fptu.eduBoostBackend.dto.response.LessonResourceResponse;
 import com.fptu.eduBoostBackend.entities.Lesson;
@@ -10,6 +11,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.LessonResourceRepository;
+import com.fptu.eduBoostBackend.service.DocumentProcessingService;
 import com.fptu.eduBoostBackend.service.FileStorageService;
 import com.fptu.eduBoostBackend.service.LessonResourceService;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +38,7 @@ public class LessonResourceServiceImpl implements LessonResourceService {
     private final LessonResourceRepository lessonResourceRepository;
     private final LessonRepository lessonRepository;
     private final FileStorageService fileStorageService;
+    private final DocumentProcessingService documentProcessingService;
 
     // File size limit: 100MB
     private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -95,27 +96,27 @@ public class LessonResourceServiceImpl implements LessonResourceService {
                 if (file == null || file.isEmpty()) {
                     throw new BadRequestException("File is required for PDF/DOCX resources");
                 }
-
-                // Validate file size
                 if (file.getSize() > MAX_FILE_SIZE) {
                     throw new BadRequestException("File size exceeds maximum limit of 100MB");
                 }
 
-                // Store file
-                String fileName = fileStorageService.storeFile(file);
-                resource.setFilePath(fileName);
+                // Upload to MinIO
+                log.info("Uploading {} file to MinIO: {}", request.getResourceType(), file.getOriginalFilename());
+                String objectKey = fileStorageService.storeFile(file);
+                resource.setFilePath(objectKey);
                 resource.setFileSize(file.getSize());
                 resource.setMimeType(file.getContentType());
 
-                // Extract content for text-based files
-                if (request.getResourceType() == LessonResourceType.PDF ||
-                        request.getResourceType() == LessonResourceType.DOCX) {
-                    try {
-                        extractedContent = extractTextFromFile(file);
-                        resource.setExtractedContent(extractedContent);
-                    } catch (IOException e) {
-                        log.warn("Failed to extract content from file: {}", e.getMessage());
-                    }
+                // Extract content using Apache Tika for AI processing
+                try {
+                    log.info("Extracting content from document using Apache Tika...");
+                    DocumentExtractionResult extraction = documentProcessingService.extractContent(file);
+                    resource.setExtractedContent(extraction.getContent());
+                    
+                    log.info("Document extraction successful - Words: {}, Pages: {}, Tokens: {}", 
+                            extraction.getWordCount(), extraction.getPageCount(), extraction.getEstimatedTokens());
+                } catch (IOException e) {
+                    log.warn("Failed to extract content from file: {}", e.getMessage());
                 }
                 break;
 
@@ -138,13 +139,13 @@ public class LessonResourceServiceImpl implements LessonResourceService {
                 if (file == null || file.isEmpty()) {
                     throw new BadRequestException("File is required for VIDEO/IMAGE resources");
                 }
-
                 if (file.getSize() > MAX_FILE_SIZE) {
                     throw new BadRequestException("File size exceeds maximum limit of 100MB");
                 }
 
-                String mediaFileName = fileStorageService.storeFile(file);
-                resource.setFilePath(mediaFileName);
+                log.info("Uploading {} to MinIO: {}", request.getResourceType(), file.getOriginalFilename());
+                String mediaKey = fileStorageService.storeFile(file);
+                resource.setFilePath(mediaKey);
                 resource.setFileSize(file.getSize());
                 resource.setMimeType(file.getContentType());
                 break;
@@ -162,7 +163,8 @@ public class LessonResourceServiceImpl implements LessonResourceService {
         }
 
         LessonResource savedResource = lessonResourceRepository.save(resource);
-        log.info("Resource uploaded successfully with id: {}", savedResource.getId());
+        log.info("Resource uploaded to MinIO successfully - id: {}, objectKey: {}", 
+                savedResource.getId(), savedResource.getFilePath());
 
         return mapToResponse(savedResource);
     }
@@ -221,22 +223,6 @@ public class LessonResourceServiceImpl implements LessonResourceService {
                 }
                 break;
         }
-    }
-
-    private String extractTextFromFile(MultipartFile file) throws IOException {
-        // Simple text extraction - in production, use Apache Tika or PDFBox
-        // This is a placeholder implementation
-        if (file.getContentType() != null && file.getContentType().contains("text")) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-                StringBuilder content = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    content.append(line).append("\n");
-                }
-                return content.toString();
-            }
-        }
-        return null;
     }
 
     private LessonResourceResponse mapToResponse(LessonResource resource) {
