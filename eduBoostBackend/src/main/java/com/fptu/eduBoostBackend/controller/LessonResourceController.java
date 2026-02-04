@@ -127,5 +127,4 @@ public class LessonResourceController {
         return ResponseEntity.noContent().build();
     }
 
-
 }

@@ -1,5 +1,6 @@
 package com.fptu.eduBoostBackend.entities;
 
+import com.fptu.eduBoostBackend.entities.enums.DifficultyLevel;
 import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 import com.fptu.eduBoostBackend.entities.enums.QuestionType;
 import jakarta.persistence.*;
@@ -33,9 +34,16 @@ public class QuestionBank {
     @Column(name = "correct_answer", columnDefinition = "TEXT", nullable = false)
     private String correctAnswer;
 
+    @Column(name = "explanation", columnDefinition = "TEXT")
+    private String explanation;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type", length = 20)
     private QuestionType questionType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty_level", length = 20)
+    private DifficultyLevel difficultyLevel;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cognitive_level_id", nullable = false)
@@ -52,13 +60,6 @@ public class QuestionBank {
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "verified_by")
-    private User verifiedBy;
-
-    @Column(name = "is_verified")
-    private Boolean isVerified = Boolean.FALSE;
-
     @Column(name = "usage_count")
     private Integer usageCount = 0;
 
@@ -69,8 +70,5 @@ public class QuestionBank {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Column(name = "verified_at")
-    private LocalDateTime verifiedAt;
 }
 
