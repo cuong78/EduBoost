@@ -12,7 +12,18 @@ import java.util.stream.Collectors;
 public class UserMapper {
     // Convert User -> UserResponse (cho login)
     public static UserResponse toResponse(User user, String token, String refreshToken) {
-        return UserResponse.builder().token(token).refreshToken(refreshToken).build();
+        return UserResponse.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .roles(user.getRoles().stream()
+                        .map(role -> role.getName())
+                        .collect(Collectors.toSet()))
+                .token(token)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .build();
     }
     public CustomerResponse toUserResponse(User user) {
         return CustomerResponse.builder()

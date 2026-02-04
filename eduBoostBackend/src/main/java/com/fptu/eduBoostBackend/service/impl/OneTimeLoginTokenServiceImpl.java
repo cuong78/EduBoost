@@ -3,10 +3,12 @@ package com.fptu.eduBoostBackend.service.impl;
 import com.fptu.eduBoostBackend.entities.OneTimeLoginToken;
 import com.fptu.eduBoostBackend.entities.User;
 import com.fptu.eduBoostBackend.repositories.OneTimeLoginTokenRepository;
+import com.fptu.eduBoostBackend.repositories.UserRepository;
 import com.fptu.eduBoostBackend.service.OneTimeLoginTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
@@ -19,18 +21,17 @@ import java.util.Base64;
 public class OneTimeLoginTokenServiceImpl implements OneTimeLoginTokenService {
     
     private final OneTimeLoginTokenRepository tokenRepository;
+    private final UserRepository userRepository;
     private static final SecureRandom secureRandom = new SecureRandom();
     private static final Base64.Encoder base64Encoder = Base64.getUrlEncoder().withoutPadding();
     
     @Override
     @Transactional
     public String generateToken(User user) {
-        // Generate random token (32 bytes = 256 bits)
         byte[] randomBytes = new byte[32];
         secureRandom.nextBytes(randomBytes);
         String tokenString = base64Encoder.encodeToString(randomBytes);
         
-        // Create token entity với thời hạn 24 giờ
         OneTimeLoginToken token = OneTimeLoginToken.builder()
                 .token(tokenString)
                 .user(user)
@@ -45,26 +46,28 @@ public class OneTimeLoginTokenServiceImpl implements OneTimeLoginTokenService {
     }
     
     @Override
-    @Transactional
-    public User validateAndUseToken(String tokenString) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public String validateTokenAndGetUsername(String tokenString) {
         OneTimeLoginToken token = tokenRepository.findByToken(tokenString)
                 .orElseThrow(() -> new RuntimeException("Token không tồn tại"));
         
-        // Kiểm tra token còn hợp lệ không
-        if (!token.isValid()) {
-            if (token.isUsed()) {
-                throw new RuntimeException("Token đã được sử dụng");
-            } else {
-                throw new RuntimeException("Token đã hết hạn");
-            }
+        if (token.isUsed()) {
+            throw new RuntimeException("Token đã được sử dụng");
         }
         
-        // Đánh dấu token đã được sử dụng
+        if (LocalDateTime.now().isAfter(token.getExpiresAt())) {
+            throw new RuntimeException("Token đã hết hạn");
+        }
+        
+        // Lấy username trước khi mark as used
+        String username = token.getUser().getUsername();
+        
+        // Mark as used
         token.setUsed(true);
         tokenRepository.save(token);
         
-        log.info("One-time token validated and used for user: {}", token.getUser().getUsername());
-        return token.getUser();
+        log.info("One-time token validated and used for user: {}", username);
+        return username;
     }
     
     @Override
@@ -72,5 +75,22 @@ public class OneTimeLoginTokenServiceImpl implements OneTimeLoginTokenService {
     public void invalidateUserTokens(User user) {
         tokenRepository.deleteByUser(user);
         log.info("Invalidated all one-time tokens for user: {}", user.getUsername());
+    }
+    
+    @Override
+    @Transactional
+    public void saveTokenByUserId(String tokenString, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        OneTimeLoginToken token = OneTimeLoginToken.builder()
+                .token(tokenString)
+                .user(user)
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .used(false)
+                .build();
+        
+        tokenRepository.save(token);
+        log.info("Saved pre-generated token for user: {}", user.getUsername());
     }
 }

@@ -1,37 +1,44 @@
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Hero from './components/sections/Hero';
-import Features from './components/sections/Features';
-import { CTA } from './components/layout/Footer';
-import DynamicBackground from './components/ui/DynamicBackground';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import RegisterMethod from './pages/RegisterMethod';
-import ParentLogin from './pages/parent/ParentLogin';
-import ForgotPassword from './pages/ForgotPassword';
-import VerifyEmail from './pages/auth/VerifyEmail';
-import ResetPassword from './pages/auth/ResetPassword';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Hero from "./components/sections/Hero";
+import Features from "./components/sections/Features";
+import { CTA } from "./components/layout/Footer";
+import DynamicBackground from "./components/ui/DynamicBackground";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import RegisterMethod from "./pages/RegisterMethod";
+import ParentLogin from "./pages/parent/ParentLogin";
+import ForgotPassword from "./pages/ForgotPassword";
+import VerifyEmail from "./pages/auth/VerifyEmail";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // Layouts
-import StudentLayout from './layouts/StudentLayout';
-import PublicLayout from './layouts/PublicLayout';
-import AuthLayout from './layouts/AuthLayout';
-import TeacherLayout from './layouts/TeacherLayout';
-import AdminLayout from './layouts/AdminLayout';
-import UserProfile from './pages/common/UserProfile';
-import ParentLayout from './layouts/ParentLayout';
-import RedirectIfAuthenticated from './components/routes/RedirectIfAuthenticated';
+import StudentLayout from "./layouts/StudentLayout";
+import PublicLayout from "./layouts/PublicLayout";
+import AuthLayout from "./layouts/AuthLayout";
+import TeacherLayout from "./layouts/TeacherLayout";
+import AdminLayout from "./layouts/AdminLayout";
+import UserProfile from "./pages/common/UserProfile";
+import ParentLayout from "./layouts/ParentLayout";
+import RedirectIfAuthenticated from "./components/routes/RedirectIfAuthenticated";
 import RequireRole from './components/routes/RequireRole';
 
+
+
 // Student Pages
-import AIChat from './pages/student/AIChat';
-import Forum from './pages/student/Forum';
-import ExamList from './pages/student/ExamList';
-import TakeExam from './pages/student/TakeExam';
+import AIChat from "./pages/student/AIChat";
+import Forum from "./pages/student/Forum";
+import ExamList from "./pages/student/ExamList";
+import TakeExam from "./pages/student/TakeExam";
 
 // Teacher Pages
+
 import CreateQuestion from './pages/teacher/CreateQuestion';
 import UploadResource from './pages/teacher/UploadResource';
 import ExamGenerator from './pages/teacher/ExamGenerator';
@@ -54,6 +61,7 @@ import UserManagement from './pages/admin/UserManagement';
 import Settings from './pages/admin/Settings';
 import UnauthorizedPage from './pages/auth/UnauthorizedPage';
 
+
 const Home = () => (
   <>
     <Hero />
@@ -63,7 +71,7 @@ const Home = () => (
 );
 
 const DashboardPlaceholder = ({ title }) => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
+  <div style={{ padding: "2rem", textAlign: "center" }}>
     <h2>{title}</h2>
     <p>This feature is coming soon...</p>
   </div>
@@ -108,11 +116,13 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<RegisterMethod />} />
               <Route path="/register/email" element={<Register />} />
-              <Route path="/register/parent" element={<Register role="parent" />} />
+              <Route
+                path="/register/parent"
+                element={<Register role="parent" />}
+              />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/parent/link" element={<LinkStudent />} />
               {/* Parent Authentication */}
               <Route path="/parent/login" element={<ParentLogin />} />
             </Route>
@@ -154,7 +164,11 @@ function App() {
           <Route path="/parent" element={<ParentLayout />}>
             <Route index element={<Navigate to="students" replace />} />
             <Route path="students" element={<MyStudents />} />
-            <Route path="students/:studentId" element={<ParentStudentDetail />} />
+            <Route
+              path="students/:studentId"
+              element={<ParentStudentDetail />}
+            />
+            <Route path="link" element={<LinkStudent />} />
           </Route>
 
           {/* Admin Dashboard Routes */}

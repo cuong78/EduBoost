@@ -18,13 +18,21 @@ public interface OneTimeLoginTokenService {
      * Token chỉ có thể sử dụng 1 lần và phải còn hiệu lực
      * 
      * @param token Token string
-     * @return User nếu token hợp lệ
+     * @return Username của user
      * @throws RuntimeException nếu token không hợp lệ hoặc đã hết hạn
      */
-    User validateAndUseToken(String token);
+    String validateTokenAndGetUsername(String token);
     
     /**
      * Xóa tất cả tokens cũ của user (khi đổi mật khẩu chẳng hạn)
      */
     void invalidateUserTokens(User user);
+    
+    /**
+     * Save pre-generated token to database (for async operations)
+     * 
+     * @param tokenString Token string đã được tạo
+     * @param userId User ID
+     */
+    void saveTokenByUserId(String tokenString, Long userId);
 }

@@ -27,7 +27,6 @@ public class ParentController {
     
     @PostMapping("/link-student")
     @SecurityRequirement(name = "api")
-    @PreAuthorize("hasRole('PARENT')")
     @Operation(
         summary = "Link parent with student",
         description = "Links an authenticated parent with a student using an invitation code. Creates a parent-student relationship and marks the invitation as used."
@@ -40,7 +39,6 @@ public class ParentController {
 
     @GetMapping("/students")
     @SecurityRequirement(name = "api")
-    @PreAuthorize("hasRole('PARENT')")
     @Operation(
         summary = "Get parent's students",
         description = "Returns a list of all students linked to the authenticated parent"
@@ -52,7 +50,6 @@ public class ParentController {
 
     @GetMapping("/students/{studentId}")
     @SecurityRequirement(name = "api")
-    @PreAuthorize("hasRole('PARENT')")
     @Operation(
         summary = "Get student detail",
         description = "Returns detailed information about a specific student linked to the authenticated parent"
@@ -66,7 +63,6 @@ public class ParentController {
 
     @DeleteMapping("/students/{studentId}/unlink")
     @SecurityRequirement(name = "api")
-    @PreAuthorize("hasRole('PARENT')")
     @Operation(
         summary = "Unlink student",
         description = "Removes the link between the authenticated parent and a specific student"

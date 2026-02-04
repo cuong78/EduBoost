@@ -13,5 +13,4 @@ public interface LessonResourceService {
     LessonResourceResponse uploadResource( MultipartFile file, LessonResourceRequest request);
     Resource downloadResource(Long id);
     void deleteResource(Long id);
-    String extractContent(Long id);
 }

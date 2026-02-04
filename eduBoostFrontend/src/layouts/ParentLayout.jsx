@@ -1,60 +1,72 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
-import { LayoutDashboard, LogOut, Users } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { Outlet, Link, useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
+import { LayoutDashboard, LogOut, Users } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 const ParentLayout = () => {
-    const location = useLocation();
-    const { user, logout } = useAuth();
+  const location = useLocation();
+  const { user, logout } = useAuth();
 
-    const handleLogout = async () => {
-        await logout();
-    };
+  const handleLogout = async () => {
+    await logout();
+  };
 
-    return (
-        <div className="parent-layout">
-            <aside className="sidebar glass">
-                <div className="sidebar-header">
-                    <Link to="/" className="logo">
-                        <img src={logo} alt="EduBoost" />
-                        <span>EduBoost</span>
-                    </Link>
-                </div>
+  return (
+    <div className="parent-layout">
+      <aside className="sidebar glass">
+        <div className="sidebar-header">
+          <Link to="/parent" className="logo">
+            <img src={logo} alt="EduBoost" />
+            <span>EduBoost</span>
+          </Link>
+        </div>
 
-                <nav className="sidebar-nav">
-                    <Link to="/parent" className={`nav-item ${location.pathname === '/parent' ? 'active' : ''}`}>
-                        <LayoutDashboard size={20} /> Trang chủ
-                    </Link>
-                    <Link to="/parent/students" className={`nav-item ${location.pathname.startsWith('/parent/students') ? 'active' : ''}`}>
-                        <Users size={20} /> Con của tôi
-                    </Link>
-                </nav>
+        <nav className="sidebar-nav">
+          <Link
+            to="/parent"
+            className={`nav-item ${location.pathname === "/parent" ? "active" : ""}`}
+          >
+            <LayoutDashboard size={20} /> Trang chủ
+          </Link>
+          <Link
+            to="/parent/students"
+            className={`nav-item ${location.pathname.startsWith("/parent/students") ? "active" : ""}`}
+          >
+            <Users size={20} /> Con của tôi
+          </Link>
+        </nav>
 
-                <div className="sidebar-footer">
-                    <button className="nav-item logout" onClick={handleLogout}>
-                        <LogOut size={20} /> Đăng xuất
-                    </button>
-                    <div className="user-profile">
-                        <div className="avatar">{user?.username?.substring(0, 2).toUpperCase() || user?.fullName?.substring(0, 2).toUpperCase() || 'PH'}</div>
-                        <div className="user-info">
-                            <span className="name">{user?.username || user?.fullName || 'Phụ huynh'}</span>
-                            <span className="role">Phụ huynh</span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
+        <div className="sidebar-footer">
+          <button className="nav-item logout" onClick={handleLogout}>
+            <LogOut size={20} /> Đăng xuất
+          </button>
+          <div className="user-profile">
+            <div className="avatar">
+              {user?.username?.substring(0, 2).toUpperCase() ||
+                user?.fullName?.substring(0, 2).toUpperCase() ||
+                "PH"}
+            </div>
+            <div className="user-info">
+              <span className="name">
+                {user?.username || user?.fullName || "Phụ huynh"}
+              </span>
+              <span className="role">Phụ huynh</span>
+            </div>
+          </div>
+        </div>
+      </aside>
 
-            <main className="dashboard-content">
-                <header className="topbar glass">
-                    <h2>Khu vực Phụ huynh</h2>
-                    <div className="topbar-actions" />
-                </header>
-                <div className="page-container">
-                    <Outlet />
-                </div>
-            </main>
+      <main className="dashboard-content">
+        <header className="topbar glass">
+          <h2>Khu vực Phụ huynh</h2>
+          <div className="topbar-actions" />
+        </header>
+        <div className="page-container">
+          <Outlet />
+        </div>
+      </main>
 
-            <style>{`
+      <style>{`
                 .parent-layout {
                     display: grid;
                     grid-template-columns: 260px 1fr;
@@ -188,8 +200,8 @@ const ParentLayout = () => {
                     overflow-y: auto;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default ParentLayout;

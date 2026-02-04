@@ -37,4 +37,6 @@ public interface AuthenticationService extends UserDetailsService {
     CustomerResponse mapUserToCustomerResponse(User user);
     
     UserResponse loginWithGoogle(String idToken);
+    
+    UserResponse autoLogin(String username);
 }

@@ -455,4 +455,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new BadRequestException("Google login failed: " + e.getMessage(), e);
         }
     }
+    
+    @Override
+    @Transactional
+    public UserResponse autoLogin(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        // Generate tokens giống như login thông thường
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+        String token = tokenService.generateToken(user);
+        
+        log.info("Auto-login successful for user: {}", username);
+        return UserMapper.toResponse(user, token, refreshToken.getToken());
+    }
 }

@@ -20,7 +20,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "api")
 @Tag(name = "Admin User Management", description = "APIs for admin to manage users")
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
