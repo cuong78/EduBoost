@@ -45,6 +45,9 @@ import ParentStudentDetail from './pages/parent/StudentDetail';
 import InvitationStats from './pages/admin/InvitationStats';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import AIGrading from './pages/teacher/AIGrading';
+import SubjectManagement from './pages/teacher/SubjectManagement';
+import SubjectDetail from './pages/teacher/SubjectDetail';
+import QuestionBank from './pages/teacher/QuestionBank';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -138,6 +141,9 @@ function App() {
             <Route path="students/:studentId/edit" element={<EditStudent />} />
             <Route path="students/:studentId/invitations" element={<StudentInvitations />} />
             <Route path="users" element={<DashboardPlaceholder title="Manage Users" />} />
+            <Route path="subjects" element={<SubjectManagement />} />
+            <Route path="subjects/:subjectId" element={<SubjectDetail />} />
+            <Route path="question-bank" element={<QuestionBank />} />
             <Route path="create-quiz" element={<CreateQuiz />} />
             <Route path="exam-generator" element={<ExamGenerator />} />
             <Route path="grading" element={<AIGrading />} />

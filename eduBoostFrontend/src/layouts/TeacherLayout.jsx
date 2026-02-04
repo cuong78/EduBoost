@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
-import { BookOpen, FileQuestion, PenTool, LayoutDashboard, LogOut, CheckSquare, FileText, GraduationCap } from 'lucide-react';
+import { BookOpen, FileQuestion, PenTool, LayoutDashboard, LogOut, CheckSquare, FileText, GraduationCap, Layers } from 'lucide-react';
 import UserMenu from '../components/common/UserMenu';
 import { useAuth } from '../hooks/useAuth';
 
@@ -27,11 +27,17 @@ const TeacherLayout = () => {
                     <Link to="/teacher/dashboard" className={`nav-item ${isActive('/teacher/dashboard') ? 'active' : ''}`}>
                         <LayoutDashboard size={20} /> Tổng quan
                     </Link>
+                    <Link to="/teacher/subjects" className={`nav-item ${location.pathname.startsWith('/teacher/subjects') ? 'active' : ''}`}>
+                        <BookOpen size={20} /> Quản lý Môn học
+                    </Link>
+                    <Link to="/teacher/question-bank" className={`nav-item ${isActive('/teacher/question-bank') ? 'active' : ''}`}>
+                        <Layers size={20} /> Ngân hàng câu hỏi
+                    </Link>
                     <Link to="/teacher/classes" className={`nav-item ${location.pathname.startsWith('/teacher/classes') ? 'active' : ''}`}>
                         <GraduationCap size={20} /> Lớp học
                     </Link>
-                    <Link to="/teacher/exam-generator" className={`nav-item ${isActive('/teacher/exam-generator') ? 'active' : ''}`}>
-                        <FileText size={20} /> Tạo đề thi (Matrix)
+                    <Link to="/teacher/exams" className={`nav-item ${location.pathname.startsWith('/teacher/exams') || isActive('/teacher/exam-generator') ? 'active' : ''}`}>
+                        <FileText size={20} /> Quản lý Đề thi
                     </Link>
                     <Link to="/teacher/create-quiz" className={`nav-item ${isActive('/teacher/create-quiz') ? 'active' : ''}`}>
                         <FileQuestion size={20} /> Tạo Quiz AI

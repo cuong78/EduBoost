@@ -4,6 +4,8 @@ import {
     ArrowRight, Upload, Link as LinkIcon, Sparkles,
     CheckCircle, RefreshCw, Save, AlertCircle, FileText, Download
 } from 'lucide-react';
+import { subjectService } from '../../services/subjectService';
+import { examService } from '../../services/examService';
 
 const MOCK_LESSONS = [
     { id: 1, name: 'Bài 1: Giới hạn của dãy số' },
@@ -13,19 +15,27 @@ const MOCK_LESSONS = [
 ];
 
 const DIFFICULTY_LEVELS = [
-    { id: 'nb', name: 'Nhận biết', color: 'text-green-600', bg: 'bg-green-100' },
-    { id: 'th', name: 'Thông hiểu', color: 'text-blue-600', bg: 'bg-blue-100' },
-    { id: 'vd', name: 'Vận dụng', color: 'text-orange-600', bg: 'bg-orange-100' },
-    { id: 'vdc', name: 'Vận dụng cao', color: 'text-red-600', bg: 'bg-red-100' }
+    { id: 'NB', name: 'Nhận biết', color: 'text-green-600', bg: 'bg-green-100' },
+    { id: 'TH', name: 'Thông hiểu', color: 'text-blue-600', bg: 'bg-blue-100' },
+    { id: 'VD', name: 'Vận dụng', color: 'text-orange-600', bg: 'bg-orange-100' },
+    { id: 'VDC', name: 'Vận dụng cao', color: 'text-red-600', bg: 'bg-red-100' }
 ];
 
 const ExamGenerator = () => {
     const [step, setStep] = useState(1);
+    const [loading, setLoading] = useState(false);
+
+    // Data State
+    const [subjects, setSubjects] = useState([]);
+    const [chapters, setChapters] = useState([]);
+    const [lessons, setLessons] = useState([]);
+
+    // Selection State
+    const [selectedSubject, setSelectedSubject] = useState('');
+    const [selectedChapter, setSelectedChapter] = useState('');
 
     // Matrix State
-    const [matrixRows, setMatrixRows] = useState([
-        { id: 1, lessonId: 1, level: 'nb', type: 'mcq', count: 5 }
-    ]);
+    const [matrixRows, setMatrixRows] = useState([]);
 
     // Source State
     const [sourceType, setSourceType] = useState('bank'); // bank, file, link
@@ -35,6 +45,27 @@ const ExamGenerator = () => {
     // Generation State
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedQuestions, setGeneratedQuestions] = useState([]);
+
+    useEffect(() => {
+        // Load initial subjects
+        subjectService.getSubjects().then(setSubjects).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (selectedSubject) {
+            subjectService.getChapters(selectedSubject).then(setChapters).catch(console.error);
+        } else {
+            setChapters([]);
+        }
+    }, [selectedSubject]);
+
+    useEffect(() => {
+        if (selectedChapter) {
+            subjectService.getLessons(selectedChapter).then(setLessons).catch(console.error);
+        } else {
+            setLessons([]);
+        }
+    }, [selectedChapter]);
 
     // --- LOGIC: Matrix Statistics ---
     const stats = useMemo(() => {
@@ -48,11 +79,12 @@ const ExamGenerator = () => {
     }, [matrixRows]);
 
     const addRow = () => {
+        if (lessons.length === 0) return;
         setMatrixRows([...matrixRows, {
             id: Date.now(),
-            lessonId: MOCK_LESSONS[0].id,
-            level: 'nb',
-            type: 'mcq',
+            lessonId: lessons[0].id,
+            level: 'NB',
+            type: 'MCQ',
             count: 1
         }]);
     };
@@ -66,33 +98,22 @@ const ExamGenerator = () => {
     };
 
     // --- LOGIC: Generation ---
-    const handleGenerate = () => {
+    const handleGenerate = async () => {
         setIsGenerating(true);
-        setStep(3); // Move to review immediately for loading state
+        setStep(3); // Move to review
 
-        // Simulate API
-        setTimeout(() => {
-            const mockQuestions = [];
-            let qId = 1;
-            matrixRows.forEach(row => {
-                const levelInfo = DIFFICULTY_LEVELS.find(l => l.id === row.level);
-                const lessonInfo = MOCK_LESSONS.find(l => l.id === Number(row.lessonId));
+        try {
+            // Call API to generate exam
+            // For now we simulate calling the auto-select API
+            const result = await examService.autoSelectQuestions('new-exam-id');
+            // Transform result if necessary to match UI
+            setGeneratedQuestions(result.questions || []);
 
-                for (let i = 0; i < row.count; i++) {
-                    mockQuestions.push({
-                        id: qId++,
-                        text: `Câu hỏi ${qId}: Kiểm tra kiến thức về ${lessonInfo.name}?`,
-                        level: row.level,
-                        levelName: levelInfo.name,
-                        type: row.type,
-                        source: Math.random() > 0.5 ? 'bank' : 'ai', // Random source
-                        options: ['A. Đáp án đúng', 'B. Sai', 'C. Sai', 'D. Sai']
-                    });
-                }
-            });
-            setGeneratedQuestions(mockQuestions);
+        } catch (error) {
+            console.error(error);
+        } finally {
             setIsGenerating(false);
-        }, 2000);
+        }
     };
 
     const handleRefreshQuestion = (qId) => {
@@ -135,8 +156,24 @@ const ExamGenerator = () => {
                         <div className="panel-header">
                             <h3><Layers size={20} /> Thiết kế Ma trận đề thi</h3>
                             <div className="context-selects">
-                                <select className="select-input"><option>Lớp 11A1</option></select>
-                                <select className="select-input"><option>Toán Đại Số</option></select>
+                                <select
+                                    className="select-input"
+                                    value={selectedSubject}
+                                    onChange={e => setSelectedSubject(e.target.value)}
+                                >
+                                    <option value="">Chọn Môn học</option>
+                                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+
+                                <select
+                                    className="select-input"
+                                    value={selectedChapter}
+                                    onChange={e => setSelectedChapter(e.target.value)}
+                                    disabled={!selectedSubject}
+                                >
+                                    <option value="">Chọn Chương</option>
+                                    {chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
                             </div>
                         </div>
 
@@ -160,7 +197,7 @@ const ExamGenerator = () => {
                                                     onChange={(e) => updateRow(row.id, 'lessonId', e.target.value)}
                                                     className="table-select"
                                                 >
-                                                    {MOCK_LESSONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                                    {lessons.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                                 </select>
                                             </td>
                                             <td>
