@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Calendar } from 'lucide-react';
 import { teacherService } from '../../services/teacherService';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
 
@@ -9,6 +9,22 @@ const GENDER_OPTIONS = [
     { value: 'FEMALE', label: 'Nữ' },
     { value: 'OTHER', label: 'Khác' },
 ];
+
+// Chuyển từ yyyy-MM-dd sang dd/MM/yyyy
+const formatDateToDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+};
+
+// Chuyển từ dd/MM/yyyy sang yyyy-MM-dd
+const formatDateToISO = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return '';
+    const [day, month, year] = parts;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
 
 export default function EditStudent() {
     const { studentId } = useParams();
@@ -26,6 +42,8 @@ export default function EditStudent() {
     const [classes, setClasses] = useState([]);
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
+    const dateInputRef = useRef(null);
+    const [dateDisplay, setDateDisplay] = useState('');
 
     useEffect(() => {
         if (!studentId) return;
@@ -35,14 +53,16 @@ export default function EditStudent() {
                 setStudent(studentData);
                 const list = Array.isArray(classesData) ? classesData : [];
                 setClasses(list);
+                const dateISO = studentData.dateOfBirth ? studentData.dateOfBirth.slice(0, 10) : '';
                 setForm({
                     fullName: studentData.fullName ?? '',
                     phone: studentData.phone ?? '',
                     classId: studentData.classId ?? '',
-                    dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.slice(0, 10) : '',
+                    dateOfBirth: dateISO,
                     gender: studentData.gender ?? 'OTHER',
                     address: studentData.address ?? '',
                 });
+                setDateDisplay(dateISO ? formatDateToDisplay(dateISO) : '');
             })
             .catch(() => {
                 showErrorToast('Không tải được thông tin học sinh');
@@ -52,15 +72,56 @@ export default function EditStudent() {
     }, [studentId]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+        const { name, value, type } = e.target;
+        
+        if (name === 'dateOfBirth') {
+            // Nếu từ date picker (yyyy-MM-dd)
+            if (type === 'date') {
+                setForm((prev) => ({ ...prev, dateOfBirth: value }));
+                setDateDisplay(value ? formatDateToDisplay(value) : '');
+            } else {
+                // Nếu từ text input (dd/MM/yyyy)
+                let formatted = value.replace(/[^0-9/]/g, '');
+                
+                // Tự động thêm dấu /
+                if (formatted.length === 2 && !formatted.includes('/')) {
+                    formatted = formatted + '/';
+                } else if (formatted.length === 5 && formatted.split('/').length === 2) {
+                    formatted = formatted + '/';
+                }
+                
+                if (formatted.length > 10) formatted = formatted.slice(0, 10);
+                
+                setDateDisplay(formatted);
+                
+                // Convert sang ISO nếu đầy đủ 10 ký tự
+                if (formatted.length === 10) {
+                    const iso = formatDateToISO(formatted);
+                    if (iso) setForm((prev) => ({ ...prev, dateOfBirth: iso }));
+                } else {
+                    setForm((prev) => ({ ...prev, dateOfBirth: '' }));
+                }
+            }
+            if (errors.dateOfBirth) setErrors((prev) => ({ ...prev, dateOfBirth: '' }));
+        } else {
+            setForm((prev) => ({ ...prev, [name]: value }));
+            if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+        }
     };
 
     const validate = () => {
         const next = {};
         if (!form.fullName?.trim()) next.fullName = 'Họ tên không được để trống';
         if (!form.classId) next.classId = 'Vui lòng chọn lớp';
+        
+        // Validate ngày sinh nếu có nhập
+        if (dateDisplay && dateDisplay.length === 10) {
+            const datePattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+            if (!datePattern.test(dateDisplay)) {
+                next.dateOfBirth = 'Ngày sinh không hợp lệ (dd/MM/yyyy)';
+            }
+        }
+        
         setErrors(next);
         return Object.keys(next).length === 0;
     };
@@ -145,7 +206,34 @@ export default function EditStudent() {
                 <div className="form-row">
                     <div className="form-group">
                         <label>Ngày sinh</label>
-                        <input name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+                        <div className="date-input-wrapper">
+                            <input
+                                name="dateOfBirth"
+                                type="text"
+                                value={dateDisplay}
+                                onChange={handleChange}
+                                placeholder="dd/MM/yyyy (ví dụ: 20/12/1990)"
+                                maxLength="10"
+                                className={errors.dateOfBirth ? 'error' : ''}
+                            />
+                            <button
+                                type="button"
+                                className="date-picker-btn"
+                                onClick={() => dateInputRef.current?.showPicker()}
+                                title="Chọn ngày"
+                            >
+                                <Calendar size={18} />
+                            </button>
+                            <input
+                                ref={dateInputRef}
+                                name="dateOfBirth"
+                                type="date"
+                                value={form.dateOfBirth}
+                                onChange={handleChange}
+                                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+                            />
+                        </div>
+                        {errors.dateOfBirth && <span className="error-message">{errors.dateOfBirth}</span>}
                     </div>
                     <div className="form-group">
                         <label>Giới tính</label>
@@ -178,6 +266,31 @@ export default function EditStudent() {
                 .form-group { margin-bottom: 1.25rem; }
                 .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
                 .form-group input, .form-group select { width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--glass-border); font-family: inherit; }
+                .date-input-wrapper {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+                .date-input-wrapper input[type="text"] {
+                    padding-right: 2.5rem;
+                }
+                .date-picker-btn {
+                    position: absolute;
+                    right: 0.5rem;
+                    background: rgba(99, 102, 241, 0.1);
+                    border: none;
+                    border-radius: 8px;
+                    padding: 0.4rem;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--color-accent-1);
+                    transition: background 0.2s;
+                }
+                .date-picker-btn:hover {
+                    background: rgba(99, 102, 241, 0.2);
+                }
                 .form-group input.error, .form-group select.error { border-color: #dc2626; }
                 .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
                 .required { color: #dc2626; }

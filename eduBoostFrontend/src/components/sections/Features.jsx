@@ -9,14 +9,14 @@ const Features = () => {
 
   const LEARNER_FEATURES = [
     { icon: <Brain size={24} />, title: "Lộ trình cá nhân hóa", desc: "AI phân tích điểm mạnh/yếu để đề xuất bài học phù hợp." },
-    { icon: <Zap size={24} />, title: "Học tập tương tác", desc: "Video bài giảng kết hợp câu hỏi trắc nghiệm thời gian thực." },
+    { icon: <Zap size={24} />, title: "Học tập tương tác", desc: "Nền tảng học tập với AI hỗ trợ và chấm điểm tự động." },
     { icon: <Award size={24} />, title: "Chứng chỉ uy tín", desc: "Hoàn thành khóa học và nhận chứng nhận năng lực." }
   ];
 
   const TEACHER_FEATURES = [
     { icon: <Users size={24} />, title: "Quản lý lớp học", desc: "Theo dõi tiến độ học tập của từng học sinh dễ dàng." },
     { icon: <Target size={24} />, title: "Ngân hàng đề thi", desc: "Tạo đề thi tự động từ kho dữ liệu phong phú." },
-    { icon: <BookOpen size={24} />, title: "Thư viện bài giảng", desc: "Chia sẻ và kiếm tiền từ tri thức của bạn." }
+    { icon: <Brain size={24} />, title: "Chấm điểm AI", desc: "Hệ thống AI hỗ trợ chấm điểm tự luận nhanh và chính xác." }
   ];
 
   const content = {

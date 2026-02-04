@@ -30,9 +30,6 @@ const TeacherLayout = () => {
                     <Link to="/teacher/classes" className={`nav-item ${location.pathname.startsWith('/teacher/classes') ? 'active' : ''}`}>
                         <GraduationCap size={20} /> Lớp học
                     </Link>
-                    <Link to="/teacher/lectures" className={`nav-item ${isActive('/teacher/lectures') ? 'active' : ''}`}>
-                        <BookOpen size={20} /> Bài giảng
-                    </Link>
                     <Link to="/teacher/exam-generator" className={`nav-item ${isActive('/teacher/exam-generator') ? 'active' : ''}`}>
                         <FileText size={20} /> Tạo đề thi (Matrix)
                     </Link>

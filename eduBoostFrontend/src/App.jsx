@@ -4,7 +4,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Hero from './components/sections/Hero';
 import Features from './components/sections/Features';
-import CourseList from './components/sections/CourseList';
 import { CTA } from './components/layout/Footer';
 import DynamicBackground from './components/ui/DynamicBackground';
 import Login from './pages/Login';
@@ -23,9 +22,9 @@ import TeacherLayout from './layouts/TeacherLayout';
 import AdminLayout from './layouts/AdminLayout';
 import UserProfile from './pages/common/UserProfile';
 import ParentLayout from './layouts/ParentLayout';
+import RedirectIfAuthenticated from './components/routes/RedirectIfAuthenticated';
 
 // Student Pages
-import CourseLibrary from './pages/student/CourseLibrary';
 import AIChat from './pages/student/AIChat';
 import Forum from './pages/student/Forum';
 import ExamList from './pages/student/ExamList';
@@ -45,10 +44,7 @@ import MyStudents from './pages/parent/MyStudents';
 import ParentStudentDetail from './pages/parent/StudentDetail';
 import InvitationStats from './pages/admin/InvitationStats';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import LectureManagement from './pages/teacher/LectureManagement';
 import AIGrading from './pages/teacher/AIGrading';
-import LectureEditorDoc from './pages/teacher/LectureEditorDoc';
-import LectureEditorSlide from './pages/teacher/LectureEditorSlide';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -59,7 +55,6 @@ const Home = () => (
   <>
     <Hero />
     <Features />
-    <CourseList />
     <CTA />
   </>
 );
@@ -97,29 +92,32 @@ function App() {
         <DynamicBackground />
 
         <Routes>
-          {/* Public Pages */}
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<Home />} />
+          {/* Public Pages - Redirect if already logged in */}
+          <Route element={<RedirectIfAuthenticated />}>
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Home />} />
+            </Route>
           </Route>
 
-          {/* Authentication Pages */}
-          <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<RegisterMethod />} />
-            <Route path="/register/email" element={<Register />} />
-            <Route path="/register/parent" element={<Register role="parent" />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/parent/link" element={<LinkStudent />} />
-            {/* Parent Authentication */}
-            <Route path="/parent/login" element={<ParentLogin />} />
+          {/* Authentication Pages - Redirect if already logged in */}
+          <Route element={<RedirectIfAuthenticated />}>
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<RegisterMethod />} />
+              <Route path="/register/email" element={<Register />} />
+              <Route path="/register/parent" element={<Register role="parent" />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/parent/link" element={<LinkStudent />} />
+              {/* Parent Authentication */}
+              <Route path="/parent/login" element={<ParentLogin />} />
+            </Route>
           </Route>
 
           {/* Student Dashboard Routes */}
           <Route path="/student" element={<StudentLayout />}>
-            <Route index element={<Navigate to="courses" replace />} />
-            <Route path="courses" element={<CourseLibrary />} />
+            <Route index element={<Navigate to="chat" replace />} />
             <Route path="chat" element={<AIChat />} />
             <Route path="forum" element={<Forum />} />
             <Route path="exams" element={<ExamList />} />
@@ -140,9 +138,6 @@ function App() {
             <Route path="students/:studentId/edit" element={<EditStudent />} />
             <Route path="students/:studentId/invitations" element={<StudentInvitations />} />
             <Route path="users" element={<DashboardPlaceholder title="Manage Users" />} />
-            <Route path="lectures" element={<LectureManagement />} />
-            <Route path="lectures/doc" element={<LectureEditorDoc />} />
-            <Route path="lectures/slide" element={<LectureEditorSlide />} />
             <Route path="create-quiz" element={<CreateQuiz />} />
             <Route path="exam-generator" element={<ExamGenerator />} />
             <Route path="grading" element={<AIGrading />} />
