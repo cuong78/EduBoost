@@ -223,11 +223,19 @@ public class AuthenticationController {
     }
 
     /**
-     * Auto-login endpoint using one-time token
-     * Token được gửi qua email khi tạo tài khoản mới
-     * Frontend sẽ gọi endpoint này với token, nhận JWT và tự động đăng nhập
+     * Auto-login endpoint using one-time token.
+     *
+     * Lưu ý:
+     * - Email hiện tại đang gửi link dạng: GET https://.../api/auth/auto-login?token=xxx
+     * - Frontend cũng có thể gọi POST cùng endpoint này.
+     *
+     * Vì vậy endpoint này chấp nhận cả GET và POST để tránh lỗi 403/405 khi user click link trong email.
      */
-    @PostMapping("/auto-login")
+    @org.springframework.web.bind.annotation.RequestMapping(
+            value = "/auto-login",
+            method = {org.springframework.web.bind.annotation.RequestMethod.GET,
+                    org.springframework.web.bind.annotation.RequestMethod.POST}
+    )
     public ResponseEntity<ResponseObject> autoLogin(@RequestParam String token) {
         try {
             // Validate và sử dụng one-time token

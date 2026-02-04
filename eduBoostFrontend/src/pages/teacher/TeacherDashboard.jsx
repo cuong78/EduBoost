@@ -24,7 +24,6 @@ const StatCard = ({ icon: Icon, label, value, trend, colorClass }) => (
 const TeacherDashboard = () => {
     const stats = [
         { icon: Users, label: "Tổng số học sinh", value: "156", trend: "+12%", colorClass: "bg-indigo" },
-        { icon: BookOpen, label: "Khóa học đang hoạt động", value: "8", trend: "+2", colorClass: "bg-purple" },
         { icon: Star, label: "Đánh giá trung bình", value: "4.8", trend: "+0.2", colorClass: "bg-yellow" },
     ];
 
@@ -78,28 +77,7 @@ const TeacherDashboard = () => {
                     </div>
                 </div>
 
-                {/* Upcoming Schedule */}
-                <div className="glass card-panel">
-                    <div className="card-header">
-                        <h3 className="card-title">
-                            <Calendar size={20} className="icon-purple" /> Lịch dạy sắp tới
-                        </h3>
-                    </div>
-                    <div className="schedule-list">
-                        {[1, 2, 3].map((_, i) => (
-                            <div key={i} className="schedule-item">
-                                <div className="schedule-time">
-                                    <div className="day-label">Hôm nay</div>
-                                    <div className="time-value">0{9 + i}:00</div>
-                                </div>
-                                <div className="schedule-details">
-                                    <h4 className="class-name">Toán Cao Cấp - Lớp 10A</h4>
-                                    <p className="class-meta">Phòng 402 • 45 học sinh</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+               
             </div>
 
             <style>{`
