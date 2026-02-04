@@ -1,6 +1,6 @@
 package com.fptu.eduBoostBackend.service.impl;
 
-import com.fptu.eduBoostBackend.constant.PredefinedRole;
+import com.fptu.eduBoostBackend.constant    .PredefinedRole;
 import com.fptu.eduBoostBackend.dto.request.*;
 import com.fptu.eduBoostBackend.dto.response.*;
 import com.fptu.eduBoostBackend.entities.*;
@@ -51,12 +51,12 @@ public class TeacherServiceImpl implements TeacherService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final VerificationTokenRepository verificationTokenRepository;
     private final OneTimeLoginTokenService oneTimeLoginTokenService;
+    private final OneTimeLoginTokenRepository oneTimeLoginTokenRepository;
     private final Random random = new Random();
 
-    @Value("${frontend.url.email.verification}")
-    private String emailVerificationUrl;
+    @Value("${backend.url.base}")
+    private String backendBaseUrl;
 
     @Value("${frontend.url.student.login}")
     private String studentLoginUrl;
@@ -222,10 +222,20 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
         Student savedStudent = studentRepository.save(student);
         
+        // Chỉ generate token string, không save vào DB ngay (tránh lỗi transaction)
+        // Token sẽ được save trong async task
+        java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+        byte[] randomBytes = new byte[32];
+        secureRandom.nextBytes(randomBytes);
+        String studentAutoLoginToken = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        log.info("Generated auto-login token string for student: {}", savedUser.getEmail());
+        
         // Create invitation if requested (without sending email yet)
         InvitationResponse invitation = null;
         String invitationEmail = null;
         String parentTemporaryPassword = null;
+        String parentAutoLoginToken = null;
+        Long parentUserId = null;
         StudentInvitation savedInvitation = null;
         if (request.getContact() != null && !request.getContact().isBlank()) {
             invitation = createInvitation(savedStudent, teacher.getUser());
@@ -238,62 +248,77 @@ public class TeacherServiceImpl implements TeacherService {
             if (!userRepository.existsByEmail(invitationEmail)) {
                 parentTemporaryPassword = createParentAccountAsync(invitationEmail);
                 log.info("Parent account created for email: {}", invitationEmail);
+                
+                // Generate auto-login token for parent (reuse secureRandom instance)
+                byte[] parentRandomBytes =  new byte[32];
+                secureRandom.nextBytes(parentRandomBytes);
+                parentAutoLoginToken = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(parentRandomBytes);
+                
+                // Get parent userId for token storage
+                User parentUser = userRepository.findByEmail(invitationEmail)
+                        .orElseThrow(() -> new ResourceNotFoundException("Parent user not found"));
+                parentUserId = parentUser.getUserId();
+                log.info("Generated auto-login token string for parent: {}", invitationEmail);
             }
         }
         
         log.info("Student created: {} by teacher: {}", savedStudent.getStudentId(), teacher.getTeacherId());
         
-        // Send emails asynchronously after transaction completes
+        // Prepare data for async email sending
         String finalTemporaryPassword = temporaryPassword;
-        String finalPlainPassword = plainPassword; // Password gốc để gửi email
+        String finalPlainPassword = plainPassword;
         String finalInvitationEmail = invitationEmail;
         String finalParentPassword = parentTemporaryPassword;
+        String finalParentAutoLoginToken = parentAutoLoginToken;
+        Long finalParentUserId = parentUserId;
         StudentInvitation finalSavedInvitation = savedInvitation;
         String studentEmail = savedUser.getEmail();
         String studentFullName = savedUser.getFullName();
-        User finalStudentUser = savedUser; // For token generation
+        String finalStudentAutoLoginToken = studentAutoLoginToken;
+        Long finalUserId = savedUser.getUserId();
         
-        // Use Spring's @Async or CompletableFuture to send emails outside transaction
-        // This prevents blocking the response
-        
-        // Luôn gửi email cho học sinh với thông tin đăng nhập và auto-login token
-        CompletableFuture.runAsync(() -> {
-            try {
-                // Generate one-time login token cho student
-                String studentAutoLoginToken = oneTimeLoginTokenService.generateToken(finalStudentUser);
-                
-                sendStudentCredentialsEmail(studentEmail, studentFullName, 
-                        studentEmail, finalPlainPassword, studentAutoLoginToken);
-            } catch (Exception e) {
-                log.error("Failed to send student credentials email to {}: {}", 
-                        studentEmail, e.getMessage());
-            }
-        });
-        
-        if (finalSavedInvitation != null && finalInvitationEmail != null) {
-            // Schedule async invitation sending
-            CompletableFuture.runAsync(() -> {
-                try {
-                    // Generate one-time login token cho parent (nếu có password - account mới tạo)
-                    String parentAutoLoginToken = null;
-                    if (finalParentPassword != null) {
-                        // Lấy parent user để generate token
-                        User parentUser = userRepository.findByEmail(finalInvitationEmail)
-                                .orElse(null);
-                        if (parentUser != null) {
-                            parentAutoLoginToken = oneTimeLoginTokenService.generateToken(parentUser);
+        // Register synchronization to run async tasks AFTER transaction commits
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+            new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    // Email sending AFTER transaction committed
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            log.info("Starting to send student credentials email to: {}", studentEmail);
+                            
+                            // Save token to database (user already committed)
+                            oneTimeLoginTokenService.saveTokenByUserId(finalStudentAutoLoginToken, finalUserId);
+                            
+                            sendStudentCredentialsEmail(studentEmail, studentFullName, 
+                                    studentEmail, finalPlainPassword, finalStudentAutoLoginToken);
+                            log.info("Successfully sent student credentials email to: {}", studentEmail);
+                        } catch (Exception e) {
+                            log.error("Failed to send student credentials email to {}: {}", 
+                                    studentEmail, e.getMessage());
                         }
-                    }
+                    });
                     
-                    // Send invitation with parent credentials if account was just created
-                    sendInvitationEmail(finalInvitationEmail, finalSavedInvitation, 
-                            finalInvitationEmail, finalParentPassword, parentAutoLoginToken);
-                } catch (Exception e) {
-                    log.error("Failed to send invitation to {}: {}", 
-                            finalInvitationEmail, e.getMessage());
+                    if (finalSavedInvitation != null && finalInvitationEmail != null) {
+                        CompletableFuture.runAsync(() -> {
+                            try {
+                                // Save parent auto-login token if exists
+                                if (finalParentAutoLoginToken != null && finalParentUserId != null) {
+                                    oneTimeLoginTokenService.saveTokenByUserId(finalParentAutoLoginToken, finalParentUserId);
+                                    log.info("Saved auto-login token for parent: {}", finalInvitationEmail);
+                                }
+                                
+                                sendInvitationEmail(finalInvitationEmail, finalSavedInvitation, 
+                                        finalInvitationEmail, finalParentPassword, finalParentAutoLoginToken);
+                            } catch (Exception e) {
+                                log.error("Failed to send invitation to {}: {}", 
+                                        finalInvitationEmail, e.getMessage());
+                            }
+                        });
+                    }
                 }
-            });
-        }
+            }
+        );
         
         return CreateStudentResponse.builder()
                 .student(mapToStudentResponse(savedStudent))
@@ -443,18 +468,8 @@ public class TeacherServiceImpl implements TeacherService {
         String finalParentPassword = parentTemporaryPassword;
         CompletableFuture.runAsync(() -> {
             try {
-                // Generate one-time login token cho parent (nếu có password - account mới tạo)
-                String parentAutoLoginToken = null;
-                if (finalParentPassword != null) {
-                    // Lấy parent user để generate token
-                    User parentUser = userRepository.findByEmail(parentEmail)
-                            .orElse(null);
-                    if (parentUser != null) {
-                        parentAutoLoginToken = oneTimeLoginTokenService.generateToken(parentUser);
-                    }
-                }
-                
-                sendInvitationEmail(parentEmail, savedInvitation, parentEmail, finalParentPassword, parentAutoLoginToken);
+                // Gửi email với thông tin đăng nhập (nếu có)
+                sendInvitationEmail(parentEmail, savedInvitation, parentEmail, finalParentPassword, null);
             } catch (Exception e) {
                 log.error("Failed to send invitation email to {}: {}", parentEmail, e.getMessage());
             }
@@ -656,8 +671,10 @@ public class TeacherServiceImpl implements TeacherService {
         // Sử dụng login link từ cấu hình
         String loginLink = studentLoginUrl;
         
-        // Tạo auto-login link
-        String autoLoginLink = studentLoginUrl.replace("/login", "") + "/api/auth/auto-login?token=" + autoLoginToken;
+        // Tạo auto-login link nếu có token - phải trỏ đến backend API
+        String autoLoginLink = autoLoginToken != null 
+                ? backendBaseUrl + "/api/auth/auto-login?token=" + autoLoginToken
+                : loginLink;
 
         // Tạo thời gian hiện tại
         String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
@@ -739,19 +756,17 @@ public class TeacherServiceImpl implements TeacherService {
                 "                  color: white; padding: 16px 40px; text-decoration: none; \n" +
                 "                  border-radius: 50px; font-weight: bold; font-size: 18px;\n" +
                 "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);\">\n" +
-                "          🚀 Đăng nhập ngay (Tự động)\n" +
+                "          🚀 Đăng nhập ngay\n" +
                 "        </a>\n" +
                 "        <p style=\"margin-top: 15px; color: #999; font-size: 13px;\">\n" +
-                "          Nhấn vào nút trên để đăng nhập tự động, không cần nhập mật khẩu lần đầu!<br>\n" +
-                "          <span style=\"color: #e74c3c;\">⚠️ Link chỉ có hiệu lực trong 24 giờ</span>\n" +
+                (autoLoginToken != null ? 
+                "          Nhấn vào nút trên để tự động đăng nhập, không cần nhập mật khẩu!<br>\n" +
+                "          <span style=\"color: #e74c3c;\">⚠️ Link chỉ có hiệu lực trong 24 giờ</span>\n"
+                :
+                "          Nhấn vào nút trên để đi tới trang đăng nhập.<br>\n" +
+                "          Sử dụng email và mật khẩu ở trên để đăng nhập.\n"
+                ) +
                 "        </p>\n" +
-                "        <div style=\"margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ddd;\">\n" +
-                "          <p style=\"color: #666; font-size: 14px; margin-bottom: 10px;\">Hoặc đăng nhập thủ công:</p>\n" +
-                "          <a href=\"" + loginLink + "\" \n" +
-                "             style=\"color: #667eea; text-decoration: none; font-size: 15px;\">\n" +
-                "            👉 Trang đăng nhập thông thường\n" +
-                "          </a>\n" +
-                "        </div>\n" +
                 "      </div>\n" +
                 "      \n" +
                 "      <!-- Instructions -->\n" +
@@ -943,29 +958,24 @@ public class TeacherServiceImpl implements TeacherService {
                 "      \n" +
                 "      <div style=\"text-align: center; margin: 30px 0;\">\n" +
                 (autoLoginToken != null && password != null ?
-                "        <a href=\"" + registerLink.replace("/parent/login", "") + "/api/auth/auto-login?token=" + autoLoginToken + "\" \n" +
+                "        <a href=\"" + backendBaseUrl + "/api/auth/auto-login?token=" + autoLoginToken + "\" \n" +
                 "           style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); \n" +
                 "                  color: white; padding: 16px 40px; text-decoration: none; \n" +
                 "                  border-radius: 50px; font-weight: bold; font-size: 18px;\n" +
-                "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); margin-bottom: 15px;\">\n" +
+                "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);\">\n" +
                 "          🚀 Đăng nhập ngay (Tự động)\n" +
                 "        </a>\n" +
                 "        <p style=\"margin-top: 15px; color: #999; font-size: 13px;\">\n" +
-                "          Nhấn vào nút trên để đăng nhập tự động, không cần nhập mật khẩu!<br>\n" +
-                "          <span style=\"color: #e74c3c;\">⚠️ Link chỉ có hiệu lực trong 24 giờ</span>\n" +
-                "        </p>\n" +
-                "        <div style=\"margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ddd;\">\n" +
-                "          <p style=\"color: #666; font-size: 14px; margin-bottom: 10px;\">Hoặc đăng nhập thủ công:</p>\n" +
-                "          <a href=\"" + registerLink + "\" \n" +
-                "             style=\"color: #667eea; text-decoration: none; font-size: 15px;\">\n" +
-                "            👉 Trang đăng nhập phụ huynh\n" +
-                "          </a>\n" +
-                "        </div>\n"
+                "          Nhấn vào nút trên để đăng nhập tự động mà không cần nhập mật khẩu.<br>\n" +
+                "          Hoặc bạn có thể <a href=\"" + registerLink + "\" style=\"color: #667eea;\">đăng nhập thủ công</a> bằng email và mật khẩu ở trên.\n" +
+                "        </p>\n"
                 :
                 "        <a href=\"" + registerLink + "\" \n" +
-                "           style=\"background: #007bff; color: white; padding: 15px 40px; \n" +
-                "                  text-decoration: none; border-radius: 5px; display: inline-block;\">\n" +
-                "          Đăng ký ngay\n" +
+                "           style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); \n" +
+                "                  color: white; padding: 16px 40px; text-decoration: none; \n" +
+                "                  border-radius: 50px; font-weight: bold; font-size: 18px;\n" +
+                "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);\">\n" +
+                "          🚀 Đăng nhập ngay\n" +
                 "        </a>\n"
                 ) +
                 "      </div>\n" +
@@ -1004,7 +1014,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .password(passwordEncoder.encode(temporaryPassword))
                 .fullName(email.split("@")[0]) // Use email prefix as default name
                 .status(UserStatus.ACTIVE)
-                .isVerify(false) // Parent needs to verify email
+                .isVerify(true) // Không cần xác thực email - tài khoản được tạo tự động bởi giáo viên
                 .build();
         user.addRole(parentRole);
         User savedUser = userRepository.save(user);
@@ -1015,10 +1025,8 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
         parentRepository.save(parent);
 
-        // Create verification token and send verification email
-        String verificationToken = UUID.randomUUID().toString();
-        createVerificationToken(savedUser, verificationToken);
-        sendParentVerificationEmail(savedUser, verificationToken);
+        // Không cần tạo verification token và gửi email xác thực
+        // Phụ huynh sẽ nhận được thông tin đăng nhập qua email mời
 
         return temporaryPassword;
     }
@@ -1041,7 +1049,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .password(encodedPassword)
                 .fullName(email.split("@")[0]) // Use email prefix as default name
                 .status(UserStatus.ACTIVE)
-                .isVerify(false) // Parent needs to verify email
+                .isVerify(true) // Không cần xác thực email - tài khoản được tạo tự động bởi giáo viên
                 .build();
         user.addRole(parentRole);
         User savedUser = userRepository.save(user);
@@ -1052,37 +1060,9 @@ public class TeacherServiceImpl implements TeacherService {
                 .build();
         parentRepository.save(parent);
 
-        // Create verification token
-        String verificationToken = UUID.randomUUID().toString();
-        createVerificationToken(savedUser, verificationToken);
+        log.info("Parent account created with userId: {}, email: {}", savedUser.getUserId(), email);
         
-        // Send verification email asynchronously
-        String username = savedUser.getUsername();
-        CompletableFuture.runAsync(() -> {
-            try {
-                sendParentVerificationEmail(savedUser, verificationToken);
-            } catch (Exception e) {
-                log.error("Failed to send verification email to {}: {}", username, e.getMessage());
-            }
-        });
-
         return temporaryPassword;
-    }
-
-    private void createVerificationToken(User user, String token) {
-        VerificationToken verificationToken = new VerificationToken(token, user);
-        verificationTokenRepository.save(verificationToken);
-    }
-
-    private void sendParentVerificationEmail(User user, String token) {
-        String subject = "Xác thực tài khoản";
-        String verificationUrl = emailVerificationUrl + "?token=" + token;
-        String text = "Chào " + user.getUsername() + ",\n\n"
-                + "Vui lòng nhấp vào liên kết sau để xác thực tài khoản của bạn:\n"
-                + verificationUrl + "\n\n"
-                + "Liên kết có hiệu lực trong 24 giờ.";
-
-        emailService.sendEmail(user.getEmail(), subject, text);
     }
 
     private String escapeHtml(String input) {

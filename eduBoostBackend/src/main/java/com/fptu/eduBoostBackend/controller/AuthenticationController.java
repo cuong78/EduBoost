@@ -33,6 +33,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
 import com.fptu.eduBoostBackend.exception.exceptions.InternalServerErrorException;
 import com.fptu.eduBoostBackend.exception.exceptions.NotFoundException;
 import com.fptu.eduBoostBackend.exception.exceptions.TokenRefreshException;
+import com.fptu.eduBoostBackend.mapper.UserMapper;
 import com.fptu.eduBoostBackend.service.AuthenticationService;
 import com.fptu.eduBoostBackend.service.EmailService;
 import com.fptu.eduBoostBackend.service.OneTimeLoginTokenService;
@@ -61,6 +62,9 @@ public class AuthenticationController {
 
     @Value("${frontend.url.base}")
     private String frontendUrl;
+    
+    @Value("${frontend.url.auto.login.callback}")
+    private String autoLoginCallbackUrl;
 
     @PostMapping("/register")
     public ResponseEntity<ResponseObject> register(@Valid @RequestBody UserRegistrationRequest request) {
@@ -236,27 +240,34 @@ public class AuthenticationController {
             method = {org.springframework.web.bind.annotation.RequestMethod.GET,
                     org.springframework.web.bind.annotation.RequestMethod.POST}
     )
-    public ResponseEntity<ResponseObject> autoLogin(@RequestParam String token) {
+    public ResponseEntity<?> autoLogin(@RequestParam String token) {
         try {
-            // Validate và sử dụng one-time token
-            User user = oneTimeLoginTokenService.validateAndUseToken(token);
+            // Validate token và lấy username
+            String username = oneTimeLoginTokenService.validateTokenAndGetUsername(token);
             
-            // Generate JWT token cho user
-            String jwtToken = tokenService.generateToken(user);
+            // Login thông thường với username
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.setUsername(username);
+            loginRequest.setPassword(null); // Không cần password cho auto-login
             
-            // Tạo refresh token
-            RefreshToken refreshTokenEntity = refreshTokenService.createRefreshToken(user);
+            // Gọi service để tạo JWT và refresh token
+            UserResponse userResponse = authenticationService.autoLogin(username);
             
-            // Build UserResponse (chỉ có token và refreshToken)
-            UserResponse userResponse = UserResponse.builder()
-                    .token(jwtToken)
-                    .refreshToken(refreshTokenEntity.getToken())
+            // Redirect to frontend với tokens
+            String redirectUrl = String.format("%s?token=%s&refreshToken=%s",
+                    autoLoginCallbackUrl,
+                    userResponse.getToken(),
+                    userResponse.getRefreshToken()
+            );
+            
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", redirectUrl)
                     .build();
-            
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(HttpStatus.OK.value(), "Auto-login successful", userResponse));
         } catch (RuntimeException e) {
-            throw new BadRequestException(e.getMessage(), e);
+            // Nếu lỗi, redirect về login page với error
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", frontendUrl + "/login?error=" + e.getMessage())
+                    .build();
         }
     }
 }

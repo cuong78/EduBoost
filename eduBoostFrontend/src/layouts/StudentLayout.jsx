@@ -1,53 +1,70 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
-import { BookOpen, MessageSquare, Users, Settings, LogOut, LayoutDashboard, FileQuestion } from 'lucide-react';
-import UserMenu from '../components/common/UserMenu';
+import { Outlet, Link, useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
+import {
+  BookOpen,
+  MessageSquare,
+  Users,
+  Settings,
+  LogOut,
+  LayoutDashboard,
+  FileQuestion,
+} from "lucide-react";
+import UserMenu from "../components/common/UserMenu";
 
 const StudentLayout = () => {
-    const location = useLocation();
+  const location = useLocation();
 
-    const isActive = (path) => location.pathname === path;
+  const isActive = (path) => location.pathname === path;
 
-    return (
-        <div className="student-layout">
-            <aside className="sidebar glass">
-                <div className="sidebar-header">
-                    <Link to="/" className="logo">
-                        <img src={logo} alt="EduBoost" />
-                        <span>EduBoost</span>
-                    </Link>
-                </div>
+  return (
+    <div className="student-layout">
+      <aside className="sidebar glass">
+        <div className="sidebar-header">
+          <Link to="/student" className="logo">
+            <img src={logo} alt="EduBoost" />
+            <span>EduBoost</span>
+          </Link>
+        </div>
 
-                <nav className="sidebar-nav">
-                    <Link to="/student/chat" className={`nav-item ${isActive('/student/chat') ? 'active' : ''}`}>
-                        <MessageSquare size={20} /> Chat AI
-                    </Link>
-                    <Link to="/student/exams" className={`nav-item ${isActive('/student/exams') ? 'active' : ''}`}>
-                        <FileQuestion size={20} /> Bài kiểm tra
-                    </Link>
-                    <Link to="/student/forum" className={`nav-item ${isActive('/student/forum') ? 'active' : ''}`}>
-                        <Users size={20} /> Diễn đàn
-                    </Link>
-                </nav>
+        <nav className="sidebar-nav">
+          <Link
+            to="/student/chat"
+            className={`nav-item ${isActive("/student/chat") ? "active" : ""}`}
+          >
+            <MessageSquare size={20} /> Chat AI
+          </Link>
+          <Link
+            to="/student/exams"
+            className={`nav-item ${isActive("/student/exams") ? "active" : ""}`}
+          >
+            <FileQuestion size={20} /> Bài kiểm tra
+          </Link>
+          <Link
+            to="/student/forum"
+            className={`nav-item ${isActive("/student/forum") ? "active" : ""}`}
+          >
+            <Users size={20} /> Diễn đàn
+          </Link>
+        </nav>
 
-                <div className="sidebar-footer">
-                    <UserMenu userType="student" />
-                </div>
-            </aside>
+        <div className="sidebar-footer">
+          <UserMenu userType="student" />
+        </div>
+      </aside>
 
-            <main className="dashboard-content">
-                <header className="topbar glass">
-                    <h2>Dashboard Học Viên</h2>
-                    <div className="topbar-actions">
-                        {/* Notification bells etc could go here */}
-                    </div>
-                </header>
-                <div className="page-container">
-                    <Outlet />
-                </div>
-            </main>
+      <main className="dashboard-content">
+        <header className="topbar glass">
+          <h2>Dashboard Học Viên</h2>
+          <div className="topbar-actions">
+            {/* Notification bells etc could go here */}
+          </div>
+        </header>
+        <div className="page-container">
+          <Outlet />
+        </div>
+      </main>
 
-            <style>{`
+      <style>{`
                 .student-layout {
                     display: grid;
                     grid-template-columns: 260px 1fr;
@@ -181,8 +198,8 @@ const StudentLayout = () => {
                     overflow-y: auto;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default StudentLayout;
