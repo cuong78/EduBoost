@@ -34,9 +34,6 @@ const Hero = () => {
             <span>🤖 AI Tutor</span>
             <div className="loading-bar"></div>
           </div>
-          <div className="visual-card-2 glass">
-            <span>✨ 100+ Bài giảng</span>
-          </div>
         </div>
       </div>
 

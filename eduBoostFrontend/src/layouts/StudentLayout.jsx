@@ -19,9 +19,6 @@ const StudentLayout = () => {
                 </div>
 
                 <nav className="sidebar-nav">
-                    <Link to="/student/courses" className={`nav-item ${isActive('/student/courses') ? 'active' : ''}`}>
-                        <BookOpen size={20} /> Bài giảng
-                    </Link>
                     <Link to="/student/chat" className={`nav-item ${isActive('/student/chat') ? 'active' : ''}`}>
                         <MessageSquare size={20} /> Chat AI
                     </Link>
