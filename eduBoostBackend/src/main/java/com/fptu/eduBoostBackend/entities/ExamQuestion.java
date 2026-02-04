@@ -39,7 +39,7 @@ public class ExamQuestion {
     @Column(name = "source_flag", length = 20)
     private ExamQuestionSourceFlag sourceFlag;
 
-    @Column(name = "question_text", columnDefinition = "LONGTEXT", nullable = false)
+    @Column(name = "question_text", columnDefinition = "TEXT", nullable = false)
     private String questionText;
 
     @Column(name = "correct_answer", columnDefinition = "TEXT", nullable = false)

@@ -43,7 +43,7 @@ public class LessonResource {
     @Column(name = "mime_type", length = 100)
     private String mimeType;
 
-    @Column(name = "extracted_content", columnDefinition = "LONGTEXT")
+    @Column(name = "extracted_content", columnDefinition = "TEXT")
     private String extractedContent;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -10,19 +10,16 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class ClassResponse {
-    private String classId;
-    private String className;
-    private String classCode;
-    private String gradeLevel;
-    private String teacherId;
-    private String teacherName;
-    private String schoolYear;
+public class LessonResponse {
+    private Long id;
+    private Long chapterId;
+    private String chapterName;
+    private Integer lessonNumber;
+    private String lessonName;
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Integer studentCount;
 }
