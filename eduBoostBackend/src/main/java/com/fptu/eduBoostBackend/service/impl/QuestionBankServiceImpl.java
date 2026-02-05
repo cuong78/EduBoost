@@ -1,20 +1,21 @@
 package com.fptu.eduBoostBackend.service.impl;
 
-import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
-import com.fptu.eduBoostBackend.dto.response.QuestionBankImportResponse;
-import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
-import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
-import com.fptu.eduBoostBackend.entities.*;
-import com.fptu.eduBoostBackend.entities.enums.DifficultyLevel;
-import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
-import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
-import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
-import com.fptu.eduBoostBackend.repositories.*;
-import com.fptu.eduBoostBackend.service.ExcelImportService;
-import com.fptu.eduBoostBackend.service.QuestionBankService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -24,12 +25,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
+import com.fptu.eduBoostBackend.dto.response.QuestionBankImportResponse;
+import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
+import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
+import com.fptu.eduBoostBackend.entities.CognitiveLevel;
+import com.fptu.eduBoostBackend.entities.Lesson;
+import com.fptu.eduBoostBackend.entities.QuestionBank;
+import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.entities.enums.DifficultyLevel;
+import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
+import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
+import com.fptu.eduBoostBackend.repositories.LessonRepository;
+import com.fptu.eduBoostBackend.repositories.QuestionBankRepository;
+import com.fptu.eduBoostBackend.repositories.UserRepository;
+import com.fptu.eduBoostBackend.service.ExcelImportService;
+import com.fptu.eduBoostBackend.service.QuestionBankService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -264,6 +280,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 : questionBankRepository.count();
         
         long aiGeneratedCount = questionBankRepository.countAiGenerated();
+        long manualCount = questionBankRepository.countManual();
+        long importedCount = questionBankRepository.countImported();
 
         // Simplified stats - can be enhanced
         Map<String, Long> byLesson = new HashMap<>();
@@ -276,6 +294,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .byCognitiveLevel(byCognitiveLevel)
                 .byDifficultyLevel(byDifficultyLevel)
                 .aiGeneratedCount(aiGeneratedCount)
+                .manualCount(manualCount)
+                .importedCount(importedCount)
                 .build();
     }
 
