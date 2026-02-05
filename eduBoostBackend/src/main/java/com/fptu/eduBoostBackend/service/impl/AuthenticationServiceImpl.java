@@ -74,7 +74,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
     RoleRepository roleRepository;
 
-
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
@@ -381,7 +380,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     throw new BadRequestException("Account has been locked!");
                 }
 
-                // User already exists, just login
+                // Check if Teacher record exists, create if missing (for users who registered before this fix)
+                boolean hasTeacherRole = user.getRoles().stream()
+                        .anyMatch(role -> PredefinedRole.TEACH_ROLE.equals(role.getName()));
+                if (hasTeacherRole && teacherRepository.findByUser(user).isEmpty()) {
+                    Teacher teacher = Teacher.builder()
+                            .user(user)
+                            .build();
+                    teacherRepository.save(teacher);
+                    log.info("Created missing Teacher record for existing user: {}", email);
+                }
+
                 userRepository.save(user);
             } else {
                 // User doesn't exist, auto-register
@@ -426,12 +435,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
                 user = userRepository.save(user);
                 log.info("Auto-registered new user from Google: {} with ID: {}", email, user.getUserId());
-            }
 
-            // Create authentication
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    user.getUsername(), null, user.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                // Create Teacher entity for Google users with TEACHER role
+                if (teachRole.isPresent()) {
+                    Teacher teacher = Teacher.builder()
+                            .user(user)
+                            .build();
+                    teacherRepository.save(teacher);
+                    log.info("Teacher record created for Google user: {}", email);
+                }
+            }
 
             // Generate tokens
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);

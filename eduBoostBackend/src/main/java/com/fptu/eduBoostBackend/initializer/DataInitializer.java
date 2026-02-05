@@ -164,35 +164,6 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         subjectRepository.save(chemistry);
 
-        Subject english = Subject.builder()
-                .subjectCode("ANH")
-                .description("Tiếng Anh")
-                .build();
-        subjectRepository.save(english);
-
-        Subject literature = Subject.builder()
-                .subjectCode("VAN")
-                .description("Ngữ văn")
-                .build();
-        subjectRepository.save(literature);
-
-        Subject biology = Subject.builder()
-                .subjectCode("SINH")
-                .description("Sinh học")
-                .build();
-        subjectRepository.save(biology);
-
-        Subject history = Subject.builder()
-                .subjectCode("SU")
-                .description("Lịch sử")
-                .build();
-        subjectRepository.save(history);
-
-        Subject geography = Subject.builder()
-                .subjectCode("DIA")
-                .description("Địa lý")
-                .build();
-        subjectRepository.save(geography);
         Subject Science = Subject.builder()
                 .subjectCode("KHTN")
                 .description("Khoa Học Tự Nhiên ")
@@ -210,8 +181,6 @@ public class DataInitializer implements CommandLineRunner {
         Subject science = subjectRepository.findBySubjectCode("KHTN").orElse(null);
 
         if (math != null) {
-            // Toán 10 - Chương 1
-
 
 
             Chapter G6Chap1 = Chapter.builder()
