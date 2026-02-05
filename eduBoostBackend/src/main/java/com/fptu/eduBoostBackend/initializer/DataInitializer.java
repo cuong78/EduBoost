@@ -24,7 +24,9 @@ import com.fptu.eduBoostBackend.entities.enums.Gender;
 import com.fptu.eduBoostBackend.entities.enums.LessonResourceType;
 import com.fptu.eduBoostBackend.entities.enums.StudentStatus;
 import com.fptu.eduBoostBackend.entities.CognitiveLevel;
+import com.fptu.eduBoostBackend.entities.ExamType;
 import com.fptu.eduBoostBackend.repositories.ChapterRepository;
+import com.fptu.eduBoostBackend.repositories.ExamTypeRepository;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
@@ -52,6 +54,7 @@ public class DataInitializer implements CommandLineRunner {
     private final LessonRepository lessonRepository;
     private final LessonResourceRepository lessonResourceRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
+    private final ExamTypeRepository examTypeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -63,6 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeUsers();
         initializeSubjects();
         initializeCognitiveLevels();
+        initializeExamTypes();
         initializeChaptersAndLessons();
         initializeClasses();
     }
@@ -105,6 +109,40 @@ public class DataInitializer implements CommandLineRunner {
         cognitiveLevelRepository.save(level4);
     }
 
+    /**
+     * Khởi tạo các loại đề thi: 15 phút, 1 tiết, học kì
+     */
+    private void initializeExamTypes() {
+        // Kiểm tra 15 phút
+        ExamType exam15Min = ExamType.builder()
+                .typeCode("15MIN")
+                .typeName("Kiểm tra 15 phút")
+                .requiresMatrix(false)
+                .description("Bài kiểm tra ngắn 15 phút, không cần ma trận đề")
+                .displayOrder(1)
+                .build();
+        examTypeRepository.save(exam15Min);
+
+        // Kiểm tra 1 tiết (45 phút)
+        ExamType exam45Min = ExamType.builder()
+                .typeCode("45MIN")
+                .typeName("Kiểm tra 1 tiết")
+                .requiresMatrix(true)
+                .description("Bài kiểm tra 1 tiết (45 phút), cần ma trận đề theo mức độ nhận thức")
+                .displayOrder(2)
+                .build();
+        examTypeRepository.save(exam45Min);
+
+        // Kiểm tra cuối kỳ / Học kỳ
+        ExamType examFinal = ExamType.builder()
+                .typeCode("FINAL")
+                .typeName("Kiểm tra học kỳ")
+                .requiresMatrix(true)
+                .description("Bài kiểm tra cuối học kỳ, cần ma trận đề đầy đủ")
+                .displayOrder(4)
+                .build();
+        examTypeRepository.save(examFinal);
+    }
 
     private void initializeSubjects() {
         // Create common subjects for testing

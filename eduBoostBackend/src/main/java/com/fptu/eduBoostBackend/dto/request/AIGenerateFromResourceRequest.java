@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,6 +16,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class AIGenerateFromResourceRequest {
     
     @NotNull(message = "Resource ID is required")
@@ -31,10 +33,12 @@ public class AIGenerateFromResourceRequest {
   
     private Map<String, Integer> cognitiveLevelDistribution;
     
+    @Builder.Default
     private QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
     
     /**
      * AI Provider: CLAUDE, OPENAI, DEEPSEEK (default: CLAUDE)
      */
-    private String aiProvider = "CLAUDE";
+    @Builder.Default
+    private String aiProvider = "DEEPSEEK";
 }

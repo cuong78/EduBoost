@@ -14,15 +14,13 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
                 ['bold', 'italic', 'underline', 'strike'],
                 [{ 'align': [] }],
                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                ['formula', 'image'],
+                ['image'],
                 ['clean']
             ],
             handlers: {
-                image: imageHandler,
-                formula: formulaHandler
+                image: imageHandler
             }
         },
-        formula: true,
         clipboard: {
             matchVisual: false
         }
@@ -54,18 +52,9 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
         };
     }
 
-    function formulaHandler() {
-        const quill = quillRef.current?.getEditor();
-        if (!quill) return;
-
-        const range = quill.getSelection(true);
-        const formula = prompt('Nhập công thức LaTeX (ví dụ: x^2 + y^2 = r^2):');
-        if (formula && formula.trim()) {
-            // Insert as LaTeX with $ delimiters
-            quill.insertText(range.index, `$${formula.trim()}$`, 'user');
-            quill.setSelection(range.index + formula.trim().length + 2);
-        }
-    }
+    // NOTE: Quill "formula" module requires extra registration (KaTeX + module).
+    // We intentionally disable it to avoid runtime errors. LaTeX can still be rendered
+    // by `MathRenderer` when user types `$...$` or `$$...$$` manually.
 
     return (
         <div className="rich-text-editor">

@@ -23,7 +23,6 @@ export const questionBankService = {
         const params = new URLSearchParams();
         if (filters.lessonId) params.append('lessonId', filters.lessonId);
         if (filters.cognitiveLevelId) params.append('cognitiveLevelId', filters.cognitiveLevelId);
-        if (filters.isVerified !== undefined) params.append('isVerified', filters.isVerified);
         if (filters.sourceType) params.append('sourceType', filters.sourceType);
 
         const response = await axios.get(`${API.QUESTION_BANK}?${params.toString()}`, {
@@ -57,13 +56,6 @@ export const questionBankService = {
         await axios.delete(API.QUESTION_BANK_ITEM(id), {
             headers: getAuthHeaders()
         });
-    },
-
-    async verifyQuestion(id) {
-        const response = await axios.put(`${API.QUESTION_BANK_ITEM(id)}/verify`, {}, {
-            headers: getAuthHeaders()
-        });
-        return response.data;
     },
 
     // Import/Export

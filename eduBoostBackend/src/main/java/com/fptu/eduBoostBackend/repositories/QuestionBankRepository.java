@@ -31,4 +31,18 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     
     @Query("SELECT COUNT(q) FROM QuestionBank q WHERE q.sourceType = 'AI_GENERATED'")
     long countAiGenerated();
+    
+    @Query("SELECT q FROM QuestionBank q " +
+           "LEFT JOIN FETCH q.lesson l " +
+           "LEFT JOIN FETCH q.cognitiveLevel " +
+           "WHERE l.chapter.id = :chapterId " +
+           "ORDER BY l.lessonNumber ASC, q.cognitiveLevel.displayOrder ASC")
+    List<QuestionBank> findByLessonChapterIdOrdered(@Param("chapterId") Long chapterId);
+    
+    @Query("SELECT q FROM QuestionBank q " +
+           "WHERE q.lesson.id = :lessonId " +
+           "AND q.cognitiveLevel.id = :cognitiveLevelId")
+    List<QuestionBank> findByLessonIdAndCognitiveLevelId(
+            @Param("lessonId") Long lessonId,
+            @Param("cognitiveLevelId") Long cognitiveLevelId);
 }

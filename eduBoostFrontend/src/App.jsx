@@ -44,6 +44,7 @@ import UploadResource from './pages/teacher/UploadResource';
 import ExamGenerator from './pages/teacher/ExamGenerator';
 import QuestionBankManagement from './pages/teacher/QuestionBankManagement';
 import ResourceManagement from './pages/teacher/ResourceManagement';
+import ExamManagement from './pages/teacher/ExamManagement';
 import ClassList from './pages/teacher/ClassList';
 import ClassStudents from './pages/teacher/ClassStudents';
 import CreateStudent from './pages/teacher/CreateStudent';
@@ -158,6 +159,7 @@ function App() {
               <Route path="upload-resource" element={<UploadResource />} />
               <Route path="question-bank" element={<QuestionBankManagement />} />
               <Route path="resources" element={<ResourceManagement />} />
+              <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="grading" element={<AIGrading />} />
               <Route path="profile" element={<UserProfile />} />
