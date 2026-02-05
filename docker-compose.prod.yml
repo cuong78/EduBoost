@@ -39,11 +39,11 @@ services:
       - eduboost-network
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     restart: always
 
 
