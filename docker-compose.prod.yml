@@ -131,6 +131,11 @@ services:
     networks:
       - eduboost-network
     restart: always
+    # Increase file descriptor limits for high traffic
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
 
 volumes:
   postgres_data:
