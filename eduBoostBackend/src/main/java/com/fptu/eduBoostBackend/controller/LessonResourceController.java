@@ -106,15 +106,59 @@ public class LessonResourceController {
             @Parameter(description = "Resource ID", required = true)
             @PathVariable Long id) {
 
+        // Get resource metadata first
+        LessonResourceResponse resourceInfo = lessonResourceService.getResourceById(id);
         Resource resource = lessonResourceService.downloadResource(id);
 
-        String contentType = "application/octet-stream";
-        String headerValue = "attachment; filename=\"" + resource.getFilename() + "\"";
+        // Use actual MIME type from database, fallback to octet-stream
+        String contentType = resourceInfo.getMimeType() != null 
+                ? resourceInfo.getMimeType() 
+                : "application/octet-stream";
+        
+        // Create filename with proper extension
+        String filename = resource.getFilename();
+        if (filename == null || filename.isEmpty()) {
+            filename = resourceInfo.getResourceName() != null 
+                    ? resourceInfo.getResourceName() 
+                    : "download";
+            
+            // Add extension if not present
+            if (!filename.contains(".")) {
+                String extension = getExtensionFromMimeType(contentType, resourceInfo.getResourceType());
+                filename += extension;
+            }
+        }
+
+        String headerValue = "attachment; filename=\"" + filename + "\"";
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
                 .body(resource);
+    }
+    
+    private String getExtensionFromMimeType(String mimeType, LessonResourceType resourceType) {
+        // Try to get extension from MIME type first
+        if (mimeType != null) {
+            if (mimeType.contains("pdf")) return ".pdf";
+            if (mimeType.contains("wordprocessingml") || mimeType.contains("msword")) return ".docx";
+            if (mimeType.contains("video/mp4")) return ".mp4";
+            if (mimeType.contains("image/jpeg")) return ".jpg";
+            if (mimeType.contains("image/png")) return ".png";
+        }
+        
+        // Fallback to resource type
+        if (resourceType != null) {
+            switch (resourceType) {
+                case PDF: return ".pdf";
+                case DOCX: return ".docx";
+                case VIDEO: return ".mp4";
+                case IMAGE: return ".png";
+                default: return "";
+            }
+        }
+        
+        return "";
     }
 
     @DeleteMapping("/resources/{id}")

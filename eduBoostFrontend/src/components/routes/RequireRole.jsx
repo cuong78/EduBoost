@@ -1,5 +1,5 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 
 /**
  * Lấy tên role từ mảng roles
@@ -9,19 +9,19 @@ import { useAuth } from '../../hooks/useAuth';
 const getRoleName = (roles) => {
   if (!roles || roles.length === 0) return null;
   const first = roles[0];
-  
+
   let roleName = null;
-  if (typeof first === 'string') {
+  if (typeof first === "string") {
     roleName = first;
-  } else if (typeof first === 'object' && first?.roleName) {
+  } else if (typeof first === "object" && first?.roleName) {
     roleName = first.roleName;
   }
-  
+
   // Loại bỏ prefix "ROLE_" nếu có (VD: "ROLE_TEACHER" -> "TEACHER")
-  if (roleName && roleName.startsWith('ROLE_')) {
+  if (roleName && roleName.startsWith("ROLE_")) {
     roleName = roleName.substring(5);
   }
-  
+
   return roleName;
 };
 
@@ -31,8 +31,13 @@ const getRoleName = (roles) => {
  * - wrong role -> /unauthorized
  */
 export default function RequireRole({ allow = [] }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for auth to load before making decisions
+  if (loading) {
+    return null; // or a loading spinner
+  }
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
@@ -47,4 +52,3 @@ export default function RequireRole({ allow = [] }) {
 
   return <Outlet />;
 }
-

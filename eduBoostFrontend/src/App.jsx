@@ -27,9 +27,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import UserProfile from "./pages/common/UserProfile";
 import ParentLayout from "./layouts/ParentLayout";
 import RedirectIfAuthenticated from "./components/routes/RedirectIfAuthenticated";
-import RequireRole from './components/routes/RequireRole';
-
-
+import RequireRole from "./components/routes/RequireRole";
 
 // Student Pages
 import AIChat from "./pages/student/AIChat";
@@ -39,28 +37,29 @@ import TakeExam from "./pages/student/TakeExam";
 
 // Teacher Pages
 
-import CreateQuestion from './pages/teacher/CreateQuestion';
-import UploadResource from './pages/teacher/UploadResource';
-import ExamGenerator from './pages/teacher/ExamGenerator';
-import ClassList from './pages/teacher/ClassList';
-import ClassStudents from './pages/teacher/ClassStudents';
-import CreateStudent from './pages/teacher/CreateStudent';
-import StudentDetail from './pages/teacher/StudentDetail';
-import StudentInvitations from './pages/teacher/StudentInvitations';
-import EditStudent from './pages/teacher/EditStudent';
-import LinkStudent from './pages/parent/LinkStudent';
-import MyStudents from './pages/parent/MyStudents';
-import ParentStudentDetail from './pages/parent/StudentDetail';
-import InvitationStats from './pages/admin/InvitationStats';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import AIGrading from './pages/teacher/AIGrading';
+import CreateQuestion from "./pages/teacher/CreateQuestion";
+import UploadResource from "./pages/teacher/UploadResource";
+import ExamGenerator from "./pages/teacher/ExamGenerator";
+import ClassList from "./pages/teacher/ClassList";
+import ClassStudents from "./pages/teacher/ClassStudents";
+import CreateStudent from "./pages/teacher/CreateStudent";
+import StudentDetail from "./pages/teacher/StudentDetail";
+import StudentInvitations from "./pages/teacher/StudentInvitations";
+import EditStudent from "./pages/teacher/EditStudent";
+import LinkStudent from "./pages/parent/LinkStudent";
+import MyStudents from "./pages/parent/MyStudents";
+import ParentStudentDetail from "./pages/parent/StudentDetail";
+import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import AIGrading from "./pages/teacher/AIGrading";
 
 // Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserManagement from './pages/admin/UserManagement';
-import Settings from './pages/admin/Settings';
-import UnauthorizedPage from './pages/auth/UnauthorizedPage';
-
+import UserManagement from "./pages/admin/UserManagement";
+import Settings from "./pages/admin/Settings";
+import Subjects from "./pages/admin/Subjects";
+import Chapters from "./pages/admin/Chapters";
+import LessonResources from "./pages/admin/LessonResources";
+import QuestionBank from "./pages/admin/QuestionBank";
+import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
 
 const Home = () => (
   <>
@@ -141,19 +140,31 @@ function App() {
           <Route path="/student/exam/:id" element={<TakeExam />} />
 
           {/* Teacher Dashboard Routes */}
-          <Route element={<RequireRole allow={['TEACHER']} />}>
+          <Route element={<RequireRole allow={["TEACHER"]} />}>
             <Route path="/teacher" element={<TeacherLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<TeacherDashboard />} />
               <Route path="classes" element={<ClassList />} />
-              <Route path="classes/:classId/students" element={<ClassStudents />} />
+              <Route
+                path="classes/:classId/students"
+                element={<ClassStudents />}
+              />
               <Route path="students/new" element={<CreateStudent />} />
               <Route path="students/:studentId" element={<StudentDetail />} />
-              <Route path="students/:studentId/edit" element={<EditStudent />} />
-              <Route path="students/:studentId/invitations" element={<StudentInvitations />} />
-              <Route path="users" element={<DashboardPlaceholder title="Manage Users" />} />
+              <Route
+                path="students/:studentId/edit"
+                element={<EditStudent />}
+              />
+              <Route
+                path="students/:studentId/invitations"
+                element={<StudentInvitations />}
+              />
+              <Route
+                path="users"
+                element={<DashboardPlaceholder title="Manage Users" />}
+              />
               <Route path="create-question" element={<CreateQuestion />} />
-            <Route path="upload-resource" element={<UploadResource />} />
+              <Route path="upload-resource" element={<UploadResource />} />
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="grading" element={<AIGrading />} />
               <Route path="profile" element={<UserProfile />} />
@@ -172,22 +183,20 @@ function App() {
           </Route>
 
           {/* Admin Dashboard Routes */}
-          <Route element={<RequireRole allow={['ADMIN']} />}>
+          <Route element={<RequireRole allow={["ADMIN"]} />}>
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route index element={<Navigate to="users" replace />} />
               <Route path="users" element={<UserManagement />} />
+              <Route path="subjects" element={<Subjects />} />
+              <Route path="chapters" element={<Chapters />} />
+              <Route path="lesson-resources" element={<LessonResources />} />
+              <Route path="question-bank" element={<QuestionBank />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="dashboard" element={<DashboardPlaceholder title="Admin Dashboard" />} />
-              <Route path="users" element={<DashboardPlaceholder title="User Account Management" />} />
-              <Route path="invitations" element={<InvitationStats />} />
-              <Route path="settings" element={<DashboardPlaceholder title="System Settings" />} />
             </Route>
           </Route>
 
           {/* Unauthorized */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
-
         </Routes>
       </div>
     </Router>
