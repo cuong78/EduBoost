@@ -8,7 +8,7 @@ export function useAuth() {
     const context = useContext(AuthContext);
     if (!context) throw new Error("useAuth must be used inside AuthProvider");
 
-    const { user, setUser } = context;
+    const { user, setUser, loading, isAuthenticated, setIsAuthenticated } = context;
     const token = localStorage.getItem("token");
     const isAdmin = user?.roles[0]?.roleName === "ADMIN";
     const isManager = user?.roles[0]?.roleName === "MANAGER";
@@ -272,6 +272,8 @@ export function useAuth() {
         login,
         isLoading,
         user,
+        loading,
+        isAuthenticated,
         register,
         setUser,
         isAdmin,

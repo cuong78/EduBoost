@@ -874,7 +874,27 @@ const CreateQuestion = () => {
                                 {importFile ? importFile.name : 'Choose File'}
                             </label>
                         </div>
-                        <small className="muted">Hỗ trợ file Excel (.xlsx, .xls) hoặc PDF. Backend sẽ parse file và trả về danh sách câu hỏi.</small>
+                        {importFile && (
+                            <div className="file-info">
+                                <span>✓ Đã chọn: {importFile.name}</span>
+                                <span className="file-size">
+                                    ({(importFile.size / 1024).toFixed(2)} KB)
+                                </span>
+                                <button 
+                                    type="button"
+                                    className="btn-remove-file"
+                                    onClick={() => {
+                                        setImportFile(null);
+                                        const fileInput = document.getElementById('import-file');
+                                        if (fileInput) fileInput.value = '';
+                                    }}
+                                    title="Xóa file"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        )}
+                        <small className="muted">Hỗ trợ file Excel (.xlsx, .xls) hoặc PDF.</small>
                     </div>
                     <button
                         className="btn btn-primary"
@@ -890,42 +910,77 @@ const CreateQuestion = () => {
                                 <div className="imported-questions">
                                     <h4>Danh sách câu hỏi đã import ({importedQuestions.length})</h4>
                                     {importedQuestions.map((q, idx) => (
-                                        <div key={idx} className="question-card">
+                                        <div key={idx} className={`question-card ${editingQuestionIndex === idx ? 'editing' : ''}`}>
                                             {editingQuestionIndex === idx ? (
                                                 <div className="edit-mode">
+                                                    <div className="edit-header">
+                                                        <h4>✏️ Đang chỉnh sửa câu hỏi số {idx + 1}</h4>
+                                                    </div>
                                                     <div className="field">
-                                                        <label>Câu hỏi</label>
-                                                        <RichTextEditor
+                                                        <label>Câu hỏi (hỗ trợ LaTeX: $...$ hoặc $$...$$)</label>
+                                                        <textarea
+                                                            rows={6}
+                                                            style={{ minHeight: '150px', fontSize: '0.95rem' }}
                                                             value={q.questionText || ''}
-                                                            onChange={(value) => {
+                                                            onChange={(e) => {
                                                                 const updated = [...importedQuestions];
-                                                                updated[idx].questionText = value;
+                                                                updated[idx].questionText = e.target.value;
                                                                 setImportedQuestions(updated);
                                                             }}
+                                                            placeholder="Nhập câu hỏi..."
                                                         />
+                                                        {q.questionText && (
+                                                            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                    <MathRenderer content={q.questionText} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="field">
-                                                        <label>Đáp án đúng</label>
-                                                        <RichTextEditor
+                                                        <label>Đáp án đúng (hỗ trợ LaTeX)</label>
+                                                        <textarea
+                                                            rows={5}
+                                                            style={{ minHeight: '120px', fontSize: '0.95rem' }}
                                                             value={q.correctAnswer || ''}
-                                                            onChange={(value) => {
+                                                            onChange={(e) => {
                                                                 const updated = [...importedQuestions];
-                                                                updated[idx].correctAnswer = value;
+                                                                updated[idx].correctAnswer = e.target.value;
                                                                 setImportedQuestions(updated);
                                                             }}
+                                                            placeholder="Nhập đáp án..."
                                                         />
+                                                        {q.correctAnswer && (
+                                                            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                                <small style={{ color: '#10b981', fontWeight: '600' }}>Preview:</small>
+                                                                <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                    <MathRenderer content={q.correctAnswer} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="field">
-                                                        <label>Explanation (Giải thích)</label>
-                                                        <RichTextEditor
+                                                        <label>Explanation - Giải thích (hỗ trợ LaTeX)</label>
+                                                        <textarea
+                                                            rows={5}
+                                                            style={{ minHeight: '120px', fontSize: '0.95rem' }}
                                                             value={q.explanation || ''}
-                                                            onChange={(value) => {
+                                                            onChange={(e) => {
                                                                 const updated = [...importedQuestions];
-                                                                updated[idx].explanation = value;
+                                                                updated[idx].explanation = e.target.value;
                                                                 setImportedQuestions(updated);
                                                             }}
                                                             placeholder="Giải thích cho câu hỏi..."
                                                         />
+                                                        {q.explanation && (
+                                                            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                    <MathRenderer content={q.explanation} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="row">
                                                         <div className="field">
@@ -1266,7 +1321,7 @@ const CreateQuestion = () => {
                                     </button>
                                 </div>
                                 <div className="questions-checkbox-list">
-                                    {existingQuestions.map(q => (
+                                    {existingQuestions.map((q, index) => (
                                         <div key={q.id} className={`question-checkbox-item ${selectedQuestionIds.includes(q.id) ? 'selected' : ''}`}>
                                             <label>
                                                 <input
@@ -1274,9 +1329,25 @@ const CreateQuestion = () => {
                                                     checked={selectedQuestionIds.includes(q.id)}
                                                     onChange={() => handleToggleQuestionSelection(q.id)}
                                                 />
-                                                <span className="question-preview">
-                                                    <strong>#{q.id}</strong>: {(q.questionText || '').substring(0, 100)}{q.questionText?.length > 100 ? '...' : ''}
-                                                </span>
+                                                <div className="question-preview-content">
+                                                    <div className="question-preview-header">
+                                                        <span className="question-number-badge">Câu {index + 1}</span>
+                                                        <span className="question-id-badge">ID: {q.id}</span>
+                                                        {q.questionType && (
+                                                            <span className="type-badge">{QUESTION_TYPES.find(t => t.value === q.questionType)?.label || q.questionType}</span>
+                                                        )}
+                                                        {q.sourceType && (
+                                                            <span className={`source-badge ${q.sourceType.toLowerCase()}`}>
+                                                                {q.sourceType === 'MANUAL' ? '✍️ Nhập tay' : 
+                                                                 q.sourceType === 'IMPORTED' ? '📁 Import' : 
+                                                                 q.sourceType === 'AI_GENERATED' ? '🤖 AI' : q.sourceType}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="question-preview-text">
+                                                        <MathRenderer content={(q.questionText || '').substring(0, 150) + (q.questionText?.length > 150 ? '...' : '')} />
+                                                    </div>
+                                                </div>
                                             </label>
                                         </div>
                                     ))}
@@ -1313,7 +1384,7 @@ const CreateQuestion = () => {
                                             {variationGroups.map((group, gIdx) => (
                                                 <div key={gIdx} className="variation-group">
                                                     <div className="group-header">
-                                                        <strong>Câu gốc #{group.baseQuestionId}:</strong> {group.baseQuestionText.substring(0, 80)}...
+                                                        <strong>Câu gốc #{group.baseQuestionId}:</strong> <MathRenderer content={group.baseQuestionText.substring(0, 120) + (group.baseQuestionText.length > 120 ? '...' : '')} />
                                                     </div>
                                                     <div className="group-variations">
                                                         {group.variations.map((v, vIdx) => (
@@ -1321,37 +1392,67 @@ const CreateQuestion = () => {
                                                                 {editingGroupIndex === gIdx && editingVariationIndex === vIdx ? (
                                                                     <div className="edit-mode">
                                                                         <div className="field">
-                                                                            <label>Câu hỏi biến thể</label>
-                                                                            <RichTextEditor
+                                                                            <label>Câu hỏi biến thể (hỗ trợ LaTeX)</label>
+                                                                            <textarea
+                                                                                rows={6}
+                                                                                style={{ minHeight: '150px', fontSize: '0.95rem' }}
                                                                                 value={v.questionText || ''}
-                                                                                onChange={(value) => {
+                                                                                onChange={(e) => {
                                                                                     const newGroups = [...variationGroups];
-                                                                                    newGroups[gIdx].variations[vIdx].questionText = value;
+                                                                                    newGroups[gIdx].variations[vIdx].questionText = e.target.value;
                                                                                     setVariationGroups(newGroups);
                                                                                 }}
                                                                             />
+                                                                            {v.questionText && (
+                                                                                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                                    <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                                    <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                                        <MathRenderer content={v.questionText} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         <div className="field">
-                                                                            <label>Đáp án đúng</label>
-                                                                            <RichTextEditor
+                                                                            <label>Đáp án đúng (hỗ trợ LaTeX)</label>
+                                                                            <textarea
+                                                                                rows={5}
+                                                                                style={{ minHeight: '120px', fontSize: '0.95rem' }}
                                                                                 value={v.correctAnswer || ''}
-                                                                                onChange={(value) => {
+                                                                                onChange={(e) => {
                                                                                     const newGroups = [...variationGroups];
-                                                                                    newGroups[gIdx].variations[vIdx].correctAnswer = value;
+                                                                                    newGroups[gIdx].variations[vIdx].correctAnswer = e.target.value;
                                                                                     setVariationGroups(newGroups);
                                                                                 }}
                                                                             />
+                                                                            {v.correctAnswer && (
+                                                                                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                                                    <small style={{ color: '#10b981', fontWeight: '600' }}>Preview:</small>
+                                                                                    <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                                        <MathRenderer content={v.correctAnswer} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         <div className="field">
-                                                                            <label>Giải thích</label>
-                                                                            <RichTextEditor
+                                                                            <label>Giải thích (hỗ trợ LaTeX)</label>
+                                                                            <textarea
+                                                                                rows={5}
+                                                                                style={{ minHeight: '120px', fontSize: '0.95rem' }}
                                                                                 value={v.explanation || ''}
-                                                                                onChange={(value) => {
+                                                                                onChange={(e) => {
                                                                                     const newGroups = [...variationGroups];
-                                                                                    newGroups[gIdx].variations[vIdx].explanation = value;
+                                                                                    newGroups[gIdx].variations[vIdx].explanation = e.target.value;
                                                                                     setVariationGroups(newGroups);
                                                                                 }}
                                                                             />
+                                                                            {v.explanation && (
+                                                                                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                                    <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                                    <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                                        <MathRenderer content={v.explanation} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         <div className="row">
                                                                             <div className="field">
@@ -1683,6 +1784,46 @@ const CreateQuestion = () => {
                     cursor: pointer;
                     font-weight: 500;
                 }
+                .file-info {
+                    margin-top: 0.75rem;
+                    padding: 0.75rem;
+                    background: rgba(16, 185, 129, 0.05);
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.5rem;
+                }
+                .file-info span:first-child {
+                    color: #10b981;
+                    font-weight: 500;
+                }
+                .file-size {
+                    color: var(--color-text-secondary);
+                    font-size: 0.85rem;
+                }
+                .btn-remove-file {
+                    background: rgba(255, 71, 87, 0.1);
+                    color: #ff4757;
+                    border: none;
+                    border-radius: 6px;
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    line-height: 1;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                }
+                .btn-remove-file:hover {
+                    background: rgba(255, 71, 87, 0.2);
+                    transform: scale(1.1);
+                }
 
                 .info-box {
                     padding: 1rem;
@@ -1716,6 +1857,13 @@ const CreateQuestion = () => {
                     background: rgba(255,255,255,0.5);
                     border: 1px solid rgba(0,0,0,0.06);
                     margin-bottom: 1rem;
+                    transition: all 0.3s ease;
+                }
+                .question-card.editing {
+                    background: linear-gradient(135deg, rgba(96, 78, 255, 0.08) 0%, rgba(134, 121, 255, 0.05) 100%);
+                    border: 2px solid var(--color-accent-1);
+                    box-shadow: 0 8px 24px rgba(96, 78, 255, 0.2), 0 0 0 4px rgba(96, 78, 255, 0.1);
+                    transform: scale(1.01);
                 }
                 .question-header {
                     display: flex;
@@ -1739,11 +1887,17 @@ const CreateQuestion = () => {
                     font-weight: 600;
                     margin-bottom: 0.5rem;
                     line-height: 1.5;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .answer-text {
                     color: var(--color-text-primary);
                     font-size: 0.95rem;
                     margin-bottom: 0.5rem;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .explanation-text {
                     color: var(--color-text-secondary);
@@ -1752,6 +1906,9 @@ const CreateQuestion = () => {
                     margin-bottom: 0.5rem;
                     padding-left: 1rem;
                     border-left: 2px solid rgba(96, 78, 255, 0.2);
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .question-actions {
                     display: flex;
@@ -1774,6 +1931,24 @@ const CreateQuestion = () => {
 
                 .edit-mode { margin-top: 0.5rem; }
                 .edit-mode .field { margin-bottom: 0.75rem; }
+                .edit-header {
+                    background: linear-gradient(135deg, var(--color-accent-1), rgba(134, 121, 255, 1));
+                    color: white;
+                    padding: 0.75rem 1rem;
+                    border-radius: 8px;
+                    margin: -1.25rem -1.25rem 1rem -1.25rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .edit-header h4 {
+                    margin: 0;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
 
                 .actions { display: flex; justify-content: flex-end; margin-top: 1rem; gap: 0.75rem; }
                 .preview-actions { justify-content: space-between; }
@@ -1835,6 +2010,9 @@ const CreateQuestion = () => {
                     border: 1px solid rgba(0,0,0,0.05);
                     font-size: 1rem;
                     line-height: 1.6;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .answer-highlight {
                     background: rgba(16, 185, 129, 0.1);
@@ -1898,11 +2076,73 @@ const CreateQuestion = () => {
                     align-items: flex-start;
                     gap: 0.75rem;
                     cursor: pointer;
+                    width: 100%;
                 }
                 .question-checkbox-item input[type="checkbox"] {
                     margin-top: 3px;
                     width: 18px;
                     height: 18px;
+                    flex-shrink: 0;
+                }
+                .question-preview-content {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+                .question-preview-header {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .question-number-badge {
+                    display: inline-block;
+                    padding: 3px 10px;
+                    background: linear-gradient(135deg, var(--color-accent-1), rgba(134, 121, 255, 1));
+                    color: white;
+                    border-radius: 6px;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                }
+                .question-id-badge {
+                    padding: 3px 8px;
+                    background: rgba(0, 0, 0, 0.05);
+                    color: var(--color-text-secondary);
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .type-badge {
+                    padding: 3px 8px;
+                    background: rgba(96, 78, 255, 0.1);
+                    color: var(--color-accent-1);
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .source-badge {
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .source-badge.manual {
+                    background: rgba(59, 130, 246, 0.1);
+                    color: #3b82f6;
+                }
+                .source-badge.imported {
+                    background: rgba(245, 158, 11, 0.1);
+                    color: #f59e0b;
+                }
+                .source-badge.ai_generated {
+                    background: rgba(168, 85, 247, 0.1);
+                    color: #a855f7;
+                }
+                .question-preview-text {
+                    font-size: 0.9rem;
+                    line-height: 1.5;
+                    color: var(--color-text-primary);
                 }
                 .question-preview {
                     font-size: 0.9rem;

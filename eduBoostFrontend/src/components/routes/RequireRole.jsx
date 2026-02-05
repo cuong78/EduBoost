@@ -31,8 +31,24 @@ const getRoleName = (roles) => {
  * - wrong role -> /unauthorized
  */
 export default function RequireRole({ allow = [] }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Đợi auth init xong trước khi redirect
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        Đang tải...
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;

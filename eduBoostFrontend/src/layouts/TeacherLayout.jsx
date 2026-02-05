@@ -30,9 +30,6 @@ const TeacherLayout = () => {
                     <Link to="/teacher/classes" className={`nav-item ${location.pathname.startsWith('/teacher/classes') ? 'active' : ''}`}>
                         <GraduationCap size={20} /> Lớp học
                     </Link>
-                    <Link to="/teacher/create-exam" className={`nav-item ${isActive('/teacher/create-exam') ? 'active' : ''}`}>
-                        <FileText size={20} /> Tạo đề thi
-                    </Link>
                     <Link to="/teacher/create-question" className={`nav-item ${isActive('/teacher/create-question') ? 'active' : ''}`}>
                         <FileQuestion size={20} /> Tạo question
                     </Link>
@@ -44,6 +41,9 @@ const TeacherLayout = () => {
                     </Link>
                     <Link to="/teacher/resources" className={`nav-item ${isActive('/teacher/resources') ? 'active' : ''}`}>
                         <FolderOpen size={20} /> Quản lý tài nguyên
+                    </Link>
+                    <Link to="/teacher/create-exam" className={`nav-item ${isActive('/teacher/create-exam') ? 'active' : ''}`}>
+                        <FileText size={20} /> Tạo đề thi
                     </Link>
                     <Link to="/teacher/grading" className={`nav-item ${isActive('/teacher/grading') ? 'active' : ''}`}>
                         <CheckSquare size={20} /> Chấm điểm AI

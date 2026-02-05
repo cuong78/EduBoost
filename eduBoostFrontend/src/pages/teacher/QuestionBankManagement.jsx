@@ -6,6 +6,7 @@ import { showErrorToast, showSuccessToast } from '../../utils/show-toast';
 import MathRenderer from '../../components/common/MathRenderer';
 import RichTextEditor from '../../components/common/RichTextEditor';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 const GRADE_OPTIONS = [10, 11, 12];
 
@@ -24,6 +25,7 @@ const SOURCE_TYPES = [
 
 const QuestionBankManagement = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     
     // Filters
     const [loadingSubjects, setLoadingSubjects] = useState(true);
@@ -184,6 +186,27 @@ const QuestionBankManagement = () => {
     useEffect(() => {
         loadStats();
     }, [subjectId, gradeLevel]);
+
+    const canEditOrDelete = (question) => {
+        if (!user || !question) return false;
+        
+        // Admin có thể sửa/xóa tất cả
+        if (user.roles?.[0]?.roleName === 'ADMIN') return true;
+        
+        // Người tạo có thể sửa/xóa câu hỏi của mình
+        // So sánh linh hoạt vì có thể là string hoặc number
+        const questionCreatorId = String(question.createdById);
+        const currentUserId = String(user.userId || user.id);
+        
+        console.log('Can edit/delete check:', {
+            questionCreatorId,
+            currentUserId,
+            match: questionCreatorId === currentUserId,
+            question: question.id
+        });
+        
+        return questionCreatorId === currentUserId;
+    };
 
     const handleViewQuestion = (question) => {
         setViewingQuestion(question);
@@ -382,12 +405,16 @@ const QuestionBankManagement = () => {
                                     <button className="icon-btn" onClick={() => handleViewQuestion(q)} title="Xem chi tiết">
                                         <Eye size={16} />
                                     </button>
-                                    <button className="icon-btn" onClick={() => handleEditQuestion(q)} title="Sửa">
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button className="icon-btn danger" onClick={() => setDeletingQuestionId(q.id)} title="Xóa">
-                                        <Trash2 size={16} />
-                                    </button>
+                                    {canEditOrDelete(q) && (
+                                        <>
+                                            <button className="icon-btn" onClick={() => handleEditQuestion(q)} title="Sửa">
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button className="icon-btn danger" onClick={() => setDeletingQuestionId(q.id)} title="Xóa">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -422,9 +449,11 @@ const QuestionBankManagement = () => {
                         </div>
                         <div className="modal-actions">
                             <button className="btn btn-secondary" onClick={() => setShowViewModal(false)}>Đóng</button>
-                            <button className="btn btn-primary" onClick={() => { setShowViewModal(false); handleEditQuestion(viewingQuestion); }}>
-                                <Edit2 size={16} /> Sửa
-                            </button>
+                            {canEditOrDelete(viewingQuestion) && (
+                                <button className="btn btn-primary" onClick={() => { setShowViewModal(false); handleEditQuestion(viewingQuestion); }}>
+                                    <Edit2 size={16} /> Sửa
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
