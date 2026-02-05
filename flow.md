@@ -256,7 +256,7 @@ POST   /api/ai/generate-variations
 {
   "baseQuestionIds": [1, 2, 3],
   "numberOfVariations": 5,
-  "aiProvider": "CLAUDE"
+  "aiProvider": "DEEPSEEK"
 }
 
 // Generate from URL
@@ -268,42 +268,6 @@ POST   /api/ai/generate-from-url
   "cognitiveLevelId": 2
 }
 
-// Generate Wrong Answers
-POST   /api/ai/generate-wrong-answers
-{
-  "questionText": "...",
-  "correctAnswer": "...",
-  "subjectCode": "TOAN",
-  "cognitiveLevelCode": "RECOGNITION"
-}
-Response: {
-  "wrongAnswers": [
-    "Đáp án sai 1",
-    "Đáp án sai 2",
-    "Đáp án sai 3"
-  ]
-}
-ghi chú: {API độc lập, không liên quan đến đề thi cụ thể
-Dùng khi giáo viên đang tạo/sửa câu hỏi trong ngân hàng
-Hoặc khi cần preview/test đáp án sai  (không lưu xuống database)
-}
-
-// Evaluate Question Quality
-POST   /api/ai/evaluate-question
-{
-  "questionId": 10
-}
-Response: {
-  "score": 8.5,
-  "feedback": "Câu hỏi rõ ràng, đáp án hợp lý...",
-  "suggestions": [
-    "Có thể làm đáp án sai khó hơn để tăng tính phân biệt"
-  ]
-}
-
-// AI Generation History
-GET    /api/ai/history              // Lịch sử generate
-       ?lessonId=1&aiProvider=DEEPSEEK
 
 
 

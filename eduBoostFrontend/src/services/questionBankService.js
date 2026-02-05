@@ -133,5 +133,29 @@ export const questionBankService = {
             }
         });
         return response.data;
+    },
+
+    // AI Generate Questions from Resource
+    async generateFromResource(params) {
+        const response = await axios.post(`${API.BASE}/ai/generate-from-resource`, params, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
+    },
+
+    // AI Generate Variations
+    async generateVariations(params) {
+        const response = await axios.post(`${API.BASE}/ai/generate-variations`, params, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
+    },
+
+    // AI Generate from URL
+    async generateFromUrl(params) {
+        const response = await axios.post(`${API.BASE}/ai/generate-from-url`, params, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
     }
 };

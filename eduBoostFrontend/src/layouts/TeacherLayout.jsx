@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
-import { BookOpen, FileQuestion, PenTool, LayoutDashboard, LogOut, CheckSquare, FileText, GraduationCap, Upload } from 'lucide-react';
+import { BookOpen, FileQuestion, PenTool, LayoutDashboard, LogOut, CheckSquare, FileText, GraduationCap, Upload, Database, FolderOpen } from 'lucide-react';
 import UserMenu from '../components/common/UserMenu';
 import { useAuth } from '../hooks/useAuth';
 
@@ -36,8 +36,14 @@ const TeacherLayout = () => {
                     <Link to="/teacher/create-question" className={`nav-item ${isActive('/teacher/create-question') ? 'active' : ''}`}>
                         <FileQuestion size={20} /> Tạo question
                     </Link>
+                    <Link to="/teacher/question-bank" className={`nav-item ${isActive('/teacher/question-bank') ? 'active' : ''}`}>
+                        <Database size={20} /> Ngân hàng câu hỏi
+                    </Link>
                     <Link to="/teacher/upload-resource" className={`nav-item ${isActive('/teacher/upload-resource') ? 'active' : ''}`}>
                         <Upload size={20} /> Upload tài nguyên
+                    </Link>
+                    <Link to="/teacher/resources" className={`nav-item ${isActive('/teacher/resources') ? 'active' : ''}`}>
+                        <FolderOpen size={20} /> Quản lý tài nguyên
                     </Link>
                     <Link to="/teacher/grading" className={`nav-item ${isActive('/teacher/grading') ? 'active' : ''}`}>
                         <CheckSquare size={20} /> Chấm điểm AI
