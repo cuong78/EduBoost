@@ -4,7 +4,8 @@ import openpyxl
 
 Q_RE = re.compile(r'^Câu\s+(\d+)\s*:\s*$', re.IGNORECASE)
 OPT_RE = re.compile(r'^([ABCD])\.\s*(.*)$')
-ANS_RE = re.compile(r'Đáp án đúng là\s*:\s*([ABCD])', re.IGNORECASE)
+# Match cả "Đáp án đúng là: X" và "Đáp án cần chọn là: X"
+ANS_RE = re.compile(r'Đáp án (?:đúng là|cần chọn là)\s*:\s*([ABCD])', re.IGNORECASE)
 
 def clean_option_text(s: str) -> str:
     """Bỏ dấu ; . ở cuối, trim khoảng trắng."""
@@ -145,11 +146,46 @@ def fill_excel_template(template_xlsx: str, questions: list, output_xlsx: str):
     wb.save(output_xlsx)
 
 if __name__ == "__main__":
-    docx_path = "input.docx"
+    import glob
+    import os
+    
     template_xlsx = "question-import-template.xlsx"
-    output_xlsx = "question-import-filled.xlsx"
-
-    qs = parse_questions_from_docx(docx_path)
-    fill_excel_template(template_xlsx, qs, output_xlsx)
-    print(f"Done! Exported: {output_xlsx}")
+    
+    # Tìm tất cả file input*.docx
+    input_files = glob.glob("input*.docx")
+    
+    if not input_files:
+        print("Không tìm thấy file input*.docx nào!")
+        print("Vui lòng đặt file với tên: input.docx, input1.docx, input2.docx, ...")
+        exit(1)
+    
+    print(f"Tìm thấy {len(input_files)} file:")
+    for f in input_files:
+        print(f"  - {f}")
+    print()
+    
+    # Xử lý từng file
+    for docx_path in input_files:
+        try:
+            # Lấy số từ tên file (input1.docx -> 1, input.docx -> "")
+            base_name = os.path.splitext(docx_path)[0]  # "input1"
+            suffix = base_name.replace("input", "")  # "1" or ""
+            
+            # Tạo tên output
+            if suffix:
+                output_xlsx = f"question-import-filled-{suffix}.xlsx"
+            else:
+                output_xlsx = "question-import-filled.xlsx"
+            
+            print(f"Đang xử lý: {docx_path} ...")
+            qs = parse_questions_from_docx(docx_path)
+            fill_excel_template(template_xlsx, qs, output_xlsx)
+            print(f"✓ Hoàn thành: {output_xlsx} ({len(qs)} câu hỏi)")
+            print()
+            
+        except Exception as e:
+            print(f"✗ Lỗi khi xử lý {docx_path}: {e}")
+            print()
+    
+    print(f"Đã xử lý xong {len(input_files)} file!")
 
