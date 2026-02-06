@@ -39,7 +39,7 @@
            │   ├─► Chọn bài học + tài nguyên
            │   ├─► Cấu hình: số câu, mức độ, độ khó
            │   ├─► AI đọc nội dung → Tạo câu hỏi
-           │   └─► Giáo viên review & verify
+           │   └─► Giáo viên review & lưu vào ngân hàng
            │
            └─► CÁCH 4: AI sinh dựa trên câu có sẵn
                ├─► Chọn câu hỏi mẫu
@@ -80,7 +80,7 @@
         └────────┬─────────────────┘
                  │
                  ├─► 1. Tìm trong ngân hàng (ưu tiên)
-                 │   └─► Lọc theo: bài, mức độ, đã verify
+                 │   └─► Lọc theo: bài, mức độ
                  │
                  ├─► 2. Nếu thiếu → AI tạo mới
                  │   ├─► Đọc tài nguyên bài học
@@ -181,7 +181,6 @@ GET    /api/cognitive-levels        // Danh sách mức độ nhận thức
 GET    /api/question-bank           // Danh sách câu hỏi
        ?lessonId=1
        &cognitiveLevelId=2
-       &isVerified=true
        &sourceType=AI_GENERATED
 
 (trường nào null thì sẽ get hết) 
@@ -201,8 +200,6 @@ POST   /api/question-bank           // Tạo câu hỏi thủ công
 GET    /api/question-bank/{id}      // Chi tiết câu hỏi
 PUT    /api/question-bank/{id}      // Cập nhật câu hỏi
 DELETE /api/question-bank/{id}      // Xóa câu hỏi
-PUT    /api/question-bank/{id}/verify  // Verify câu hỏi (giáo viên senior)
-
 // Import/Export
 POST   /api/question-bank/import    // Import từ Excel
 
@@ -216,7 +213,6 @@ Response: {
   "byLesson": [...],
   "byCognitiveLevel": {...},
   "byDifficultyLevel": {...},
-  "verifiedCount": 1200,
   "aiGeneratedCount": 500
 }
 
@@ -256,7 +252,7 @@ POST   /api/ai/generate-variations
 {
   "baseQuestionIds": [1, 2, 3],
   "numberOfVariations": 5,
-  "aiProvider": "CLAUDE"
+  "aiProvider": "DEEPSEEK"
 }
 
 // Generate from URL
@@ -268,42 +264,6 @@ POST   /api/ai/generate-from-url
   "cognitiveLevelId": 2
 }
 
-// Generate Wrong Answers
-POST   /api/ai/generate-wrong-answers
-{
-  "questionText": "...",
-  "correctAnswer": "...",
-  "subjectCode": "TOAN",
-  "cognitiveLevelCode": "RECOGNITION"
-}
-Response: {
-  "wrongAnswers": [
-    "Đáp án sai 1",
-    "Đáp án sai 2",
-    "Đáp án sai 3"
-  ]
-}
-ghi chú: {API độc lập, không liên quan đến đề thi cụ thể
-Dùng khi giáo viên đang tạo/sửa câu hỏi trong ngân hàng
-Hoặc khi cần preview/test đáp án sai  (không lưu xuống database)
-}
-
-// Evaluate Question Quality
-POST   /api/ai/evaluate-question
-{
-  "questionId": 10
-}
-Response: {
-  "score": 8.5,
-  "feedback": "Câu hỏi rõ ràng, đáp án hợp lý...",
-  "suggestions": [
-    "Có thể làm đáp án sai khó hơn để tăng tính phân biệt"
-  ]
-}
-
-// AI Generation History
-GET    /api/ai/history              // Lịch sử generate
-       ?lessonId=1&aiProvider=DEEPSEEK
 
 
 
@@ -430,10 +390,7 @@ PUT    /api/exams/{examId}/questions/{examQuestionId}
 
 // Regenerate Wrong Answers
 POST   /api/exams/{examId}/questions/{examQuestionId}/regenerate-wrong-answers
-(ghi chú: API phụ thuộc vào context của đề thi đang tạo
-Dùng khi giáo viên đang preview/chỉnh sửa đề thi
-Đáp án sai sẽ được lưu trực tiếp vào exam_question table
-)
+
 
 // Delete Question from Exam
 DELETE /api/exams/{examId}/questions/{examQuestionId}

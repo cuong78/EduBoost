@@ -58,4 +58,28 @@ export const API = {
     AI_GENERATE_FROM_URL: `${BASE_URL}/ai/generate-from-url`,
     AI_GENERATE_WRONG_ANSWERS: `${BASE_URL}/ai/generate-wrong-answers`,
     AI_EVALUATE_QUESTION: `${BASE_URL}/ai/evaluate-question`,
+
+    // Exam Management (Module 6)
+    EXAM_TYPES: `${BASE_URL}/exam-types`,
+    EXAM_TYPE: (id) => `${BASE_URL}/exam-types/${id}`,
+    MATRIX_TEMPLATES: `${BASE_URL}/matrix-templates`,
+    MATRIX_TEMPLATE: (id) => `${BASE_URL}/matrix-templates/${id}`,
+    
+    // Exams
+    EXAMS: `${BASE_URL}/exams`,
+    EXAM: (id) => `${BASE_URL}/exams/${id}`,
+    EXAM_AUTO_SELECT: (examId) => `${BASE_URL}/exams/${examId}/auto-select`,
+    EXAM_AUTO_SELECT_WITH_CONFIG: (examId) => `${BASE_URL}/exams/${examId}/auto-select-with-config`,
+    EXAM_QUESTIONS: (examId) => `${BASE_URL}/exams/${examId}/questions`,
+    EXAM_QUESTION: (examId, questionId) => `${BASE_URL}/exams/${examId}/questions/${questionId}`,
+    EXAM_AI_GENERATE: (examId) => `${BASE_URL}/exams/${examId}/questions/ai-generate`,
+    EXAM_REGENERATE_WRONG_ANSWERS: (examId, questionId) => `${BASE_URL}/exams/${examId}/questions/${questionId}/regenerate-wrong-answers`,
+    EXAM_REORDER_QUESTIONS: (examId) => `${BASE_URL}/exams/${examId}/questions/reorder`,
+    EXAM_APPROVE: (examId) => `${BASE_URL}/exams/${examId}/approve`,
+    EXAM_STATUS: (examId) => `${BASE_URL}/exams/${examId}/status`,
+    EXAM_EXPORT: (id) => `${BASE_URL}/exams/${id}/export`,
+    EXAM_EXPORT_ANSWER_KEY: (id) => `${BASE_URL}/exams/${id}/export-answer-key`,
+    EXAM_CLONE: (id) => `${BASE_URL}/exams/${id}/clone`,
+    EXAM_STATISTICS: (id) => `${BASE_URL}/exams/${id}/statistics`,
+    MY_EXAMS: `${BASE_URL}/exams/my-exams`,
 };

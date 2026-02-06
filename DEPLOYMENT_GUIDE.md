@@ -175,6 +175,11 @@ NGINX_HTTP_PORT=80
 
 # JPA Configuration
 JPA_DDL_AUTO=update
+
+# MinIO Configuration
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin123
+MINIO_BUCKET_NAME=eduboost
 ```
 
 **⚠️ QUAN TRỌNG**: 
@@ -188,6 +193,8 @@ JPA_DDL_AUTO=update
 ```bash
 mkdir -p logs nginx/ssl
 ```
+
+**⚠️ Lưu ý**: MinIO data sẽ được lưu trong Docker volume `minio_data`, không cần tạo thư mục thủ công.
 
 ---
 
@@ -293,6 +300,7 @@ docker-compose -f docker-compose.prod.yml logs backend
 docker-compose -f docker-compose.prod.yml logs frontend
 docker-compose -f docker-compose.prod.yml logs nginx
 docker-compose -f docker-compose.prod.yml logs postgres
+docker-compose -f docker-compose.prod.yml logs minio
 ```
 
 **Với docker-compose.yml (development):**
@@ -321,6 +329,9 @@ curl http://localhost/api/actuator/health
 
 # Database connection
 docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U postgres
+
+# MinIO health check
+docker-compose -f docker-compose.prod.yml exec minio wget --no-verbose --tries=1 --spider http://localhost:9000/minio/health/live || echo "MinIO health check failed"
 ```
 
 ### Bước 4: Kiểm tra từ trình duyệt
@@ -408,6 +419,7 @@ docker-compose -f docker-compose.prod.yml logs -f backend
 docker-compose -f docker-compose.prod.yml logs -f frontend
 docker-compose -f docker-compose.prod.yml logs -f nginx
 docker-compose -f docker-compose.prod.yml logs -f postgres
+docker-compose -f docker-compose.prod.yml logs -f minio
 ```
 
 **Development:**
@@ -434,6 +446,7 @@ docker-compose -f docker-compose.prod.yml restart
 docker-compose -f docker-compose.prod.yml restart backend
 docker-compose -f docker-compose.prod.yml restart frontend
 docker-compose -f docker-compose.prod.yml restart nginx
+docker-compose -f docker-compose.prod.yml restart minio
 ```
 
 **Development:**
@@ -484,6 +497,57 @@ docker-compose down -v
 ### Backup database
 
 **Production:**
+
+```bash
+# Backup PostgreSQL database
+docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U ${DB_USER:-postgres} ${DB_NAME:-eduboost} > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore database
+docker-compose -f docker-compose.prod.yml exec -T postgres psql -U ${DB_USER:-postgres} ${DB_NAME:-eduboost} < backup_file.sql
+```
+
+### Backup MinIO data
+
+**Production:**
+
+```bash
+# Backup MinIO data (sử dụng mc - MinIO Client)
+# Cài đặt MinIO Client
+wget https://dl.min.io/client/mc/release/linux-amd64/mc
+chmod +x mc
+sudo mv mc /usr/local/bin/
+
+# Cấu hình MinIO client
+mc alias set local http://localhost:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD}
+
+# Backup bucket
+mc mirror local/${MINIO_BUCKET_NAME:-eduboost} ./minio_backup_$(date +%Y%m%d_%H%M%S)
+
+# Hoặc backup toàn bộ MinIO data volume
+docker run --rm -v eduboost_minio_data:/data -v $(pwd):/backup alpine tar czf /backup/minio_data_backup_$(date +%Y%m%d_%H%M%S).tar.gz /data
+```
+
+### Truy cập MinIO Console (Production)
+
+**⚠️ Lưu ý**: Trong production, MinIO console không được expose ra ngoài. Nếu cần truy cập:
+
+1. **Option 1: SSH Tunnel (Khuyến nghị)**
+   ```bash
+   # Từ máy local, tạo SSH tunnel
+   ssh -L 9001:localhost:9001 user@your-server-ip
+   
+   # Sau đó truy cập: http://localhost:9001
+   ```
+
+2. **Option 2: Expose qua Nginx (Nếu cần)**
+   - Thêm cấu hình reverse proxy trong nginx.conf
+   - Sử dụng authentication để bảo mật
+
+3. **Option 3: Tạm thời expose port (Chỉ cho testing)**
+   ```bash
+   # Uncomment ports trong docker-compose.prod.yml
+   # Sau khi xong, nhớ comment lại
+   ```
 
 
 

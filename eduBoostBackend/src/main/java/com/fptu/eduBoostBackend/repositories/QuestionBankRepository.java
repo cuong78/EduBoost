@@ -1,13 +1,14 @@
 package com.fptu.eduBoostBackend.repositories;
 
-import com.fptu.eduBoostBackend.entities.QuestionBank;
-import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.fptu.eduBoostBackend.entities.QuestionBank;
+import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 
 @Repository
 public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long> {
@@ -31,4 +32,24 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     
     @Query("SELECT COUNT(q) FROM QuestionBank q WHERE q.sourceType = 'AI_GENERATED'")
     long countAiGenerated();
+    
+    @Query("SELECT COUNT(q) FROM QuestionBank q WHERE q.sourceType = 'MANUAL'")
+    long countManual();
+    
+    @Query("SELECT COUNT(q) FROM QuestionBank q WHERE q.sourceType = 'IMPORTED'")
+    long countImported();
+    
+    @Query("SELECT q FROM QuestionBank q " +
+           "LEFT JOIN FETCH q.lesson l " +
+           "LEFT JOIN FETCH q.cognitiveLevel " +
+           "WHERE l.chapter.id = :chapterId " +
+           "ORDER BY l.lessonNumber ASC, q.cognitiveLevel.displayOrder ASC")
+    List<QuestionBank> findByLessonChapterIdOrdered(@Param("chapterId") Long chapterId);
+    
+    @Query("SELECT q FROM QuestionBank q " +
+           "WHERE q.lesson.id = :lessonId " +
+           "AND q.cognitiveLevel.id = :cognitiveLevelId")
+    List<QuestionBank> findByLessonIdAndCognitiveLevelId(
+            @Param("lessonId") Long lessonId,
+            @Param("cognitiveLevelId") Long cognitiveLevelId);
 }

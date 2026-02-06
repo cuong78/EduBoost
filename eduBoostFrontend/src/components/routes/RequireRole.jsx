@@ -34,9 +34,20 @@ export default function RequireRole({ allow = [] }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Wait for auth to load before making decisions
+  // Đợi auth init xong trước khi redirect
   if (loading) {
-    return null; // or a loading spinner
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        Đang tải...
+      </div>
+    );
   }
 
   if (!user) {

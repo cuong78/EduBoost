@@ -222,3 +222,12 @@ code {
 .status-expired { background: rgba(245, 158, 11, 0.2); color: #b45309; }
 .status-revoked { background: rgba(239, 68, 68, 0.15); color: #b91c1c; }
 .status-default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
+
+/* Spin animation for loading states */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}

@@ -23,7 +23,6 @@ export const questionBankService = {
         const params = new URLSearchParams();
         if (filters.lessonId) params.append('lessonId', filters.lessonId);
         if (filters.cognitiveLevelId) params.append('cognitiveLevelId', filters.cognitiveLevelId);
-        if (filters.isVerified !== undefined) params.append('isVerified', filters.isVerified);
         if (filters.sourceType) params.append('sourceType', filters.sourceType);
 
         const response = await axios.get(`${API.QUESTION_BANK}?${params.toString()}`, {
@@ -57,13 +56,6 @@ export const questionBankService = {
         await axios.delete(API.QUESTION_BANK_ITEM(id), {
             headers: getAuthHeaders()
         });
-    },
-
-    async verifyQuestion(id) {
-        const response = await axios.put(`${API.QUESTION_BANK_ITEM(id)}/verify`, {}, {
-            headers: getAuthHeaders()
-        });
-        return response.data;
     },
 
     // Import/Export
@@ -131,6 +123,30 @@ export const questionBankService = {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'multipart/form-data'
             }
+        });
+        return response.data;
+    },
+
+    // AI Generate Questions from Resource
+    async generateFromResource(params) {
+        const response = await axios.post(`${API.BASE}/ai/generate-from-resource`, params, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
+    },
+
+    // AI Generate Variations
+    async generateVariations(params) {
+        const response = await axios.post(`${API.BASE}/ai/generate-variations`, params, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
+    },
+
+    // AI Generate from URL
+    async generateFromUrl(params) {
+        const response = await axios.post(`${API.BASE}/ai/generate-from-url`, params, {
+            headers: getAuthHeaders()
         });
         return response.data;
     }

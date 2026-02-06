@@ -37,20 +37,24 @@ import TakeExam from "./pages/student/TakeExam";
 
 // Teacher Pages
 
-import CreateQuestion from "./pages/teacher/CreateQuestion";
-import UploadResource from "./pages/teacher/UploadResource";
-import ExamGenerator from "./pages/teacher/ExamGenerator";
-import ClassList from "./pages/teacher/ClassList";
-import ClassStudents from "./pages/teacher/ClassStudents";
-import CreateStudent from "./pages/teacher/CreateStudent";
-import StudentDetail from "./pages/teacher/StudentDetail";
-import StudentInvitations from "./pages/teacher/StudentInvitations";
-import EditStudent from "./pages/teacher/EditStudent";
-import LinkStudent from "./pages/parent/LinkStudent";
-import MyStudents from "./pages/parent/MyStudents";
-import ParentStudentDetail from "./pages/parent/StudentDetail";
-import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-import AIGrading from "./pages/teacher/AIGrading";
+import CreateQuestion from './pages/teacher/CreateQuestion';
+import UploadResource from './pages/teacher/UploadResource';
+import ExamGenerator from './pages/teacher/ExamGenerator';
+import QuestionBankManagement from './pages/teacher/QuestionBankManagement';
+import ResourceManagement from './pages/teacher/ResourceManagement';
+import ExamManagement from './pages/teacher/ExamManagement';
+import ClassList from './pages/teacher/ClassList';
+import ClassStudents from './pages/teacher/ClassStudents';
+import CreateStudent from './pages/teacher/CreateStudent';
+import StudentDetail from './pages/teacher/StudentDetail';
+import StudentInvitations from './pages/teacher/StudentInvitations';
+import EditStudent from './pages/teacher/EditStudent';
+import LinkStudent from './pages/parent/LinkStudent';
+import MyStudents from './pages/parent/MyStudents';
+import ParentStudentDetail from './pages/parent/StudentDetail';
+import InvitationStats from './pages/admin/InvitationStats';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import AIGrading from './pages/teacher/AIGrading';
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
@@ -165,6 +169,9 @@ function App() {
               />
               <Route path="create-question" element={<CreateQuestion />} />
               <Route path="upload-resource" element={<UploadResource />} />
+              <Route path="question-bank" element={<QuestionBankManagement />} />
+              <Route path="resources" element={<ResourceManagement />} />
+              <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="grading" element={<AIGrading />} />
               <Route path="profile" element={<UserProfile />} />

@@ -75,7 +75,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
     RoleRepository roleRepository;
 
-
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
@@ -140,14 +139,115 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private void sendVerificationEmail(User user, String token) {
-        String subject = "Xác thực tài khoản";
+        String subject = "Xác thực tài khoản - Hệ thống EduBoost";
         String verificationUrl = emailVerificationUrl + "?token=" + token;
-        String text = "Chào " + user.getUsername() + ",\n\n"
-                + "Vui lòng nhấp vào liên kết sau để xác thực tài khoản của bạn:\n"
-                + verificationUrl + "\n\n"
-                + "Liên kết có hiệu lực trong 24 giờ.";
+        String htmlContent = buildVerificationEmailHtml(user.getUsername(), verificationUrl);
 
-        emailService.sendEmail(user.getEmail(), subject, text);
+        emailService.sendHtmlEmail(user.getEmail(), subject, htmlContent);
+    }
+
+    private String buildVerificationEmailHtml(String username, String verificationUrl) {
+        String currentTime = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+
+        return "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "  <meta charset=\"UTF-8\">\n" +
+                "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                "  <title>Xác thực tài khoản</title>\n" +
+                "  <style>\n" +
+                "    @media only screen and (max-width: 600px) {\n" +
+                "      .container { width: 100% !important; padding: 10px !important; }\n" +
+                "      .button { width: 100% !important; }\n" +
+                "    }\n" +
+                "  </style>\n" +
+                "</head>\n" +
+                "<body style=\"margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;\">\n" +
+                "  <div class=\"container\" style=\"max-width: 600px; margin: 0 auto; background-color: #ffffff;\">\n" +
+                "    <!-- Header -->\n" +
+                "    <div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;\">\n" +
+                "      <h1 style=\"margin: 0; color: white; font-size: 28px;\">🎓 EduBoost</h1>\n" +
+                "      <p style=\"margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 16px;\">Nền tảng học tập thông minh</p>\n" +
+                "    </div>\n" +
+                "    \n" +
+                "    <!-- Content -->\n" +
+                "    <div style=\"padding: 40px 30px;\">\n" +
+                "      <h2 style=\"color: #333333; margin-bottom: 25px;\">Chào mừng " + escapeHtml(username) + "!</h2>\n" +
+                "      \n" +
+                "      <p style=\"color: #555555; line-height: 1.6; margin-bottom: 25px;\">\n" +
+                "        Cảm ơn bạn đã đăng ký tài khoản tại <strong>EduBoost</strong>. \n" +
+                "        Để hoàn tất quá trình đăng ký và kích hoạt tài khoản của bạn, vui lòng xác thực địa chỉ email bằng cách nhấn vào nút bên dưới:\n" +
+                "      </p>\n" +
+                "      \n" +
+                "      <!-- Verification Box -->\n" +
+                "      <div style=\"background: #f8f9ff; border-left: 4px solid #667eea; padding: 25px; margin: 30px 0; border-radius: 0 8px 8px 0; text-align: center;\">\n" +
+                "        <p style=\"color: #555555; margin-bottom: 20px; font-size: 16px;\">\n" +
+                "          ✉️ Nhấn nút bên dưới để xác thực email của bạn:\n" +
+                "        </p>\n" +
+                "        \n" +
+                "        <a href=\"" + verificationUrl + "\" \n" +
+                "           style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); \n" +
+                "                  color: white; padding: 16px 40px; text-decoration: none; \n" +
+                "                  border-radius: 50px; font-weight: bold; font-size: 18px;\n" +
+                "                  display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);\">\n" +
+                "          ✓ Xác thực tài khoản\n" +
+                "        </a>\n" +
+                "        \n" +
+                "        <div style=\"margin-top: 25px; padding: 15px; background: #fff3cd; border-radius: 6px;\">\n" +
+                "          <p style=\"margin: 0; color: #856404; font-size: 14px;\">\n" +
+                "            ⚠️ <strong>Lưu ý:</strong> Link xác thực có hiệu lực trong <span style=\"color: #e74c3c; font-weight: bold;\">24 giờ</span>.\n" +
+                "          </p>\n" +
+                "        </div>\n" +
+                "      </div>\n" +
+                "      \n" +
+
+                "      <!-- Security Notice -->\n" +
+                "      <div style=\"margin-top: 30px; padding: 20px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;\">\n" +
+                "        <p style=\"margin: 0; color: #2e7d32; font-size: 14px; line-height: 1.6;\">\n" +
+                "          🔒 <strong>Bảo mật:</strong> Nếu bạn không thực hiện đăng ký này, vui lòng bỏ qua email này. \n" +
+                "          Tài khoản của bạn sẽ không được tạo nếu không xác thực.\n" +
+                "        </p>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <!-- Support Info -->\n" +
+                "      <div style=\"margin-top: 40px; padding-top: 20px; border-top: 1px solid #eeeeee; text-align: center;\">\n" +
+                "        <p style=\"color: #777777; font-size: 14px; margin-bottom: 5px;\">\n" +
+                "          <strong>🆘 Cần hỗ trợ?</strong>\n" +
+                "        </p>\n" +
+                "        <p style=\"color: #777777; font-size: 14px; margin: 5px 0;\">\n" +
+                "          📧 Email: support@eduboost.edu.vn\n" +
+                "        </p>\n" +
+                "        <p style=\"color: #777777; font-size: 14px; margin: 5px 0;\">\n" +
+                "          📞 Hotline: 1900 1234\n" +
+                "        </p>\n" +
+                "        <p style=\"color: #777777; font-size: 12px; margin-top: 20px;\">\n" +
+                "          Email được gửi vào: " + currentTime + "\n" +
+                "        </p>\n" +
+                "      </div>\n" +
+                "    </div>\n" +
+                "    \n" +
+                "    <!-- Footer -->\n" +
+                "    <div style=\"background: #2c3e50; color: #ecf0f1; padding: 20px; text-align: center;\">\n" +
+                "      <p style=\"margin: 0; font-size: 14px;\">\n" +
+                "        © " + java.time.LocalDate.now().getYear() + " Hệ thống EduBoost. Tất cả các quyền được bảo lưu.\n" +
+                "      </p>\n" +
+                "      <p style=\"margin: 10px 0 0 0; font-size: 12px; color: #bdc3c7;\">\n" +
+                "        Đây là email tự động, vui lòng không trả lời email này.\n" +
+                "      </p>\n" +
+                "    </div>\n" +
+                "  </div>\n" +
+                "</body>\n" +
+                "</html>";
+    }
+
+    private String escapeHtml(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     @Override
@@ -392,6 +492,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 }
 
                 // User already exists, just login
+                // Check if Teacher record exists, create if missing (for users who registered before this fix)
+                boolean hasTeacherRole = user.getRoles().stream()
+                        .anyMatch(role -> PredefinedRole.TEACH_ROLE.equals(role.getName()));
+                if (hasTeacherRole && teacherRepository.findByUser(user).isEmpty()) {
+                    Teacher teacher = Teacher.builder()
+                            .user(user)
+                            .build();
+                    teacherRepository.save(teacher);
+                    log.info("Created missing Teacher record for existing user: {}", email);
+                }
+
                 userRepository.save(user);
             } else {
                 // User doesn't exist, auto-register
@@ -436,12 +547,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
                 user = userRepository.save(user);
                 log.info("Auto-registered new user from Google: {} with ID: {}", email, user.getUserId());
-            }
 
-            // Create authentication
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    user.getUsername(), null, user.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                // Create Teacher entity for Google users with TEACHER role
+                if (teachRole.isPresent()) {
+                    Teacher teacher = Teacher.builder()
+                            .user(user)
+                            .build();
+                    teacherRepository.save(teacher);
+                    log.info("Teacher record created for Google user: {}", email);
+                }
+            }
 
             // Generate tokens
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);

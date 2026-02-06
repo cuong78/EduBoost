@@ -64,14 +64,26 @@ const CreateQuestion = () => {
     const [savingAiResource, setSavingAiResource] = useState(false);
     const [editingAiQuestionIndex, setEditingAiQuestionIndex] = useState(null);
 
-    // Tab 4: AI variation
-    const [baseQuestionText, setBaseQuestionText] = useState('');
-    const [baseCorrectAnswer, setBaseCorrectAnswer] = useState('');
+    // Tab 4: AI variation from existing questions
+    const [existingQuestions, setExistingQuestions] = useState([]);
+    const [loadingExistingQuestions, setLoadingExistingQuestions] = useState(false);
+    const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+    const [numberOfVariations, setNumberOfVariations] = useState(3);
     const [variationGenerating, setVariationGenerating] = useState(false);
-    const [variationQuestions, setVariationQuestions] = useState([]);
+    const [variationGroups, setVariationGroups] = useState([]);
     const [showVariationPreview, setShowVariationPreview] = useState(false);
     const [savingVariation, setSavingVariation] = useState(false);
     const [editingVariationIndex, setEditingVariationIndex] = useState(null);
+    const [editingGroupIndex, setEditingGroupIndex] = useState(null);
+
+    // Tab 5: AI from URL
+    const [urlInput, setUrlInput] = useState('');
+    const [urlNumberOfQuestions, setUrlNumberOfQuestions] = useState(5);
+    const [urlGenerating, setUrlGenerating] = useState(false);
+    const [urlGeneratedQuestions, setUrlGeneratedQuestions] = useState([]);
+    const [showUrlPreview, setShowUrlPreview] = useState(false);
+    const [savingUrlQuestions, setSavingUrlQuestions] = useState(false);
+    const [editingUrlQuestionIndex, setEditingUrlQuestionIndex] = useState(null);
 
     const loadSubjects = async () => {
         setLoadingSubjects(true);
@@ -302,22 +314,45 @@ const CreateQuestion = () => {
     };
 
     // Tab 3: AI from resource
+    const [aiNumberOfQuestions, setAiNumberOfQuestions] = useState(5);
+    
     const handleGenerateFromResource = async () => {
         if (!selectedResourceId) return showErrorToast('Vui lòng chọn tài nguyên');
+        if (!lessonId) return showErrorToast('Vui lòng chọn bài học');
+        
         setAiGenerating(true);
         try {
-            // Backend AI API chưa có, simulate
-            setTimeout(() => {
-                const mockQuestions = [
-                    { questionText: 'Câu hỏi AI 1 từ tài nguyên?', correctAnswer: 'Đáp án đúng', explanation: '', questionType: 'MULTIPLE_CHOICE', cognitiveLevelId: cognitiveLevels.length > 0 ? cognitiveLevels[0].id : 1 },
-                    { questionText: 'Câu hỏi AI 2 từ tài nguyên?', correctAnswer: 'Đáp án đúng', explanation: '', questionType: 'MULTIPLE_CHOICE', cognitiveLevelId: cognitiveLevels.length > 1 ? cognitiveLevels[1].id : 2 },
-                ];
-                setAiGeneratedQuestions(mockQuestions);
-                showSuccessToast('Đã tạo ' + mockQuestions.length + ' câu hỏi từ AI (mock)');
-                setAiGenerating(false);
-            }, 2000);
+            const response = await questionBankService.generateFromResource({
+                resourceId: Number(selectedResourceId),
+                lessonId: Number(lessonId),
+                numberOfQuestions: aiNumberOfQuestions,
+                questionType: 'MULTIPLE_CHOICE',
+                aiProvider: 'DEEPSEEK'
+            });
+            
+            // Map AI response to local format
+            const mappedQuestions = response.generatedQuestions.map(q => {
+                // Find cognitive level ID from name
+                const cogLevel = cognitiveLevels.find(l => 
+                    l.level.toLowerCase().includes(q.cognitiveLevel?.toLowerCase() || '')
+                );
+                
+                return {
+                    questionText: q.questionText || '',
+                    correctAnswer: q.correctAnswer || '',
+                    explanation: q.explanation || '',
+                    wrongAnswers: q.wrongAnswers || [],
+                    questionType: q.questionType || 'MULTIPLE_CHOICE',
+                    cognitiveLevelId: cogLevel?.id || (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null)
+                };
+            });
+            
+            setAiGeneratedQuestions(mappedQuestions);
+            showSuccessToast(`Đã tạo ${mappedQuestions.length} câu hỏi từ AI (${response.tokensUsed} tokens, ${response.generationTimeMs}ms)`);
         } catch (e) {
-            showErrorToast('AI generate thất bại');
+            console.error('AI generate error:', e);
+            showErrorToast('AI generate thất bại: ' + (e?.response?.data?.message || e?.message || 'Lỗi không xác định'));
+        } finally {
             setAiGenerating(false);
         }
     };
@@ -372,56 +407,126 @@ const CreateQuestion = () => {
 
     // Tab 4: AI variation
     const handleGenerateVariation = async () => {
-        if (!baseQuestionText.trim() || !baseCorrectAnswer.trim()) {
-            return showErrorToast('Vui lòng nhập câu hỏi và đáp án mẫu');
+        if (selectedQuestionIds.length === 0) {
+            return showErrorToast('Vui lòng chọn ít nhất 1 câu hỏi để tạo biến thể');
         }
         setVariationGenerating(true);
         try {
-            // Backend AI API chưa có, simulate
-            setTimeout(() => {
-                const mockVariations = [
-                    { questionText: baseQuestionText + ' (Variation 1)', correctAnswer: baseCorrectAnswer, explanation: '', questionType: 'MULTIPLE_CHOICE', cognitiveLevelId: cognitiveLevels.length > 0 ? cognitiveLevels[0].id : 1 },
-                    { questionText: baseQuestionText + ' (Variation 2)', correctAnswer: baseCorrectAnswer, explanation: '', questionType: 'MULTIPLE_CHOICE', cognitiveLevelId: cognitiveLevels.length > 1 ? cognitiveLevels[1].id : 2 },
-                ];
-                setVariationQuestions(mockVariations);
-                showSuccessToast('Đã tạo ' + mockVariations.length + ' biến thể từ AI (mock)');
-                setVariationGenerating(false);
-            }, 2000);
+            const response = await questionBankService.generateVariations({
+                baseQuestionIds: selectedQuestionIds,
+                numberOfVariations: numberOfVariations,
+                aiProvider: 'DEEPSEEK'
+            });
+            
+            // Map response to local format with cognitive level IDs
+            const mappedGroups = response.variationGroups.map(group => {
+                const mappedVariations = group.variations.map(v => {
+                    const cogLevel = cognitiveLevels.find(l => 
+                        l.level.toLowerCase().includes(v.cognitiveLevel?.toLowerCase() || '')
+                    );
+                    return {
+                        questionText: v.questionText || '',
+                        correctAnswer: v.correctAnswer || '',
+                        explanation: v.explanation || '',
+                        wrongAnswers: v.wrongAnswers || [],
+                        questionType: v.questionType || 'MULTIPLE_CHOICE',
+                        cognitiveLevelId: cogLevel?.id || (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null)
+                    };
+                });
+                return {
+                    baseQuestionId: group.baseQuestionId,
+                    baseQuestionText: group.baseQuestionText,
+                    variations: mappedVariations
+                };
+            });
+            
+            setVariationGroups(mappedGroups);
+            const totalVariations = mappedGroups.reduce((sum, g) => sum + g.variations.length, 0);
+            showSuccessToast(`Đã tạo ${totalVariations} biến thể từ AI (${response.tokensUsed} tokens, ${response.generationTimeMs}ms)`);
         } catch (e) {
-            showErrorToast('AI generate thất bại');
+            console.error('AI variation error:', e);
+            showErrorToast('AI generate thất bại: ' + (e?.response?.data?.message || e?.message || 'Lỗi không xác định'));
+        } finally {
             setVariationGenerating(false);
         }
     };
 
-    const handleEditVariation = (index) => {
-        setEditingVariationIndex(index);
+    const loadExistingQuestions = async () => {
+        if (!lessonId) return;
+        setLoadingExistingQuestions(true);
+        try {
+            const data = await questionBankService.getQuestions({ lessonId: Number(lessonId) });
+            const list = Array.isArray(data) ? data : data?.data ?? [];
+            setExistingQuestions(list);
+        } catch (e) {
+            setExistingQuestions([]);
+            showErrorToast('Không tải được danh sách câu hỏi');
+        } finally {
+            setLoadingExistingQuestions(false);
+        }
     };
 
-    const handleSaveVariation = (index, updated) => {
-        const newList = [...variationQuestions];
-        newList[index] = { ...newList[index], ...updated };
-        setVariationQuestions(newList);
+    useEffect(() => {
+        if (activeTab === 'ai-variation' && lessonId) {
+            loadExistingQuestions();
+        }
+    }, [activeTab, lessonId]);
+
+    const handleToggleQuestionSelection = (questionId) => {
+        setSelectedQuestionIds(prev => 
+            prev.includes(questionId) 
+                ? prev.filter(id => id !== questionId)
+                : [...prev, questionId]
+        );
+    };
+
+    const handleSelectAllQuestions = () => {
+        if (selectedQuestionIds.length === existingQuestions.length) {
+            setSelectedQuestionIds([]);
+        } else {
+            setSelectedQuestionIds(existingQuestions.map(q => q.id));
+        }
+    };
+
+    const handleEditVariationInGroup = (groupIdx, varIdx) => {
+        setEditingGroupIndex(groupIdx);
+        setEditingVariationIndex(varIdx);
+    };
+
+    const handleSaveVariationInGroup = (groupIdx, varIdx, updated) => {
+        const newGroups = [...variationGroups];
+        newGroups[groupIdx].variations[varIdx] = { ...newGroups[groupIdx].variations[varIdx], ...updated };
+        setVariationGroups(newGroups);
+        setEditingGroupIndex(null);
         setEditingVariationIndex(null);
-        showSuccessToast('Đã cập nhật câu hỏi');
+        showSuccessToast('Đã cập nhật biến thể');
     };
 
-    const handleDeleteVariation = (index) => {
-        setVariationQuestions(variationQuestions.filter((_, i) => i !== index));
-        showSuccessToast('Đã xóa câu hỏi');
+    const handleDeleteVariationInGroup = (groupIdx, varIdx) => {
+        const newGroups = [...variationGroups];
+        newGroups[groupIdx].variations = newGroups[groupIdx].variations.filter((_, i) => i !== varIdx);
+        // Remove group if no variations left
+        if (newGroups[groupIdx].variations.length === 0) {
+            newGroups.splice(groupIdx, 1);
+        }
+        setVariationGroups(newGroups);
+        showSuccessToast('Đã xóa biến thể');
     };
 
     const handleShowVariationPreview = () => {
         if (!lessonId) return showErrorToast('Vui lòng chọn bài học');
-        if (variationQuestions.length === 0) return showErrorToast('Chưa có câu hỏi để xem trước');
+        const totalVariations = variationGroups.reduce((sum, g) => sum + g.variations.length, 0);
+        if (totalVariations === 0) return showErrorToast('Chưa có biến thể để xem trước');
         setShowVariationPreview(true);
     };
 
     const handleSaveVariationQuestions = async () => {
         if (!lessonId) return showErrorToast('Vui lòng chọn bài học');
-        if (variationQuestions.length === 0) return showErrorToast('Chưa có câu hỏi để lưu');
+        const allVariations = variationGroups.flatMap(g => g.variations);
+        if (allVariations.length === 0) return showErrorToast('Chưa có biến thể để lưu');
         setSavingVariation(true);
         try {
-            const questions = variationQuestions.map(q => ({
+            const questions = allVariations.map(q => ({
                 lessonId: Number(lessonId),
                 questionText: q.questionText || '',
                 correctAnswer: q.correctAnswer || '',
@@ -431,15 +536,110 @@ const CreateQuestion = () => {
                 sourceType: 'AI_GENERATED'
             }));
             await questionBankService.createQuestionsBatch(questions);
-            showSuccessToast('Đã lưu ' + variationQuestions.length + ' câu hỏi vào ngân hàng');
-            setVariationQuestions([]);
+            showSuccessToast('Đã lưu ' + allVariations.length + ' biến thể vào ngân hàng');
+            setVariationGroups([]);
             setShowVariationPreview(false);
-            setBaseQuestionText('');
-            setBaseCorrectAnswer('');
+            setSelectedQuestionIds([]);
+            loadExistingQuestions(); // Refresh the list
         } catch (e) {
             showErrorToast('Lưu thất bại: ' + (e?.response?.data?.message || e?.message || 'Lỗi không xác định'));
         } finally {
             setSavingVariation(false);
+        }
+    };
+
+    // Tab 5: AI from URL
+    const handleGenerateFromUrl = async () => {
+        if (!urlInput.trim()) return showErrorToast('Vui lòng nhập URL');
+        if (!lessonId) return showErrorToast('Vui lòng chọn bài học');
+        
+        // Basic URL validation
+        try {
+            new URL(urlInput);
+        } catch {
+            return showErrorToast('URL không hợp lệ');
+        }
+        
+        setUrlGenerating(true);
+        try {
+            const response = await questionBankService.generateFromUrl({
+                url: urlInput.trim(),
+                lessonId: Number(lessonId),
+                numberOfQuestions: urlNumberOfQuestions,
+                aiProvider: 'DEEPSEEK'
+            });
+            
+            // Map AI response to local format
+            const mappedQuestions = response.generatedQuestions.map(q => {
+                const cogLevel = cognitiveLevels.find(l => 
+                    l.level.toLowerCase().includes(q.cognitiveLevel?.toLowerCase() || '')
+                );
+                return {
+                    questionText: q.questionText || '',
+                    correctAnswer: q.correctAnswer || '',
+                    explanation: q.explanation || '',
+                    wrongAnswers: q.wrongAnswers || [],
+                    questionType: q.questionType || 'MULTIPLE_CHOICE',
+                    cognitiveLevelId: cogLevel?.id || (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null)
+                };
+            });
+            
+            setUrlGeneratedQuestions(mappedQuestions);
+            showSuccessToast(`Đã tạo ${mappedQuestions.length} câu hỏi từ URL (${response.tokensUsed} tokens, ${response.generationTimeMs}ms)`);
+        } catch (e) {
+            console.error('AI URL generate error:', e);
+            showErrorToast('AI generate thất bại: ' + (e?.response?.data?.message || e?.message || 'Lỗi không xác định'));
+        } finally {
+            setUrlGenerating(false);
+        }
+    };
+
+    const handleEditUrlQuestion = (index) => {
+        setEditingUrlQuestionIndex(index);
+    };
+
+    const handleSaveUrlQuestion = (index, updated) => {
+        const newList = [...urlGeneratedQuestions];
+        newList[index] = { ...newList[index], ...updated };
+        setUrlGeneratedQuestions(newList);
+        setEditingUrlQuestionIndex(null);
+        showSuccessToast('Đã cập nhật câu hỏi');
+    };
+
+    const handleDeleteUrlQuestion = (index) => {
+        setUrlGeneratedQuestions(urlGeneratedQuestions.filter((_, i) => i !== index));
+        showSuccessToast('Đã xóa câu hỏi');
+    };
+
+    const handleShowUrlPreview = () => {
+        if (!lessonId) return showErrorToast('Vui lòng chọn bài học');
+        if (urlGeneratedQuestions.length === 0) return showErrorToast('Chưa có câu hỏi để xem trước');
+        setShowUrlPreview(true);
+    };
+
+    const handleSaveUrlQuestions = async () => {
+        if (!lessonId) return showErrorToast('Vui lòng chọn bài học');
+        if (urlGeneratedQuestions.length === 0) return showErrorToast('Chưa có câu hỏi để lưu');
+        setSavingUrlQuestions(true);
+        try {
+            const questions = urlGeneratedQuestions.map(q => ({
+                lessonId: Number(lessonId),
+                questionText: q.questionText || '',
+                correctAnswer: q.correctAnswer || '',
+                explanation: q.explanation || null,
+                questionType: q.questionType || 'MULTIPLE_CHOICE',
+                cognitiveLevelId: q.cognitiveLevelId || (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null),
+                sourceType: 'AI_GENERATED'
+            }));
+            await questionBankService.createQuestionsBatch(questions);
+            showSuccessToast('Đã lưu ' + urlGeneratedQuestions.length + ' câu hỏi vào ngân hàng');
+            setUrlGeneratedQuestions([]);
+            setShowUrlPreview(false);
+            setUrlInput('');
+        } catch (e) {
+            showErrorToast('Lưu thất bại: ' + (e?.response?.data?.message || e?.message || 'Lỗi không xác định'));
+        } finally {
+            setSavingUrlQuestions(false);
         }
     };
 
@@ -477,6 +677,12 @@ const CreateQuestion = () => {
                     onClick={() => setActiveTab('ai-variation')}
                 >
                     <Copy size={18} /> AI biến thể
+                </button>
+                <button
+                    className={`tab ${activeTab === 'ai-url' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('ai-url')}
+                >
+                    <Sparkles size={18} /> AI từ URL
                 </button>
             </div>
 
@@ -668,7 +874,27 @@ const CreateQuestion = () => {
                                 {importFile ? importFile.name : 'Choose File'}
                             </label>
                         </div>
-                        <small className="muted">Hỗ trợ file Excel (.xlsx, .xls) hoặc PDF. Backend sẽ parse file và trả về danh sách câu hỏi.</small>
+                        {importFile && (
+                            <div className="file-info">
+                                <span>✓ Đã chọn: {importFile.name}</span>
+                                <span className="file-size">
+                                    ({(importFile.size / 1024).toFixed(2)} KB)
+                                </span>
+                                <button 
+                                    type="button"
+                                    className="btn-remove-file"
+                                    onClick={() => {
+                                        setImportFile(null);
+                                        const fileInput = document.getElementById('import-file');
+                                        if (fileInput) fileInput.value = '';
+                                    }}
+                                    title="Xóa file"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        )}
+                        <small className="muted">Hỗ trợ file Excel (.xlsx, .xls) hoặc PDF.</small>
                     </div>
                     <button
                         className="btn btn-primary"
@@ -684,42 +910,77 @@ const CreateQuestion = () => {
                                 <div className="imported-questions">
                                     <h4>Danh sách câu hỏi đã import ({importedQuestions.length})</h4>
                                     {importedQuestions.map((q, idx) => (
-                                        <div key={idx} className="question-card">
+                                        <div key={idx} className={`question-card ${editingQuestionIndex === idx ? 'editing' : ''}`}>
                                             {editingQuestionIndex === idx ? (
                                                 <div className="edit-mode">
+                                                    <div className="edit-header">
+                                                        <h4>✏️ Đang chỉnh sửa câu hỏi số {idx + 1}</h4>
+                                                    </div>
                                                     <div className="field">
-                                                        <label>Câu hỏi</label>
-                                                        <RichTextEditor
+                                                        <label>Câu hỏi (hỗ trợ LaTeX: $...$ hoặc $$...$$)</label>
+                                                        <textarea
+                                                            rows={6}
+                                                            style={{ minHeight: '150px', fontSize: '0.95rem' }}
                                                             value={q.questionText || ''}
-                                                            onChange={(value) => {
+                                                            onChange={(e) => {
                                                                 const updated = [...importedQuestions];
-                                                                updated[idx].questionText = value;
+                                                                updated[idx].questionText = e.target.value;
                                                                 setImportedQuestions(updated);
                                                             }}
+                                                            placeholder="Nhập câu hỏi..."
                                                         />
+                                                        {q.questionText && (
+                                                            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                    <MathRenderer content={q.questionText} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="field">
-                                                        <label>Đáp án đúng</label>
-                                                        <RichTextEditor
+                                                        <label>Đáp án đúng (hỗ trợ LaTeX)</label>
+                                                        <textarea
+                                                            rows={5}
+                                                            style={{ minHeight: '120px', fontSize: '0.95rem' }}
                                                             value={q.correctAnswer || ''}
-                                                            onChange={(value) => {
+                                                            onChange={(e) => {
                                                                 const updated = [...importedQuestions];
-                                                                updated[idx].correctAnswer = value;
+                                                                updated[idx].correctAnswer = e.target.value;
                                                                 setImportedQuestions(updated);
                                                             }}
+                                                            placeholder="Nhập đáp án..."
                                                         />
+                                                        {q.correctAnswer && (
+                                                            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                                <small style={{ color: '#10b981', fontWeight: '600' }}>Preview:</small>
+                                                                <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                    <MathRenderer content={q.correctAnswer} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="field">
-                                                        <label>Explanation (Giải thích)</label>
-                                                        <RichTextEditor
+                                                        <label>Explanation - Giải thích (hỗ trợ LaTeX)</label>
+                                                        <textarea
+                                                            rows={5}
+                                                            style={{ minHeight: '120px', fontSize: '0.95rem' }}
                                                             value={q.explanation || ''}
-                                                            onChange={(value) => {
+                                                            onChange={(e) => {
                                                                 const updated = [...importedQuestions];
-                                                                updated[idx].explanation = value;
+                                                                updated[idx].explanation = e.target.value;
                                                                 setImportedQuestions(updated);
                                                             }}
                                                             placeholder="Giải thích cho câu hỏi..."
                                                         />
+                                                        {q.explanation && (
+                                                            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                    <MathRenderer content={q.explanation} />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="row">
                                                         <div className="field">
@@ -852,26 +1113,40 @@ const CreateQuestion = () => {
                     {loadingResources ? (
                         <p className="muted">Đang tải tài nguyên...</p>
                     ) : resources.length === 0 ? (
-                        <p className="muted">Chưa có tài nguyên trong bài học này. Vui lòng upload tài nguyên trước.</p>
+                        <p className="muted">Chưa có tài nguyên trong bài học này. Vui lòng upload tài nguyên (PDF/DOCX) trước.</p>
                     ) : (
                         <>
-                            <div className="field">
-                                <label>Chọn tài nguyên</label>
-                                <select value={selectedResourceId} onChange={(e) => setSelectedResourceId(e.target.value)}>
-                                    <option value="">-- Chọn tài nguyên --</option>
-                                    {resources.map((r) => (
-                                        <option key={r.id} value={String(r.id)}>
-                                            {r.resourceName || '—'} ({r.resourceType})
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="row">
+                                <div className="field">
+                                    <label>Chọn tài nguyên</label>
+                                    <select value={selectedResourceId} onChange={(e) => setSelectedResourceId(e.target.value)}>
+                                        <option value="">-- Chọn tài nguyên --</option>
+                                        {resources.filter(r => r.hasExtractedContent).map((r) => (
+                                            <option key={r.id} value={String(r.id)}>
+                                                {r.resourceName || '—'} ({r.resourceType})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <small className="muted">Chỉ hiển thị tài nguyên đã được trích xuất nội dung (PDF/DOCX)</small>
+                                </div>
+                                <div className="field">
+                                    <label>Số câu hỏi muốn tạo</label>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="20" 
+                                        value={aiNumberOfQuestions}
+                                        onChange={(e) => setAiNumberOfQuestions(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                                    />
+                                    <small className="muted">Tối đa 20 câu/lần</small>
+                                </div>
                             </div>
                             <button
                                 className="btn btn-primary"
                                 onClick={handleGenerateFromResource}
-                                disabled={!selectedResourceId || aiGenerating}
+                                disabled={!selectedResourceId || !lessonId || aiGenerating}
                             >
-                                {aiGenerating ? 'AI đang xử lý...' : <><Sparkles size={16} /> AI tạo câu hỏi từ tài nguyên</>}
+                                {aiGenerating ? 'AI đang xử lý (có thể mất 30-60 giây)...' : <><Sparkles size={16} /> AI tạo {aiNumberOfQuestions} câu hỏi từ tài nguyên</>}
                             </button>
 
                             {aiGeneratedQuestions.length > 0 && (
@@ -1028,50 +1303,295 @@ const CreateQuestion = () => {
             {/* Tab 4: AI variation */}
             {activeTab === 'ai-variation' && (
                 <div className="tab-content glass">
-                    <h3><Copy size={18} /> AI sinh biến thể từ câu có sẵn</h3>
-                    <div className="field">
-                        <label>Câu hỏi mẫu</label>
-                        <textarea
-                            rows={4}
-                            value={baseQuestionText}
-                            onChange={(e) => setBaseQuestionText(e.target.value)}
-                            placeholder="Nhập câu hỏi mẫu..."
-                        />
-                    </div>
-                    <div className="field">
-                        <label>Đáp án đúng mẫu</label>
-                        <textarea
-                            rows={2}
-                            value={baseCorrectAnswer}
-                            onChange={(e) => setBaseCorrectAnswer(e.target.value)}
-                            placeholder="Nhập đáp án đúng mẫu..."
-                        />
+                    <h3><Copy size={18} /> AI sinh biến thể từ câu hỏi có sẵn</h3>
+                    
+                    {!lessonId ? (
+                        <p className="muted">Vui lòng chọn bài học trước để xem các câu hỏi có sẵn.</p>
+                    ) : loadingExistingQuestions ? (
+                        <p className="muted">Đang tải câu hỏi...</p>
+                    ) : existingQuestions.length === 0 ? (
+                        <p className="muted">Chưa có câu hỏi nào trong bài học này. Hãy tạo câu hỏi trước.</p>
+                    ) : (
+                        <>
+                            <div className="existing-questions-selector">
+                                <div className="selection-header">
+                                    <label>Chọn câu hỏi gốc để tạo biến thể ({selectedQuestionIds.length}/{existingQuestions.length} đã chọn)</label>
+                                    <button className="btn btn-sm btn-secondary" onClick={handleSelectAllQuestions}>
+                                        {selectedQuestionIds.length === existingQuestions.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                    </button>
+                                </div>
+                                <div className="questions-checkbox-list">
+                                    {existingQuestions.map((q, index) => (
+                                        <div key={q.id} className={`question-checkbox-item ${selectedQuestionIds.includes(q.id) ? 'selected' : ''}`}>
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedQuestionIds.includes(q.id)}
+                                                    onChange={() => handleToggleQuestionSelection(q.id)}
+                                                />
+                                                <div className="question-preview-content">
+                                                    <div className="question-preview-header">
+                                                        <span className="question-number-badge">Câu {index + 1}</span>
+                                                        <span className="question-id-badge">ID: {q.id}</span>
+                                                        {q.questionType && (
+                                                            <span className="type-badge">{QUESTION_TYPES.find(t => t.value === q.questionType)?.label || q.questionType}</span>
+                                                        )}
+                                                        {q.sourceType && (
+                                                            <span className={`source-badge ${q.sourceType.toLowerCase()}`}>
+                                                                {q.sourceType === 'MANUAL' ? '✍️ Nhập tay' : 
+                                                                 q.sourceType === 'IMPORTED' ? '📁 Import' : 
+                                                                 q.sourceType === 'AI_GENERATED' ? '🤖 AI' : q.sourceType}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="question-preview-text">
+                                                        <MathRenderer content={(q.questionText || '').substring(0, 150) + (q.questionText?.length > 150 ? '...' : '')} />
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="row" style={{ marginTop: '1rem' }}>
+                                <div className="field">
+                                    <label>Số biến thể mỗi câu</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        value={numberOfVariations}
+                                        onChange={(e) => setNumberOfVariations(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                                    />
+                                    <small className="muted">Tối đa 10 biến thể/câu</small>
+                                </div>
+                            </div>
+                            
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleGenerateVariation}
+                                disabled={selectedQuestionIds.length === 0 || variationGenerating}
+                            >
+                                {variationGenerating ? 'AI đang tạo biến thể (có thể mất 30-60 giây)...' : <><Sparkles size={16} /> Tạo {numberOfVariations} biến thể cho {selectedQuestionIds.length} câu hỏi</>}
+                            </button>
+
+                            {variationGroups.length > 0 && (
+                                <>
+                                    {!showVariationPreview ? (
+                                        <div className="variation-groups">
+                                            <h4>Kết quả AI ({variationGroups.reduce((sum, g) => sum + g.variations.length, 0)} biến thể)</h4>
+                                            {variationGroups.map((group, gIdx) => (
+                                                <div key={gIdx} className="variation-group">
+                                                    <div className="group-header">
+                                                        <strong>Câu gốc #{group.baseQuestionId}:</strong> <MathRenderer content={group.baseQuestionText.substring(0, 120) + (group.baseQuestionText.length > 120 ? '...' : '')} />
+                                                    </div>
+                                                    <div className="group-variations">
+                                                        {group.variations.map((v, vIdx) => (
+                                                            <div key={vIdx} className="question-card">
+                                                                {editingGroupIndex === gIdx && editingVariationIndex === vIdx ? (
+                                                                    <div className="edit-mode">
+                                                                        <div className="field">
+                                                                            <label>Câu hỏi biến thể (hỗ trợ LaTeX)</label>
+                                                                            <textarea
+                                                                                rows={6}
+                                                                                style={{ minHeight: '150px', fontSize: '0.95rem' }}
+                                                                                value={v.questionText || ''}
+                                                                                onChange={(e) => {
+                                                                                    const newGroups = [...variationGroups];
+                                                                                    newGroups[gIdx].variations[vIdx].questionText = e.target.value;
+                                                                                    setVariationGroups(newGroups);
+                                                                                }}
+                                                                            />
+                                                                            {v.questionText && (
+                                                                                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                                    <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                                    <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                                        <MathRenderer content={v.questionText} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="field">
+                                                                            <label>Đáp án đúng (hỗ trợ LaTeX)</label>
+                                                                            <textarea
+                                                                                rows={5}
+                                                                                style={{ minHeight: '120px', fontSize: '0.95rem' }}
+                                                                                value={v.correctAnswer || ''}
+                                                                                onChange={(e) => {
+                                                                                    const newGroups = [...variationGroups];
+                                                                                    newGroups[gIdx].variations[vIdx].correctAnswer = e.target.value;
+                                                                                    setVariationGroups(newGroups);
+                                                                                }}
+                                                                            />
+                                                                            {v.correctAnswer && (
+                                                                                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                                                    <small style={{ color: '#10b981', fontWeight: '600' }}>Preview:</small>
+                                                                                    <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                                        <MathRenderer content={v.correctAnswer} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="field">
+                                                                            <label>Giải thích (hỗ trợ LaTeX)</label>
+                                                                            <textarea
+                                                                                rows={5}
+                                                                                style={{ minHeight: '120px', fontSize: '0.95rem' }}
+                                                                                value={v.explanation || ''}
+                                                                                onChange={(e) => {
+                                                                                    const newGroups = [...variationGroups];
+                                                                                    newGroups[gIdx].variations[vIdx].explanation = e.target.value;
+                                                                                    setVariationGroups(newGroups);
+                                                                                }}
+                                                                            />
+                                                                            {v.explanation && (
+                                                                                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(96, 78, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(96, 78, 255, 0.2)' }}>
+                                                                                    <small style={{ color: 'var(--color-accent-1)', fontWeight: '600' }}>Preview:</small>
+                                                                                    <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                                                                                        <MathRenderer content={v.explanation} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="row">
+                                                                            <div className="field">
+                                                                                <label>Mức độ nhận thức</label>
+                                                                                <select
+                                                                                    value={v.cognitiveLevelId || ''}
+                                                                                    onChange={(e) => {
+                                                                                        const newGroups = [...variationGroups];
+                                                                                        newGroups[gIdx].variations[vIdx].cognitiveLevelId = e.target.value ? Number(e.target.value) : null;
+                                                                                        setVariationGroups(newGroups);
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="">Chọn mức độ...</option>
+                                                                                    {cognitiveLevels.map((l) => (
+                                                                                        <option key={l.id} value={l.id}>{l.level}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="actions">
+                                                                            <button className="btn btn-sm btn-primary" onClick={() => handleSaveVariationInGroup(gIdx, vIdx, v)}>Lưu</button>
+                                                                            <button className="btn btn-sm btn-secondary" onClick={() => { setEditingGroupIndex(null); setEditingVariationIndex(null); }}>Hủy</button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="question-header">
+                                                                            <span className="question-number">Biến thể {vIdx + 1}</span>
+                                                                        </div>
+                                                                        <div className="question-text"><MathRenderer content={v.questionText || '—'} /></div>
+                                                                        <div className="answer-text"><strong>Đáp án:</strong> <MathRenderer content={v.correctAnswer || '—'} /></div>
+                                                                        {v.explanation && <div className="explanation-text"><strong>Giải thích:</strong> <MathRenderer content={v.explanation} /></div>}
+                                                                        <div className="question-actions">
+                                                                            <button className="icon-btn" onClick={() => handleEditVariationInGroup(gIdx, vIdx)} title="Sửa"><Edit2 size={16} /> Sửa</button>
+                                                                            <button className="icon-btn danger" onClick={() => handleDeleteVariationInGroup(gIdx, vIdx)} title="Xóa"><Trash2 size={16} /> Xóa</button>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="actions">
+                                                <button className="btn btn-primary" onClick={handleShowVariationPreview} disabled={!lessonId}>
+                                                    <Eye size={16} /> Xác nhận
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="preview-container">
+                                            <h4><Eye size={18} /> Xem trước ({variationGroups.reduce((sum, g) => sum + g.variations.length, 0)} biến thể)</h4>
+                                            <p className="muted" style={{ marginBottom: '1rem' }}>Kiểm tra lại các biến thể từ AI trước khi lưu vào ngân hàng câu hỏi.</p>
+                                            <div className="preview-questions-list">
+                                                {variationGroups.flatMap((g, gIdx) => g.variations.map((v, vIdx) => (
+                                                    <div key={`${gIdx}-${vIdx}`} className="preview-card" style={{ marginBottom: '1rem' }}>
+                                                        <div className="question-header">
+                                                            <span className="question-number">Biến thể từ #{g.baseQuestionId}</span>
+                                                            {v.cognitiveLevelId && <span className="cognitive-badge">{cognitiveLevels.find(l => l.id === v.cognitiveLevelId)?.level || ''}</span>}
+                                                        </div>
+                                                        <div className="preview-section">
+                                                            <label>Câu hỏi</label>
+                                                            <div className="preview-content"><MathRenderer content={v.questionText || '—'} /></div>
+                                                        </div>
+                                                        <div className="preview-section">
+                                                            <label>Đáp án đúng</label>
+                                                            <div className="preview-content answer-highlight"><MathRenderer content={v.correctAnswer || '—'} /></div>
+                                                        </div>
+                                                    </div>
+                                                )))}
+                                            </div>
+                                            <div className="actions preview-actions">
+                                                <button className="btn btn-secondary" onClick={() => setShowVariationPreview(false)}>
+                                                    <Edit2 size={16} /> Quay lại chỉnh sửa
+                                                </button>
+                                                <button className="btn btn-primary" onClick={handleSaveVariationQuestions} disabled={savingVariation}>
+                                                    {savingVariation ? 'Đang lưu...' : <><Save size={16} /> Lưu tất cả ({variationGroups.reduce((sum, g) => sum + g.variations.length, 0)} biến thể)</>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Tab 5: AI from URL */}
+            {activeTab === 'ai-url' && (
+                <div className="tab-content glass">
+                    <h3><Sparkles size={18} /> AI tạo câu hỏi từ URL</h3>
+                    <div className="row">
+                        <div className="field" style={{ flex: 2 }}>
+                            <label>Nhập URL bài viết/tài liệu</label>
+                            <input
+                                type="url"
+                                value={urlInput}
+                                onChange={(e) => setUrlInput(e.target.value)}
+                                placeholder="https://example.com/article"
+                            />
+                            <small className="muted">Hỗ trợ các trang web có nội dung text (bài viết, Wikipedia, etc.)</small>
+                        </div>
+                        <div className="field">
+                            <label>Số câu hỏi</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={urlNumberOfQuestions}
+                                onChange={(e) => setUrlNumberOfQuestions(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                            />
+                        </div>
                     </div>
                     <button
                         className="btn btn-primary"
-                        onClick={handleGenerateVariation}
-                        disabled={!baseQuestionText.trim() || !baseCorrectAnswer.trim() || variationGenerating}
+                        onClick={handleGenerateFromUrl}
+                        disabled={!urlInput.trim() || !lessonId || urlGenerating}
                     >
-                        {variationGenerating ? 'AI đang tạo biến thể...' : <><Sparkles size={16} /> Tạo biến thể</>}
+                        {urlGenerating ? 'AI đang xử lý (có thể mất 30-60 giây)...' : <><Sparkles size={16} /> AI tạo {urlNumberOfQuestions} câu hỏi từ URL</>}
                     </button>
 
-                    {variationQuestions.length > 0 && (
+                    {urlGeneratedQuestions.length > 0 && (
                         <>
-                            {!showVariationPreview ? (
-                                <div className="variation-questions">
-                                    <h4>Biến thể đã tạo ({variationQuestions.length})</h4>
-                                    {variationQuestions.map((q, idx) => (
+                            {!showUrlPreview ? (
+                                <div className="ai-questions">
+                                    <h4>Kết quả AI ({urlGeneratedQuestions.length} câu)</h4>
+                                    {urlGeneratedQuestions.map((q, idx) => (
                                         <div key={idx} className="question-card">
-                                            {editingVariationIndex === idx ? (
+                                            {editingUrlQuestionIndex === idx ? (
                                                 <div className="edit-mode">
                                                     <div className="field">
                                                         <label>Câu hỏi</label>
                                                         <RichTextEditor
                                                             value={q.questionText || ''}
                                                             onChange={(value) => {
-                                                                const updated = [...variationQuestions];
+                                                                const updated = [...urlGeneratedQuestions];
                                                                 updated[idx].questionText = value;
-                                                                setVariationQuestions(updated);
+                                                                setUrlGeneratedQuestions(updated);
                                                             }}
                                                         />
                                                     </div>
@@ -1080,9 +1600,9 @@ const CreateQuestion = () => {
                                                         <RichTextEditor
                                                             value={q.correctAnswer || ''}
                                                             onChange={(value) => {
-                                                                const updated = [...variationQuestions];
+                                                                const updated = [...urlGeneratedQuestions];
                                                                 updated[idx].correctAnswer = value;
-                                                                setVariationQuestions(updated);
+                                                                setUrlGeneratedQuestions(updated);
                                                             }}
                                                         />
                                                     </div>
@@ -1091,11 +1611,10 @@ const CreateQuestion = () => {
                                                         <RichTextEditor
                                                             value={q.explanation || ''}
                                                             onChange={(value) => {
-                                                                const updated = [...variationQuestions];
+                                                                const updated = [...urlGeneratedQuestions];
                                                                 updated[idx].explanation = value;
-                                                                setVariationQuestions(updated);
+                                                                setUrlGeneratedQuestions(updated);
                                                             }}
-                                                            placeholder="Giải thích cho câu hỏi..."
                                                         />
                                                     </div>
                                                     <div className="row">
@@ -1104,9 +1623,9 @@ const CreateQuestion = () => {
                                                             <select
                                                                 value={q.questionType || 'MULTIPLE_CHOICE'}
                                                                 onChange={(e) => {
-                                                                    const updated = [...variationQuestions];
+                                                                    const updated = [...urlGeneratedQuestions];
                                                                     updated[idx].questionType = e.target.value;
-                                                                    setVariationQuestions(updated);
+                                                                    setUrlGeneratedQuestions(updated);
                                                                 }}
                                                             >
                                                                 {QUESTION_TYPES.map((t) => (
@@ -1119,11 +1638,10 @@ const CreateQuestion = () => {
                                                             <select
                                                                 value={q.cognitiveLevelId || ''}
                                                                 onChange={(e) => {
-                                                                    const updated = [...variationQuestions];
+                                                                    const updated = [...urlGeneratedQuestions];
                                                                     updated[idx].cognitiveLevelId = e.target.value ? Number(e.target.value) : null;
-                                                                    setVariationQuestions(updated);
+                                                                    setUrlGeneratedQuestions(updated);
                                                                 }}
-                                                                disabled={loadingCognitiveLevels}
                                                             >
                                                                 <option value="">Chọn mức độ...</option>
                                                                 {cognitiveLevels.map((l) => (
@@ -1133,8 +1651,8 @@ const CreateQuestion = () => {
                                                         </div>
                                                     </div>
                                                     <div className="actions">
-                                                        <button className="btn btn-sm btn-primary" onClick={() => handleSaveVariation(idx, q)}>Lưu</button>
-                                                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingVariationIndex(null)}>Hủy</button>
+                                                        <button className="btn btn-sm btn-primary" onClick={() => handleSaveUrlQuestion(idx, q)}>Lưu</button>
+                                                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingUrlQuestionIndex(null)}>Hủy</button>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -1147,28 +1665,28 @@ const CreateQuestion = () => {
                                                     <div className="answer-text"><strong>Đáp án:</strong> <MathRenderer content={q.correctAnswer || '—'} /></div>
                                                     {q.explanation && <div className="explanation-text"><strong>Giải thích:</strong> <MathRenderer content={q.explanation} /></div>}
                                                     <div className="question-actions">
-                                                        <button className="icon-btn" onClick={() => handleEditVariation(idx)} title="Sửa"><Edit2 size={16} /> Sửa</button>
-                                                        <button className="icon-btn danger" onClick={() => handleDeleteVariation(idx)} title="Xóa"><Trash2 size={16} /> Xóa</button>
+                                                        <button className="icon-btn" onClick={() => handleEditUrlQuestion(idx)} title="Sửa"><Edit2 size={16} /> Sửa</button>
+                                                        <button className="icon-btn danger" onClick={() => handleDeleteUrlQuestion(idx)} title="Xóa"><Trash2 size={16} /> Xóa</button>
                                                     </div>
                                                 </>
                                             )}
                                         </div>
                                     ))}
                                     <div className="actions">
-                                        <button className="btn btn-primary" onClick={handleShowVariationPreview} disabled={!lessonId || variationQuestions.length === 0}>
+                                        <button className="btn btn-primary" onClick={handleShowUrlPreview} disabled={!lessonId || urlGeneratedQuestions.length === 0}>
                                             <Eye size={16} /> Xác nhận
                                         </button>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="preview-container">
-                                    <h4><Eye size={18} /> Xem trước trước khi lưu ({variationQuestions.length} biến thể)</h4>
-                                    <p className="muted" style={{ marginBottom: '1rem' }}>Kiểm tra lại các biến thể từ AI trước khi lưu vào ngân hàng câu hỏi.</p>
+                                    <h4><Eye size={18} /> Xem trước ({urlGeneratedQuestions.length} câu hỏi)</h4>
+                                    <p className="muted" style={{ marginBottom: '1rem' }}>Kiểm tra lại các câu hỏi từ AI trước khi lưu vào ngân hàng câu hỏi.</p>
                                     <div className="preview-questions-list">
-                                        {variationQuestions.map((q, idx) => (
+                                        {urlGeneratedQuestions.map((q, idx) => (
                                             <div key={idx} className="preview-card" style={{ marginBottom: '1rem' }}>
                                                 <div className="question-header">
-                                                    <span className="question-number">Biến thể {idx + 1}</span>
+                                                    <span className="question-number">Câu {idx + 1}</span>
                                                     <span className="question-type-badge">{QUESTION_TYPES.find(t => t.value === q.questionType)?.label || q.questionType}</span>
                                                     {q.cognitiveLevelId && <span className="cognitive-badge">{cognitiveLevels.find(l => l.id === q.cognitiveLevelId)?.level || ''}</span>}
                                                 </div>
@@ -1190,11 +1708,11 @@ const CreateQuestion = () => {
                                         ))}
                                     </div>
                                     <div className="actions preview-actions">
-                                        <button className="btn btn-secondary" onClick={() => setShowVariationPreview(false)}>
+                                        <button className="btn btn-secondary" onClick={() => setShowUrlPreview(false)}>
                                             <Edit2 size={16} /> Quay lại chỉnh sửa
                                         </button>
-                                        <button className="btn btn-primary" onClick={handleSaveVariationQuestions} disabled={savingVariation}>
-                                            {savingVariation ? 'Đang lưu...' : <><Save size={16} /> Lưu tất cả ({variationQuestions.length} biến thể)</>}
+                                        <button className="btn btn-primary" onClick={handleSaveUrlQuestions} disabled={savingUrlQuestions}>
+                                            {savingUrlQuestions ? 'Đang lưu...' : <><Save size={16} /> Lưu tất cả ({urlGeneratedQuestions.length} câu)</>}
                                         </button>
                                     </div>
                                 </div>
@@ -1266,6 +1784,46 @@ const CreateQuestion = () => {
                     cursor: pointer;
                     font-weight: 500;
                 }
+                .file-info {
+                    margin-top: 0.75rem;
+                    padding: 0.75rem;
+                    background: rgba(16, 185, 129, 0.05);
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.5rem;
+                }
+                .file-info span:first-child {
+                    color: #10b981;
+                    font-weight: 500;
+                }
+                .file-size {
+                    color: var(--color-text-secondary);
+                    font-size: 0.85rem;
+                }
+                .btn-remove-file {
+                    background: rgba(255, 71, 87, 0.1);
+                    color: #ff4757;
+                    border: none;
+                    border-radius: 6px;
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    line-height: 1;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                }
+                .btn-remove-file:hover {
+                    background: rgba(255, 71, 87, 0.2);
+                    transform: scale(1.1);
+                }
 
                 .info-box {
                     padding: 1rem;
@@ -1299,6 +1857,13 @@ const CreateQuestion = () => {
                     background: rgba(255,255,255,0.5);
                     border: 1px solid rgba(0,0,0,0.06);
                     margin-bottom: 1rem;
+                    transition: all 0.3s ease;
+                }
+                .question-card.editing {
+                    background: linear-gradient(135deg, rgba(96, 78, 255, 0.08) 0%, rgba(134, 121, 255, 0.05) 100%);
+                    border: 2px solid var(--color-accent-1);
+                    box-shadow: 0 8px 24px rgba(96, 78, 255, 0.2), 0 0 0 4px rgba(96, 78, 255, 0.1);
+                    transform: scale(1.01);
                 }
                 .question-header {
                     display: flex;
@@ -1322,11 +1887,17 @@ const CreateQuestion = () => {
                     font-weight: 600;
                     margin-bottom: 0.5rem;
                     line-height: 1.5;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .answer-text {
                     color: var(--color-text-primary);
                     font-size: 0.95rem;
                     margin-bottom: 0.5rem;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .explanation-text {
                     color: var(--color-text-secondary);
@@ -1335,6 +1906,9 @@ const CreateQuestion = () => {
                     margin-bottom: 0.5rem;
                     padding-left: 1rem;
                     border-left: 2px solid rgba(96, 78, 255, 0.2);
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .question-actions {
                     display: flex;
@@ -1357,6 +1931,24 @@ const CreateQuestion = () => {
 
                 .edit-mode { margin-top: 0.5rem; }
                 .edit-mode .field { margin-bottom: 0.75rem; }
+                .edit-header {
+                    background: linear-gradient(135deg, var(--color-accent-1), rgba(134, 121, 255, 1));
+                    color: white;
+                    padding: 0.75rem 1rem;
+                    border-radius: 8px;
+                    margin: -1.25rem -1.25rem 1rem -1.25rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .edit-header h4 {
+                    margin: 0;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
 
                 .actions { display: flex; justify-content: flex-end; margin-top: 1rem; gap: 0.75rem; }
                 .preview-actions { justify-content: space-between; }
@@ -1418,6 +2010,9 @@ const CreateQuestion = () => {
                     border: 1px solid rgba(0,0,0,0.05);
                     font-size: 1rem;
                     line-height: 1.6;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    word-break: break-word;
                 }
                 .answer-highlight {
                     background: rgba(16, 185, 129, 0.1);
@@ -1436,6 +2031,149 @@ const CreateQuestion = () => {
                     border-radius: 6px;
                     font-size: 0.8rem;
                     font-weight: 600;
+                }
+
+                /* Tab 4: Existing questions selector */
+                .existing-questions-selector {
+                    background: rgba(255,255,255,0.5);
+                    border-radius: 12px;
+                    padding: 1rem;
+                    margin-top: 1rem;
+                }
+                .selection-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.75rem;
+                }
+                .selection-header label {
+                    font-weight: 600;
+                    color: var(--color-text-secondary);
+                }
+                .questions-checkbox-list {
+                    max-height: 300px;
+                    overflow-y: auto;
+                    border: 1px solid rgba(0,0,0,0.1);
+                    border-radius: 8px;
+                    background: white;
+                }
+                .question-checkbox-item {
+                    padding: 0.75rem 1rem;
+                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                    transition: background 0.2s;
+                }
+                .question-checkbox-item:last-child {
+                    border-bottom: none;
+                }
+                .question-checkbox-item:hover {
+                    background: rgba(96, 78, 255, 0.05);
+                }
+                .question-checkbox-item.selected {
+                    background: rgba(96, 78, 255, 0.1);
+                }
+                .question-checkbox-item label {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 0.75rem;
+                    cursor: pointer;
+                    width: 100%;
+                }
+                .question-checkbox-item input[type="checkbox"] {
+                    margin-top: 3px;
+                    width: 18px;
+                    height: 18px;
+                    flex-shrink: 0;
+                }
+                .question-preview-content {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+                .question-preview-header {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .question-number-badge {
+                    display: inline-block;
+                    padding: 3px 10px;
+                    background: linear-gradient(135deg, var(--color-accent-1), rgba(134, 121, 255, 1));
+                    color: white;
+                    border-radius: 6px;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                }
+                .question-id-badge {
+                    padding: 3px 8px;
+                    background: rgba(0, 0, 0, 0.05);
+                    color: var(--color-text-secondary);
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .type-badge {
+                    padding: 3px 8px;
+                    background: rgba(96, 78, 255, 0.1);
+                    color: var(--color-accent-1);
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .source-badge {
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                }
+                .source-badge.manual {
+                    background: rgba(59, 130, 246, 0.1);
+                    color: #3b82f6;
+                }
+                .source-badge.imported {
+                    background: rgba(245, 158, 11, 0.1);
+                    color: #f59e0b;
+                }
+                .source-badge.ai_generated {
+                    background: rgba(168, 85, 247, 0.1);
+                    color: #a855f7;
+                }
+                .question-preview-text {
+                    font-size: 0.9rem;
+                    line-height: 1.5;
+                    color: var(--color-text-primary);
+                }
+                .question-preview {
+                    font-size: 0.9rem;
+                    line-height: 1.4;
+                }
+                .question-preview strong {
+                    color: var(--color-accent-1);
+                }
+                
+                /* Variation groups */
+                .variation-groups {
+                    margin-top: 1.5rem;
+                }
+                .variation-group {
+                    background: rgba(255,255,255,0.5);
+                    border-radius: 12px;
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                    border-left: 4px solid var(--color-accent-1);
+                }
+                .group-header {
+                    padding: 0.75rem;
+                    background: rgba(96, 78, 255, 0.05);
+                    border-radius: 8px;
+                    margin-bottom: 1rem;
+                    font-size: 0.9rem;
+                }
+                .group-variations {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
                 }
             `}</style>
         </div>
