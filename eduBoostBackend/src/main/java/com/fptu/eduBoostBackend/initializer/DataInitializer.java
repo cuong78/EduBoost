@@ -24,9 +24,7 @@ import com.fptu.eduBoostBackend.entities.enums.Gender;
 import com.fptu.eduBoostBackend.entities.enums.LessonResourceType;
 import com.fptu.eduBoostBackend.entities.enums.StudentStatus;
 import com.fptu.eduBoostBackend.entities.CognitiveLevel;
-import com.fptu.eduBoostBackend.entities.ExamType;
 import com.fptu.eduBoostBackend.repositories.ChapterRepository;
-import com.fptu.eduBoostBackend.repositories.ExamTypeRepository;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
@@ -54,7 +52,6 @@ public class DataInitializer implements CommandLineRunner {
     private final LessonRepository lessonRepository;
     private final LessonResourceRepository lessonResourceRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
-    private final ExamTypeRepository examTypeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -66,8 +63,8 @@ public class DataInitializer implements CommandLineRunner {
         initializeUsers();
         initializeSubjects();
         initializeCognitiveLevels();
-        initializeExamTypes();
         initializeChaptersAndLessons();
+        initializeClasses();
     }
 
     /**
@@ -108,40 +105,6 @@ public class DataInitializer implements CommandLineRunner {
         cognitiveLevelRepository.save(level4);
     }
 
-    /**
-     * Khởi tạo các loại đề thi: 15 phút, 1 tiết, học kì
-     */
-    private void initializeExamTypes() {
-        // Kiểm tra 15 phút
-        ExamType exam15Min = ExamType.builder()
-                .typeCode("15MIN")
-                .typeName("Kiểm tra 15 phút")
-                .requiresMatrix(false)
-                .description("Bài kiểm tra ngắn 15 phút, không cần ma trận đề")
-                .displayOrder(1)
-                .build();
-        examTypeRepository.save(exam15Min);
-
-        // Kiểm tra 1 tiết (45 phút)
-        ExamType exam45Min = ExamType.builder()
-                .typeCode("45MIN")
-                .typeName("Kiểm tra 1 tiết")
-                .requiresMatrix(true)
-                .description("Bài kiểm tra 1 tiết (45 phút), cần ma trận đề theo mức độ nhận thức")
-                .displayOrder(2)
-                .build();
-        examTypeRepository.save(exam45Min);
-
-
-        ExamType examFinal = ExamType.builder()
-                .typeCode("FINAL")
-                .typeName("Kiểm tra học kỳ")
-                .requiresMatrix(true)
-                .description("Bài kiểm tra cuối học kỳ, cần ma trận đề đầy đủ")
-                .displayOrder(4)
-                .build();
-        examTypeRepository.save(examFinal);
-    }
 
     private void initializeSubjects() {
         // Create common subjects for testing
@@ -163,50 +126,35 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         subjectRepository.save(chemistry);
 
-        Subject Science = Subject.builder()
-                .subjectCode("KHTN")
-                .description("Khoa Học Tự Nhiên ")
+        Subject english = Subject.builder()
+                .subjectCode("ANH")
+                .description("Tiếng Anh")
                 .build();
-        subjectRepository.save(Science);
+        subjectRepository.save(english);
 
-
-    }
-
-    private void initializeRoles () {
-
-        Role adminRole = Role.builder()
-                .name(ADMIN_ROLE)
-                .description("System Administrator with full access")
+        Subject literature = Subject.builder()
+                .subjectCode("VAN")
+                .description("Ngữ văn")
                 .build();
-        if (!roleRepository.existsByName("ADMIN")) {
-            roleRepository.save(adminRole);
-        }
+        subjectRepository.save(literature);
 
-        Role teachRole = Role.builder()
-                .name(TEACH_ROLE)
-                .description("Teacher")
+        Subject biology = Subject.builder()
+                .subjectCode("SINH")
+                .description("Sinh học")
                 .build();
-        if (!roleRepository.existsByName("TEACHER")) {
-            roleRepository.save(teachRole);
-        }
+        subjectRepository.save(biology);
 
-        Role studentRole = Role.builder()
-                .name(STUDENT_ROLE)
-                .description("Student")
+        Subject history = Subject.builder()
+                .subjectCode("SU")
+                .description("Lịch sử")
                 .build();
-        if (!roleRepository.existsByName("STUDENT")) {
-            roleRepository.save(studentRole);
-        }
+        subjectRepository.save(history);
 
-        Role parentRole = Role.builder()
-                .name("PARENT")
-                .description("Parent")
+        Subject geography = Subject.builder()
+                .subjectCode("DIA")
+                .description("Địa lý")
                 .build();
-        if (!roleRepository.existsByName("PARENT")) {
-            roleRepository.save(parentRole);
-        }
-
-
+        subjectRepository.save(geography);
     }
 
     private void initializeChaptersAndLessons() {
@@ -386,6 +334,40 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    private void initializeRoles() {
+
+        Role adminRole = Role.builder()
+                .name(ADMIN_ROLE)
+                .description("System Administrator with full access")
+                .build();
+        if (!roleRepository.existsByName("ADMIN")) {
+            roleRepository.save(adminRole);
+        }
+
+        Role teachRole = Role.builder()
+                .name(TEACH_ROLE)
+                .description("Teacher")
+                .build();
+        if (!roleRepository.existsByName("TEACHER")) {
+            roleRepository.save(teachRole);
+        }
+
+        Role studentRole = Role.builder()
+                .name(STUDENT_ROLE)
+                .description("Student")
+                .build();
+        if (!roleRepository.existsByName("STUDENT")) {
+            roleRepository.save(studentRole);
+        }
+
+        Role parentRole = Role.builder()
+                .name("PARENT")
+                .description("Parent")
+                .build();
+        if (!roleRepository.existsByName("PARENT")) {
+            roleRepository.save(parentRole);
+        }
+    }
 
     private void initializeUsers() {
         // Admin User
@@ -466,6 +448,75 @@ public class DataInitializer implements CommandLineRunner {
         parentRepository.save(parent2);
     }
 
-}
+    private void initializeClasses() {
+        // Get teacher
+        Teacher teacher = teacherRepository.findAll().get(0);
+        Role studentRole = roleRepository.findByName("STUDENT").orElseThrow();
 
+        // Create Class 10A1
+        com.fptu.eduBoostBackend.entities.Class class10A1 = com.fptu.eduBoostBackend.entities.Class.builder()
+                .className("10A1")
+                .classCode("10A1-2024")
+                .gradeLevel("10")
+                .teacher(teacher)
+                .schoolYear("2024-2025")
+                .description("Class 10A1 - Mathematics")
+                .status("ACTIVE")
+                .build();
+        classRepository.save(class10A1);
+
+        // Create Class 10A2
+        com.fptu.eduBoostBackend.entities.Class class10A2 = com.fptu.eduBoostBackend.entities.Class.builder()
+                .className("10A2")
+                .classCode("10A2-2024")
+                .gradeLevel("10")
+                .teacher(teacher)
+                .schoolYear("2024-2025")
+                .description("Class 10A2 - Mathematics")
+                .status("ACTIVE")
+                .build();
+        classRepository.save(class10A2);
+
+        // Create students for Class 10A1
+        createStudent("student1", "student1@eduboost.com", "0945678901", "Nguyen Van Nam", "S001", class10A1, studentRole, LocalDate.of(2008, 5, 15), Gender.MALE);
+        createStudent("student2", "student2@eduboost.com", "0945678902", "Tran Thi Mai", "S002", class10A1, studentRole, LocalDate.of(2008, 8, 20), Gender.FEMALE);
+        createStudent("student3", "student3@eduboost.com", "0945678903", "Le Van Tuan", "S003", class10A1, studentRole, LocalDate.of(2008, 3, 10), Gender.MALE);
+        createStudent("student4", "student4@eduboost.com", "0945678904", "Pham Thi Lan", "S004", class10A1, studentRole, LocalDate.of(2008, 12, 5), Gender.FEMALE);
+        createStudent("student5", "student5@eduboost.com", "0945678905", "Hoang Van Long", "S005", class10A1, studentRole, LocalDate.of(2008, 7, 25), Gender.MALE);
+
+        // Create students for Class 10A2
+        createStudent("student6", "student6@eduboost.com", "0945678906", "Vu Thi Hoa", "S006", class10A2, studentRole, LocalDate.of(2008, 4, 18), Gender.FEMALE);
+        createStudent("student7", "student7@eduboost.com", "0945678907", "Dang Van Minh", "S007", class10A2, studentRole, LocalDate.of(2008, 9, 22), Gender.MALE);
+        createStudent("student8", "student8@eduboost.com", "0945678908", "Bui Thi Huong", "S008", class10A2, studentRole, LocalDate.of(2008, 6, 30), Gender.FEMALE);
+        createStudent("student9", "student9@eduboost.com", "0945678909", "Ngo Van Hai", "S009", class10A2, studentRole, LocalDate.of(2008, 11, 12), Gender.MALE);
+        createStudent("student10", "student10@eduboost.com", "0945678910", "Do Thi Thao", "S010", class10A2, studentRole, LocalDate.of(2008, 2, 8), Gender.FEMALE);
+    }
+
+    private void createStudent(String username, String email, String phone, String fullName,
+                               String studentCode, com.fptu.eduBoostBackend.entities.Class classEntity,
+                               Role studentRole, LocalDate dateOfBirth, Gender gender) {
+        User studentUser = User.builder()
+                .username(username)
+                .email(email)
+                .phone(phone)
+                .password(passwordEncoder.encode("student123"))
+                .fullName(fullName)
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(studentRole))
+                .build();
+        User savedStudent = userRepository.save(studentUser);
+
+        Student student = Student.builder()
+                .user(savedStudent)
+                .studentCode(studentCode)
+                .classEntity(classEntity)
+                .dateOfBirth(dateOfBirth)
+                .gender(gender)
+                .enrollmentDate(LocalDate.of(2024, 9, 1))
+                .status(StudentStatus.ACTIVE)
+                .build();
+        studentRepository.save(student);
+    }
+}
 
