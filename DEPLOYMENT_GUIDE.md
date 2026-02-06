@@ -339,6 +339,7 @@ docker-compose -f docker-compose.prod.yml exec minio wget --no-verbose --tries=1
 1. Mở trình duyệt và truy cập: `https://yourdomain.com` (hoặc `http://your-server-ip`)
 2. Kiểm tra backend API: `https://yourdomain.com/api/actuator/health`
 3. Kiểm tra SSL certificate (nếu đã cấu hình)
+4. Kiểm tra Swagger UI: `https://yourdomain.com/swagger-ui/index.html`
 
 ---
 
