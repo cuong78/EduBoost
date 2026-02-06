@@ -14,6 +14,7 @@ export default function ClassList() {
         className: '',
         classCode: '',
         schoolYear: '',
+        gradeLevel: '',
         description: '',
     });
     const [errors, setErrors] = useState({});
@@ -45,6 +46,7 @@ export default function ClassList() {
         const next = {};
         if (!form.className?.trim()) next.className = 'Tên lớp không được để trống';
         if (!form.classCode?.trim()) next.classCode = 'Mã lớp không được để trống';
+        if (!form.gradeLevel) next.gradeLevel = 'Khối lớp không được để trống';
         setErrors(next);
         return Object.keys(next).length === 0;
     };
@@ -57,7 +59,7 @@ export default function ClassList() {
             await teacherService.createClass(form);
             showSuccessToast('Tạo lớp thành công');
             setShowCreateModal(false);
-            setForm({ className: '', classCode: '', schoolYear: '', description: '' });
+            setForm({ className: '', classCode: '', schoolYear: '', gradeLevel: '', description: '' });
             loadClasses();
         } catch (err) {
             showErrorToast(err?.response?.data?.message || 'Tạo lớp thất bại');
@@ -148,6 +150,21 @@ export default function ClassList() {
                                 />
                             </div>
                             <div className="form-group">
+                                <label>Khối lớp <span className="required">*</span></label>
+                                <select
+                                    name="gradeLevel"
+                                    value={form.gradeLevel}
+                                    onChange={handleChange}
+                                    className={errors.gradeLevel ? 'error' : ''}
+                                >
+                                    <option value="">-- Chọn khối --</option>
+                                    <option value="10">Khối 10</option>
+                                    <option value="11">Khối 11</option>
+                                    <option value="12">Khối 12</option>
+                                </select>
+                                {errors.gradeLevel && <span className="error-message">{errors.gradeLevel}</span>}
+                            </div>
+                            <div className="form-group">
                                 <label>Mô tả</label>
                                 <textarea
                                     name="description"
@@ -223,12 +240,13 @@ export default function ClassList() {
                 .modal h3 { margin-bottom: 1.5rem; }
                 .modal .form-group { margin-bottom: 1rem; }
                 .modal .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-                .modal input, .modal textarea {
+                .modal input, .modal textarea, .modal select {
                     width: 100%;
                     padding: 0.75rem 1rem;
                     border-radius: 12px;
                     border: 1px solid var(--glass-border);
                     font-family: inherit;
+                    background: var(--glass-bg);
                 }
                 .modal .error { border-color: #dc2626; }
                 .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
