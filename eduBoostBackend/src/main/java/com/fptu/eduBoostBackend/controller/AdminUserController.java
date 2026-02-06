@@ -1,5 +1,6 @@
 package com.fptu.eduBoostBackend.controller;
 
+import com.fptu.eduBoostBackend.dto.request.UpdateUserRequest;
 import com.fptu.eduBoostBackend.dto.request.UpdateUserStatusRequest;
 import com.fptu.eduBoostBackend.dto.response.AdminUserResponse;
 import com.fptu.eduBoostBackend.service.AdminUserService;
@@ -40,6 +41,17 @@ public class AdminUserController {
             @PathVariable Long userId) {
         AdminUserResponse user = adminUserService.getUserById(userId);
         return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/{userId}")
+    @Operation(summary = "Update user information", 
+               description = "Updates user information including name, email, phone, status, and roles")
+    public ResponseEntity<AdminUserResponse> updateUser(
+            @Parameter(description = "User ID", required = true)
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateUserRequest request) {
+        AdminUserResponse updatedUser = adminUserService.updateUser(userId, request);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PutMapping("/{userId}/status")

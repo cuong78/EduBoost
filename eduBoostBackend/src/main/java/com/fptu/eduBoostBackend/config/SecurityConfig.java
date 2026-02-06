@@ -24,7 +24,7 @@ import org.springframework.web.cors.CorsUtils;
  * Thuộc Infrastructure/Config layer
  */
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 

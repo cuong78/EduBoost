@@ -1,55 +1,87 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
-import { Users, Settings, Shield, LayoutDashboard, LogOut, Mail } from 'lucide-react';
-import UserMenu from '../components/common/UserMenu';
+import { useEffect } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
+import {
+  Users,
+  Settings,
+  BookOpen,
+  BookMarked,
+  FileText,
+  HelpCircle,
+} from "lucide-react";
+import UserMenu from "../components/common/UserMenu";
 
 const AdminLayout = () => {
-    const location = useLocation();
-    const isActive = (path) => location.pathname === path;
+  const location = useLocation();
+  const isActive = (path) => location.pathname === path;
 
-    return (
-        <div className="admin-layout">
-            <aside className="sidebar glass-dark">
-                <div className="sidebar-header">
-                    <Link to="/" className="logo">
-                        <img src={logo} alt="EduBoost" />
-                        <span style={{ color: 'white' }}>EduBoost Admin</span>
-                    </Link>
-                </div>
+  return (
+    <div className="admin-layout">
+      <aside className="sidebar glass-dark">
+        <div className="sidebar-header">
+          <Link to="/" className="logo">
+            <img src={logo} alt="EduBoost" />
+            <span style={{ color: "white" }}>EduBoost Admin</span>
+          </Link>
+        </div>
 
-                <nav className="sidebar-nav">
-                    <Link to="/admin/dashboard" className={`nav-item ${isActive('/admin/dashboard') ? 'active' : ''}`}>
-                        <LayoutDashboard size={20} /> Tổng quan
-                    </Link>
-                    <Link to="/admin/users" className={`nav-item ${isActive('/admin/users') ? 'active' : ''}`}>
-                        <Users size={20} /> Quản lý tài khoản
-                    </Link>
-                    <Link to="/admin/invitations" className={`nav-item ${location.pathname.startsWith('/admin/invitations') ? 'active' : ''}`}>
-                        <Mail size={20} /> Mã mời
-                    </Link>
-                    <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings') ? 'active' : ''}`}>
-                        <Settings size={20} /> Cài đặt hệ thống
-                    </Link>
-                </nav>
+        <nav className="sidebar-nav">
+          <Link
+            to="/admin/users"
+            className={`nav-item ${isActive("/admin/users") ? "active" : ""}`}
+          >
+            <Users size={20} /> Quản lý tài khoản
+          </Link>
+          <Link
+            to="/admin/subjects"
+            className={`nav-item ${isActive("/admin/subjects") ? "active" : ""}`}
+          >
+            <BookOpen size={20} /> Môn học
+          </Link>
+          <Link
+            to="/admin/chapters"
+            className={`nav-item ${isActive("/admin/chapters") ? "active" : ""}`}
+          >
+            <BookMarked size={20} /> Chương học
+          </Link>
+          <Link
+            to="/admin/lesson-resources"
+            className={`nav-item ${isActive("/admin/lesson-resources") ? "active" : ""}`}
+          >
+            <FileText size={20} /> Tài nguyên bài học
+          </Link>
+          <Link
+            to="/admin/question-bank"
+            className={`nav-item ${isActive("/admin/question-bank") ? "active" : ""}`}
+          >
+            <HelpCircle size={20} /> Ngân hàng câu hỏi
+          </Link>
+          <Link
+            to="/admin/settings"
+            className={`nav-item ${isActive("/admin/settings") ? "active" : ""}`}
+          >
+            <Settings size={20} /> Cài đặt hệ thống
+          </Link>
+        </nav>
 
-                <div className="sidebar-footer">
-                    <UserMenu userType="admin" />
-                </div>
-            </aside>
+        <div className="sidebar-footer">
+          <UserMenu userType="admin" />
+        </div>
+      </aside>
 
-            <main className="dashboard-content">
-                <header className="topbar glass">
-                    <h2>Khu vực quản trị</h2>
-                    <div className="topbar-actions">
-                        <span className="badge">System Status: Stable</span>
-                    </div>
-                </header>
-                <div className="page-container">
-                    <Outlet />
-                </div>
-            </main>
+      <main className="dashboard-content">
+        <header className="topbar glass">
+          <h2>Khu vực quản trị</h2>
+          <div className="topbar-actions">
+            <span className="badge">System Status: Stable</span>
+          </div>
+        </header>
+        <div className="page-container">
+          <Outlet />
+        </div>
+      </main>
 
-            <style>{`
+      <style>{`
                 .admin-layout {
                     display: grid;
                     grid-template-columns: 260px 1fr;
@@ -192,8 +224,8 @@ const AdminLayout = () => {
                     font-weight: 600;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default AdminLayout;

@@ -7,6 +7,7 @@ import com.fptu.eduBoostBackend.dto.request.UserRegistrationRequest;
 import com.fptu.eduBoostBackend.dto.response.CustomerResponse;
 import com.fptu.eduBoostBackend.dto.response.UserResponse;
 import com.fptu.eduBoostBackend.entities.*;
+import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
 import com.fptu.eduBoostBackend.mapper.UserMapper;
@@ -289,6 +290,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 throw new DisabledException("Account not verified. Please check your email.");
             }
 
+            if (user.getStatus() == UserStatus.INACTIVE) {
+                throw new DisabledException("Account has been deactivated. Please contact administrator.");
+            }
+
         } catch (BadCredentialsException e) {
             // Fixed: Preserve stack trace
             throw new BadRequestException("Username/ password is invalid. Please try again!", e);
@@ -481,6 +486,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     throw new BadRequestException("Account has been locked!");
                 }
 
+                // Check if account is inactive
+                if (user.getStatus() == UserStatus.INACTIVE) {
+                    throw new DisabledException("Account has been deactivated. Please contact administrator.");
+                }
+
+                // User already exists, just login
                 // Check if Teacher record exists, create if missing (for users who registered before this fix)
                 boolean hasTeacherRole = user.getRoles().stream()
                         .anyMatch(role -> PredefinedRole.TEACH_ROLE.equals(role.getName()));
@@ -575,6 +586,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public UserResponse autoLogin(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        // Check if account is inactive
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new DisabledException("Account has been deactivated. Please contact administrator.");
+        }
         
         // Generate tokens giống như login thông thường
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
