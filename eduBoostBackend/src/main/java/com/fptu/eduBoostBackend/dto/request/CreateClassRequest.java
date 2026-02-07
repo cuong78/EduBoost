@@ -18,7 +18,7 @@ public class CreateClassRequest {
 
     @NotBlank(message = "Grade level cannot be blank")
     @Size(max = 50, message = "Grade level must not exceed 50 characters")
-    private String gradeLevel;
+    private Long gradeLevelId;
 
     @Size(max = 20, message = "School year must not exceed 20 characters")
     private String schoolYear;
