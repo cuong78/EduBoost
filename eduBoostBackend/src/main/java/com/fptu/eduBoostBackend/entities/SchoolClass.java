@@ -41,14 +41,6 @@ public class SchoolClass {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
     @Column(name = "status", length = 20)
     private String status;
 }
