@@ -102,8 +102,6 @@ public class TeacherServiceImpl implements TeacherService {
                             teacher.getUser().getFullName() : teacher.getUser().getUsername())
                     .schoolYear(classEntity.getSchoolYear())
                     .description(classEntity.getDescription())
-                    .createdAt(classEntity.getCreatedAt())
-                    .updatedAt(classEntity.getUpdatedAt())
                     .studentCount(studentCount)
                     .build();
         }).collect(Collectors.toList());
@@ -144,8 +142,6 @@ public class TeacherServiceImpl implements TeacherService {
                         teacher.getUser().getFullName() : teacher.getUser().getUsername())
                 .schoolYear(savedClass.getSchoolYear())
                 .description(savedClass.getDescription())
-                .createdAt(savedClass.getCreatedAt())
-                .updatedAt(savedClass.getUpdatedAt())
                 .studentCount(0)
                 .build();
     }

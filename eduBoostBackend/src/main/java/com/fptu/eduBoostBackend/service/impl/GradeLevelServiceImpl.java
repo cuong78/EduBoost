@@ -59,8 +59,6 @@ public class GradeLevelServiceImpl implements GradeLevelService {
                             .teacherName(teacherName)
                             .schoolYear(classEntity.getSchoolYear())
                             .description(classEntity.getDescription())
-                            .createdAt(classEntity.getCreatedAt())
-                            .updatedAt(classEntity.getUpdatedAt())
                             .studentCount(studentCount)
                             .build();
                 })

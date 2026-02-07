@@ -389,9 +389,11 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         userRepository.save(adminUser);
 
-        // Teacher User
+        // Create multiple teachers
         Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
-        User teacherUser = User.builder()
+        
+        // Teacher 1 - Mathematics
+        User teacherUser1 = User.builder()
                 .username("teacher1")
                 .email("teacher1@eduboost.com")
                 .phone("0912345678")
@@ -401,15 +403,89 @@ public class DataInitializer implements CommandLineRunner {
                 .tokenVersion(0)
                 .roles(Set.of(teacherRole))
                 .build();
-        User savedTeacher = userRepository.save(teacherUser);
-
-        // Create Teacher record
-        Teacher teacher = Teacher.builder()
-                .user(savedTeacher)
+        User savedTeacher1 = userRepository.save(teacherUser1);
+        Teacher teacher1 = Teacher.builder()
+                .user(savedTeacher1)
                 .employeeCode("T001")
                 .subject("Mathematics")
                 .build();
-        teacherRepository.save(teacher);
+        teacherRepository.save(teacher1);
+
+        // Teacher 2 - Physics
+        User teacherUser2 = User.builder()
+                .username("teacher2")
+                .email("teacher2@eduboost.com")
+                .phone("0912345679")
+                .password(passwordEncoder.encode("teacher123"))
+                .fullName("Tran Thi B")
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(teacherRole))
+                .build();
+        User savedTeacher2 = userRepository.save(teacherUser2);
+        Teacher teacher2 = Teacher.builder()
+                .user(savedTeacher2)
+                .employeeCode("T002")
+                .subject("Physics")
+                .build();
+        teacherRepository.save(teacher2);
+
+        // Teacher 3 - Chemistry
+        User teacherUser3 = User.builder()
+                .username("teacher3")
+                .email("teacher3@eduboost.com")
+                .phone("0912345680")
+                .password(passwordEncoder.encode("teacher123"))
+                .fullName("Le Van C")
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(teacherRole))
+                .build();
+        User savedTeacher3 = userRepository.save(teacherUser3);
+        Teacher teacher3 = Teacher.builder()
+                .user(savedTeacher3)
+                .employeeCode("T003")
+                .subject("Chemistry")
+                .build();
+        teacherRepository.save(teacher3);
+
+        // Teacher 4 - English
+        User teacherUser4 = User.builder()
+                .username("teacher4")
+                .email("teacher4@eduboost.com")
+                .phone("0912345681")
+                .password(passwordEncoder.encode("teacher123"))
+                .fullName("Pham Thi D")
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(teacherRole))
+                .build();
+        User savedTeacher4 = userRepository.save(teacherUser4);
+        Teacher teacher4 = Teacher.builder()
+                .user(savedTeacher4)
+                .employeeCode("T004")
+                .subject("English")
+                .build();
+        teacherRepository.save(teacher4);
+
+        // Teacher 5 - Literature
+        User teacherUser5 = User.builder()
+                .username("teacher5")
+                .email("teacher5@eduboost.com")
+                .phone("0912345682")
+                .password(passwordEncoder.encode("teacher123"))
+                .fullName("Hoang Van E")
+                .isVerify(true)
+                .tokenVersion(0)
+                .roles(Set.of(teacherRole))
+                .build();
+        User savedTeacher5 = userRepository.save(teacherUser5);
+        Teacher teacher5 = Teacher.builder()
+                .user(savedTeacher5)
+                .employeeCode("T005")
+                .subject("Literature")
+                .build();
+        teacherRepository.save(teacher5);
 
         // Parent User 1
         Role parentRole = roleRepository.findByName("PARENT").orElseThrow();
@@ -454,8 +530,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initializeClasses() {
-        // Get teacher
-        Teacher teacher = teacherRepository.findAll().get(0);
+        // Get all teachers
+        List<Teacher> teachers = teacherRepository.findAll();
+        Teacher teacher1 = teachers.size() > 0 ? teachers.get(0) : null;
+        Teacher teacher2 = teachers.size() > 1 ? teachers.get(1) : teacher1;
+        Teacher teacher3 = teachers.size() > 2 ? teachers.get(2) : teacher1;
+        Teacher teacher4 = teachers.size() > 3 ? teachers.get(3) : teacher1;
+        Teacher teacher5 = teachers.size() > 4 ? teachers.get(4) : teacher1;
+        
         Role studentRole = roleRepository.findByName("STUDENT").orElseThrow();
 
         // Create grade levels 6-12
@@ -467,54 +549,79 @@ public class DataInitializer implements CommandLineRunner {
         GradeLevel gradeLevel11 = createGradeLevel("11");
         GradeLevel gradeLevel12 = createGradeLevel("12");
 
-        // Create classes for each grade level
+        // Create classes for each grade level with different teachers
         // Grade 6
-        createSchoolClass("6A1", "6A1-2024", gradeLevel6, teacher, "2024-2025", "Class 6A1 - General");
-        createSchoolClass("6A2", "6A2-2024", gradeLevel6, teacher, "2024-2025", "Class 6A2 - General");
-        createSchoolClass("6B1", "6B1-2024", gradeLevel6, teacher, "2024-2025", "Class 6B1 - Advanced");
+        SchoolClass class6A1 = createSchoolClass("6A1", "6A1-2024", gradeLevel6, teacher1, "2024-2025", "Class 6A1 - General");
+        SchoolClass class6A2 = createSchoolClass("6A2", "6A2-2024", gradeLevel6, teacher2, "2024-2025", "Class 6A2 - General");
+        SchoolClass class6B1 = createSchoolClass("6B1", "6B1-2024", gradeLevel6, teacher3, "2024-2025", "Class 6B1 - Advanced");
 
         // Grade 7
-        createSchoolClass("7A1", "7A1-2024", gradeLevel7, teacher, "2024-2025", "Class 7A1 - General");
-        createSchoolClass("7A2", "7A2-2024", gradeLevel7, teacher, "2024-2025", "Class 7A2 - General");
-        createSchoolClass("7B1", "7B1-2024", gradeLevel7, teacher, "2024-2025", "Class 7B1 - Advanced");
+        SchoolClass class7A1 = createSchoolClass("7A1", "7A1-2024", gradeLevel7, teacher2, "2024-2025", "Class 7A1 - General");
+        SchoolClass class7A2 = createSchoolClass("7A2", "7A2-2024", gradeLevel7, teacher4, "2024-2025", "Class 7A2 - General");
+        SchoolClass class7B1 = createSchoolClass("7B1", "7B1-2024", gradeLevel7, teacher5, "2024-2025", "Class 7B1 - Advanced");
 
         // Grade 8
-        createSchoolClass("8A1", "8A1-2024", gradeLevel8, teacher, "2024-2025", "Class 8A1 - General");
-        createSchoolClass("8A2", "8A2-2024", gradeLevel8, teacher, "2024-2025", "Class 8A2 - General");
-        createSchoolClass("8B1", "8B1-2024", gradeLevel8, teacher, "2024-2025", "Class 8B1 - Advanced");
+        SchoolClass class8A1 = createSchoolClass("8A1", "8A1-2024", gradeLevel8, teacher3, "2024-2025", "Class 8A1 - General");
+        SchoolClass class8A2 = createSchoolClass("8A2", "8A2-2024", gradeLevel8, teacher1, "2024-2025", "Class 8A2 - General");
+        SchoolClass class8B1 = createSchoolClass("8B1", "8B1-2024", gradeLevel8, teacher4, "2024-2025", "Class 8B1 - Advanced");
 
         // Grade 9
-        createSchoolClass("9A1", "9A1-2024", gradeLevel9, teacher, "2024-2025", "Class 9A1 - General");
-        createSchoolClass("9A2", "9A2-2024", gradeLevel9, teacher, "2024-2025", "Class 9A2 - General");
-        createSchoolClass("9B1", "9B1-2024", gradeLevel9, teacher, "2024-2025", "Class 9B1 - Advanced");
+        SchoolClass class9A1 = createSchoolClass("9A1", "9A1-2024", gradeLevel9, teacher4, "2024-2025", "Class 9A1 - General");
+        SchoolClass class9A2 = createSchoolClass("9A2", "9A2-2024", gradeLevel9, teacher5, "2024-2025", "Class 9A2 - General");
+        SchoolClass class9B1 = createSchoolClass("9B1", "9B1-2024", gradeLevel9, teacher2, "2024-2025", "Class 9B1 - Advanced");
 
         // Grade 10
-        createSchoolClass("10A1", "10A1-2024", gradeLevel10, teacher, "2024-2025", "Class 10A1 - Mathematics");
-        createSchoolClass("10A2", "10A2-2024", gradeLevel10, teacher, "2024-2025", "Class 10A2 - Mathematics");
-        createSchoolClass("10B1", "10B1-2024", gradeLevel10, teacher, "2024-2025", "Class 10B1 - Science");
+        SchoolClass class10A1 = createSchoolClass("10A1", "10A1-2024", gradeLevel10, teacher1, "2024-2025", "Class 10A1 - Mathematics");
+        SchoolClass class10A2 = createSchoolClass("10A2", "10A2-2024", gradeLevel10, teacher2, "2024-2025", "Class 10A2 - Mathematics");
+        SchoolClass class10B1 = createSchoolClass("10B1", "10B1-2024", gradeLevel10, teacher3, "2024-2025", "Class 10B1 - Science");
 
         // Grade 11
-        createSchoolClass("11A1", "11A1-2024", gradeLevel11, teacher, "2024-2025", "Class 11A1 - Mathematics");
-        createSchoolClass("11A2", "11A2-2024", gradeLevel11, teacher, "2024-2025", "Class 11A2 - Mathematics");
-        createSchoolClass("11B1", "11B1-2024", gradeLevel11, teacher, "2024-2025", "Class 11B1 - Science");
+        SchoolClass class11A1 = createSchoolClass("11A1", "11A1-2024", gradeLevel11, teacher2, "2024-2025", "Class 11A1 - Mathematics");
+        SchoolClass class11A2 = createSchoolClass("11A2", "11A2-2024", gradeLevel11, teacher4, "2024-2025", "Class 11A2 - Mathematics");
+        SchoolClass class11B1 = createSchoolClass("11B1", "11B1-2024", gradeLevel11, teacher5, "2024-2025", "Class 11B1 - Science");
 
         // Grade 12
-        createSchoolClass("12A1", "12A1-2024", gradeLevel12, teacher, "2024-2025", "Class 12A1 - Mathematics");
-        createSchoolClass("12A2", "12A2-2024", gradeLevel12, teacher, "2024-2025", "Class 12A2 - Mathematics");
-        createSchoolClass("12B1", "12B1-2024", gradeLevel12, teacher, "2024-2025", "Class 12B1 - Science");
+        SchoolClass class12A1 = createSchoolClass("12A1", "12A1-2024", gradeLevel12, teacher3, "2024-2025", "Class 12A1 - Mathematics");
+        SchoolClass class12A2 = createSchoolClass("12A2", "12A2-2024", gradeLevel12, teacher4, "2024-2025", "Class 12A2 - Mathematics");
+        SchoolClass class12B1 = createSchoolClass("12B1", "12B1-2024", gradeLevel12, teacher5, "2024-2025", "Class 12B1 - Science");
 
-        // Get some classes for student creation
-        List<SchoolClass> allClasses = classRepository.findAll();
-        if (allClasses.size() >= 2) {
-            SchoolClass class6A1 = allClasses.stream().filter(c -> c.getClassName().equals("6A1")).findFirst().orElse(allClasses.get(0));
-            SchoolClass class10A1 = allClasses.stream().filter(c -> c.getClassName().equals("10A1")).findFirst().orElse(allClasses.get(1));
-            
-            // Create students for classes
-            createStudent("student1", "student1@eduboost.com", "0945678901", "Nguyen Van Nam", "S001", class6A1, studentRole, LocalDate.of(2012, 5, 15), Gender.MALE);
-            createStudent("student2", "student2@eduboost.com", "0945678902", "Tran Thi Mai", "S002", class6A1, studentRole, LocalDate.of(2012, 8, 20), Gender.FEMALE);
-            createStudent("student3", "student3@eduboost.com", "0945678903", "Le Van Cuong", "S003", class10A1, studentRole, LocalDate.of(2008, 3, 10), Gender.MALE);
-            createStudent("student4", "student4@eduboost.com", "0945678904", "Pham Thi Linh", "S004", class10A1, studentRole, LocalDate.of(2008, 7, 25), Gender.FEMALE);
-        }
+        // Create students for each class (3-5 students per class for testing)
+        int studentCounter = 1;
+        
+        // Grade 6 students
+        studentCounter = createStudentsForClass(class6A1, studentRole, studentCounter, 2012);
+        studentCounter = createStudentsForClass(class6A2, studentRole, studentCounter, 2012);
+        studentCounter = createStudentsForClass(class6B1, studentRole, studentCounter, 2012);
+
+        // Grade 7 students
+        studentCounter = createStudentsForClass(class7A1, studentRole, studentCounter, 2011);
+        studentCounter = createStudentsForClass(class7A2, studentRole, studentCounter, 2011);
+        studentCounter = createStudentsForClass(class7B1, studentRole, studentCounter, 2011);
+
+        // Grade 8 students
+        studentCounter = createStudentsForClass(class8A1, studentRole, studentCounter, 2010);
+        studentCounter = createStudentsForClass(class8A2, studentRole, studentCounter, 2010);
+        studentCounter = createStudentsForClass(class8B1, studentRole, studentCounter, 2010);
+
+        // Grade 9 students
+        studentCounter = createStudentsForClass(class9A1, studentRole, studentCounter, 2009);
+        studentCounter = createStudentsForClass(class9A2, studentRole, studentCounter, 2009);
+        studentCounter = createStudentsForClass(class9B1, studentRole, studentCounter, 2009);
+
+        // Grade 10 students
+        studentCounter = createStudentsForClass(class10A1, studentRole, studentCounter, 2008);
+        studentCounter = createStudentsForClass(class10A2, studentRole, studentCounter, 2008);
+        studentCounter = createStudentsForClass(class10B1, studentRole, studentCounter, 2008);
+
+        // Grade 11 students
+        studentCounter = createStudentsForClass(class11A1, studentRole, studentCounter, 2007);
+        studentCounter = createStudentsForClass(class11A2, studentRole, studentCounter, 2007);
+        studentCounter = createStudentsForClass(class11B1, studentRole, studentCounter, 2007);
+
+        // Grade 12 students
+        studentCounter = createStudentsForClass(class12A1, studentRole, studentCounter, 2006);
+        studentCounter = createStudentsForClass(class12A2, studentRole, studentCounter, 2006);
+        studentCounter = createStudentsForClass(class12B1, studentRole, studentCounter, 2006);
     }
 
     private GradeLevel createGradeLevel(String gradeName) {
@@ -524,7 +631,7 @@ public class DataInitializer implements CommandLineRunner {
         return gradeLevelRepository.save(gradeLevel);
     }
 
-    private void createSchoolClass(String className, String classCode, GradeLevel gradeLevel, Teacher teacher, String schoolYear, String description) {
+    private SchoolClass createSchoolClass(String className, String classCode, GradeLevel gradeLevel, Teacher teacher, String schoolYear, String description) {
         SchoolClass schoolClass = SchoolClass.builder()
                 .className(className)
                 .classCode(classCode)
@@ -534,7 +641,44 @@ public class DataInitializer implements CommandLineRunner {
                 .description(description)
                 .status("ACTIVE")
                 .build();
-        classRepository.save(schoolClass);
+        return classRepository.save(schoolClass);
+    }
+
+    private int createStudentsForClass(SchoolClass schoolClass, Role studentRole, int startCounter, int birthYear) {
+        // Create 3-5 students per class for testing
+        int numStudents = 3 + (startCounter % 3); // 3-5 students per class
+        
+        for (int i = 0; i < numStudents; i++) {
+            int studentNum = startCounter + i;
+            String username = "student" + studentNum;
+            String email = "student" + studentNum + "@eduboost.com";
+            String phone = "0945678" + String.format("%04d", studentNum);
+            String studentCode = "S" + String.format("%04d", studentNum);
+            
+            // Alternate between male and female names
+            String fullName;
+            Gender gender;
+            if (i % 2 == 0) {
+                // Male names
+                String[] maleNames = {"Nguyen Van An", "Tran Van Binh", "Le Van Cuong", "Pham Van Dung", "Hoang Van Em"};
+                fullName = maleNames[i % maleNames.length] + " " + studentNum;
+                gender = Gender.MALE;
+            } else {
+                // Female names
+                String[] femaleNames = {"Tran Thi Mai", "Le Thi Lan", "Pham Thi Hoa", "Nguyen Thi Kim", "Hoang Thi Trang"};
+                fullName = femaleNames[i % femaleNames.length] + " " + studentNum;
+                gender = Gender.FEMALE;
+            }
+            
+            // Random birth date within the appropriate year
+            int month = 1 + (studentNum % 12);
+            int day = 1 + (studentNum % 28);
+            LocalDate dateOfBirth = LocalDate.of(birthYear, month, day);
+            
+            createStudent(username, email, phone, fullName, studentCode, schoolClass, studentRole, dateOfBirth, gender);
+        }
+        
+        return startCounter + numStudents;
     }
 
     private void createStudent(String username, String email, String phone, String fullName,
