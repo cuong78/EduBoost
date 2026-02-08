@@ -1,6 +1,7 @@
 package com.fptu.eduBoostBackend.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +17,7 @@ public class CreateClassRequest {
     @Size(max = 50, message = "Class code must not exceed 50 characters")
     private String classCode;
 
-    @NotBlank(message = "Grade level cannot be blank")
+    @NotNull(message = "Grade level cannot be null")
     private Long gradeLevelId;
 
     @Size(max = 20, message = "School year must not exceed 20 characters")

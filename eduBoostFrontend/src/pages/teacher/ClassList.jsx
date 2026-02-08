@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { GraduationCap, Plus, Users, Loader2 } from "lucide-react";
 import { teacherService } from "../../services/teacherService";
+import { gradeLevelService } from "../../services/gradeLevelService";
 import { showSuccessToast, showErrorToast } from "../../utils/show-toast";
 import ConfirmModal from "../../components/ui/ConfirmModal";
 
 export default function ClassList() {
   const [classes, setClasses] = useState([]);
+  const [gradeLevels, setGradeLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -14,7 +16,7 @@ export default function ClassList() {
     className: "",
     classCode: "",
     schoolYear: "",
-    gradeLevel: "",
+    gradeLevelId: "",
     description: "",
   });
   const [errors, setErrors] = useState({});
@@ -34,8 +36,18 @@ export default function ClassList() {
     }
   };
 
+  const loadGradeLevels = async () => {
+    try {
+      const data = await gradeLevelService.getAllGradeLevels();
+      setGradeLevels(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading grade levels:", err);
+    }
+  };
+
   useEffect(() => {
     loadClasses();
+    loadGradeLevels();
   }, []);
 
   const handleChange = (e) => {
@@ -48,7 +60,7 @@ export default function ClassList() {
     const next = {};
     if (!form.className?.trim()) next.className = "Tên lớp không được để trống";
     if (!form.classCode?.trim()) next.classCode = "Mã lớp không được để trống";
-    if (!form.gradeLevel) next.gradeLevel = "Khối lớp không được để trống";
+    if (!form.gradeLevelId) next.gradeLevelId = "Khối lớp không được để trống";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -65,7 +77,7 @@ export default function ClassList() {
         className: "",
         classCode: "",
         schoolYear: "",
-        gradeLevel: "",
+        gradeLevelId: "",
         description: "",
       });
       loadClasses();
@@ -147,18 +159,20 @@ export default function ClassList() {
                   Khối lớp <span className="required">*</span>
                 </label>
                 <select
-                  name="gradeLevel"
-                  value={form.gradeLevel}
+                  name="gradeLevelId"
+                  value={form.gradeLevelId}
                   onChange={handleChange}
-                  className={errors.gradeLevel ? "error" : ""}
+                  className={errors.gradeLevelId ? "error" : ""}
                 >
                   <option value="">-- Chọn khối --</option>
-                  <option value="10">Khối 10</option>
-                  <option value="11">Khối 11</option>
-                  <option value="12">Khối 12</option>
+                  {gradeLevels.map((grade) => (
+                    <option key={grade.gradeLevelId} value={grade.gradeLevelId}>
+                      Khối {grade.gradeName}
+                    </option>
+                  ))}
                 </select>
-                {errors.gradeLevel && (
-                  <span className="error-message">{errors.gradeLevel}</span>
+                {errors.gradeLevelId && (
+                  <span className="error-message">{errors.gradeLevelId}</span>
                 )}
               </div>
               <div className="form-group">

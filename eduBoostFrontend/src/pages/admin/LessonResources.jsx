@@ -295,7 +295,7 @@ const LessonResources = () => {
   const handleWizardSubmit = async () => {
     try {
       setUploading(true);
-      
+
       if (wizardData.resourceType === "URL") {
         // Create URL resource
         const payload = {
@@ -317,7 +317,7 @@ const LessonResources = () => {
         );
         showSuccessToast("Upload tài nguyên thành công!");
       }
-      
+
       setShowWizard(false);
 
       // Refresh resources if we're viewing the same lesson
@@ -336,10 +336,10 @@ const LessonResources = () => {
 
   const canProceedStep1 = wizardData.grade && wizardData.subject;
   const canProceedStep2 = wizardData.chapter && wizardData.lesson;
-  const canSubmit = 
-    wizardData.resourceName.trim() && 
-    (wizardData.resourceType === "URL" 
-      ? wizardData.fileUrl.trim() 
+  const canSubmit =
+    wizardData.resourceName.trim() &&
+    (wizardData.resourceType === "URL"
+      ? wizardData.fileUrl.trim()
       : wizardData.file);
 
   const handleModalClose = () => {
@@ -721,18 +721,17 @@ const LessonResources = () => {
 
       {/* Upload/Create Modal */}
       {showModal && (
-        <div className={`modal-overlay ${isModalClosing ? 'closing' : ''}`}>
-          <div className={`modal-content glass ${isModalClosing ? 'closing' : ''}`}>
+        <div className={`modal-overlay ${isModalClosing ? "closing" : ""}`}>
+          <div
+            className={`modal-content glass ${isModalClosing ? "closing" : ""}`}
+          >
             <div className="modal-header">
               <h3>
                 {modalMode === "file"
                   ? "Upload tài nguyên file"
                   : "Tạo tài nguyên URL/Text"}
               </h3>
-              <button
-                onClick={handleModalClose}
-                className="modal-close-btn"
-              >
+              <button onClick={handleModalClose} className="modal-close-btn">
                 <X size={24} />
               </button>
             </div>
@@ -942,14 +941,11 @@ const LessonResources = () => {
 
       {/* Upload Wizard Modal */}
       {showWizard && (
-        <div className={`modal-overlay ${isWizardClosing ? 'closing' : ''}`}>
-          <div className={`wizard-modal ${isWizardClosing ? 'closing' : ''}`}>
+        <div className={`modal-overlay ${isWizardClosing ? "closing" : ""}`}>
+          <div className={`wizard-modal ${isWizardClosing ? "closing" : ""}`}>
             <div className="wizard-header">
               <h3>Upload Tài nguyên</h3>
-              <button
-                onClick={handleWizardClose}
-                className="modal-close-btn"
-              >
+              <button onClick={handleWizardClose} className="modal-close-btn">
                 <X size={24} />
               </button>
             </div>
@@ -1112,7 +1108,11 @@ const LessonResources = () => {
                       type="button"
                       className={`resource-type-btn ${wizardData.resourceType === "URL" ? "selected" : ""}`}
                       onClick={() =>
-                        setWizardData({ ...wizardData, resourceType: "URL", file: null })
+                        setWizardData({
+                          ...wizardData,
+                          resourceType: "URL",
+                          file: null,
+                        })
                       }
                     >
                       <LinkIcon size={20} />
@@ -1124,18 +1124,25 @@ const LessonResources = () => {
                     <>
                       <h4 className="step-title">Nhập đường dẫn URL</h4>
                       <div className="form-group">
-                        <label>Nhập đường dẫn URL <span className="required">*</span></label>
+                        <label>
+                          Nhập đường dẫn URL <span className="required">*</span>
+                        </label>
                         <input
                           type="url"
                           value={wizardData.fileUrl}
                           onChange={(e) =>
-                            setWizardData({ ...wizardData, fileUrl: e.target.value })
+                            setWizardData({
+                              ...wizardData,
+                              fileUrl: e.target.value,
+                            })
                           }
                           placeholder="https://youtube.com/watch?v=... hoặc https://drive.google.com/..."
                           className="wizard-input"
                           maxLength="500"
                         />
-                        <p className="input-hint">Ví dụ: Link Youtube, Google Drive, hoặc trang web khác</p>
+                        <p className="input-hint">
+                          Ví dụ: Link Youtube, Google Drive, hoặc trang web khác
+                        </p>
                       </div>
                     </>
                   ) : (

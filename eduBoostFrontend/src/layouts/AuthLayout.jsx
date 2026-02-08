@@ -1,15 +1,15 @@
-import { Outlet, Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import { Outlet, Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 const AuthLayout = () => {
-    return (
-        <div className="auth-page">
-            <Link to="/" className="auth-logo">
-                <img src={logo} alt="EduBoost Logo" />
-            </Link>
-            <Outlet />
+  return (
+    <div className="auth-page">
+      <Link to="/" className="auth-logo">
+        <img src={logo} alt="EduBoost Logo" />
+      </Link>
+      <Outlet />
 
-            <style>{`
+      <style>{`
                 .auth-page {
                     min-height: 100vh;
                     display: flex;
@@ -60,29 +60,40 @@ const AuthLayout = () => {
                     margin-bottom: 0.5rem;
                     font-weight: 500;
                     font-size: 0.9rem;
+                    position: static !important;
+                    transform: none !important;
+                    background: transparent !important;
+                    padding: 0 !important;
+                    pointer-events: auto !important;
+                    color: var(--color-text-primary) !important;
                 }
 
                 .input-wrapper {
-                    position: relative;
+                    position: relative !important;
+                    display: block !important;
                 }
 
                 .input-icon {
-                    position: absolute;
-                    left: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: var(--color-text-secondary);
+                    position: absolute !important;
+                    left: 1rem !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    color: var(--color-text-secondary) !important;
+                    z-index: 2 !important;
+                    pointer-events: none !important;
                 }
 
                 input {
                     width: 100%;
-                    padding: 0.75rem 1rem 0.75rem 2.75rem;
+                    padding: 0.75rem 1rem 0.75rem 2.75rem !important;
                     border-radius: 12px;
                     border: 1px solid rgba(255, 255, 255, 0.4);
                     background: rgba(255, 255, 255, 0.5);
                     font-family: inherit;
                     font-size: 1rem;
                     transition: all 0.3s;
+                    position: relative !important;
+                    z-index: 1 !important;
                 }
 
                 input:focus {
@@ -210,19 +221,20 @@ const AuthLayout = () => {
                 
                 /* Password toggle button */
                 .password-toggle {
-                    position: absolute;
-                    right: 1rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    background: none;
-                    border: none;
-                    color: var(--color-text-secondary);
-                    cursor: pointer;
-                    padding: 0.25rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
+                    position: absolute !important;
+                    right: 1rem !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    background: none !important;
+                    border: none !important;
+                    color: var(--color-text-secondary) !important;
+                    cursor: pointer !important;
+                    padding: 0.25rem !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
                     transition: color 0.2s;
+                    z-index: 2 !important;
                 }
                 
                 .password-toggle:hover {
@@ -261,8 +273,8 @@ const AuthLayout = () => {
                     gap: 0.5rem;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default AuthLayout;
