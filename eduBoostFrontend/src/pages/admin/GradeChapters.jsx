@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { adminSubjectService } from "../../services/adminSubjectService";
 import { adminChapterService } from "../../services/adminChapterService";
+import { adminLessonService } from "../../services/adminLessonService";
 import { showSuccessToast, showErrorToast } from "../../utils/show-toast";
 import "./GradeChapters.css";
 
@@ -35,13 +36,17 @@ const GradeChapters = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [expandedChapterId, setExpandedChapterId] = useState(null);
+  const [chapterLessons, setChapterLessons] = useState({}); // Store lessons by chapterId
+  const [loadingLessons, setLoadingLessons] = useState({});
 
   useEffect(() => {
     fetchData();
   }, [subjectId, gradeLevel]);
 
   const handleManageLessons = (chapterId) => {
-    navigate(`/admin/subjects/${subjectId}/grade/${gradeLevel}/chapter/${chapterId}/lessons`);
+    navigate(
+      `/admin/subjects/${subjectId}/grade/${gradeLevel}/chapter/${chapterId}/lessons`,
+    );
   };
 
   const handleDragStart = (e, index) => {
@@ -71,7 +76,10 @@ const GradeChapters = () => {
       setLoading(true);
       const [subjectData, chaptersData] = await Promise.all([
         adminSubjectService.getSubjectById(subjectId),
-        adminChapterService.getChaptersBySubject(subjectId, parseInt(gradeLevel)),
+        adminChapterService.getChaptersBySubject(
+          subjectId,
+          parseInt(gradeLevel),
+        ),
       ]);
       setSubject(subjectData);
       setChapters(chaptersData);
@@ -111,8 +119,29 @@ const GradeChapters = () => {
     setShowDeleteModal(true);
   };
 
-  const toggleExpandChapter = (chapterId) => {
-    setExpandedChapterId(expandedChapterId === chapterId ? null : chapterId);
+  const toggleExpandChapter = async (chapterId) => {
+    const isCurrentlyExpanded = expandedChapterId === chapterId;
+
+    if (isCurrentlyExpanded) {
+      setExpandedChapterId(null);
+    } else {
+      setExpandedChapterId(chapterId);
+
+      // Fetch lessons nếu chưa có
+      if (!chapterLessons[chapterId]) {
+        setLoadingLessons((prev) => ({ ...prev, [chapterId]: true }));
+        try {
+          const lessons =
+            await adminLessonService.getLessonsByChapter(chapterId);
+          setChapterLessons((prev) => ({ ...prev, [chapterId]: lessons }));
+        } catch (error) {
+          console.error("Error fetching lessons:", error);
+          showErrorToast("Không thể tải danh sách bài học");
+        } finally {
+          setLoadingLessons((prev) => ({ ...prev, [chapterId]: false }));
+        }
+      }
+    }
   };
 
   const confirmDelete = async () => {
@@ -172,7 +201,10 @@ const GradeChapters = () => {
     <div className="grade-chapters-page">
       {/* Breadcrumb */}
       <nav className="breadcrumb">
-        <span onClick={() => navigate("/admin/subjects")} style={{ cursor: "pointer" }}>
+        <span
+          onClick={() => navigate("/admin/subjects")}
+          style={{ cursor: "pointer" }}
+        >
           Môn học
         </span>
         <ChevronRight size={16} />
@@ -194,13 +226,15 @@ const GradeChapters = () => {
         >
           <ArrowLeft size={20} />
         </button>
-        
+
         <div className="header-content">
           <div className="header-info">
-            <h2>{subject?.subjectName || subject?.subjectCode} - Khối {gradeLevel}</h2>
+            <h2>
+              {subject?.subjectName || subject?.subjectCode} - Khối {gradeLevel}
+            </h2>
             <p>Quản lý các chương học</p>
           </div>
-          
+
           {chapters.length > 0 && (
             <div className="stat-card-compact">
               <div className="stat-icon">
@@ -241,11 +275,8 @@ const GradeChapters = () => {
         <div className="chapters-list">
           {chapters.map((chapter, index) => {
             const isExpanded = expandedChapterId === chapter.id;
-            const mockLessons = [
-              { id: 1, name: "Bài 1: Giới thiệu chương", type: "video" },
-              { id: 2, name: "Bài 2: Lý thuyết cơ bản", type: "document" },
-              { id: 3, name: "Bài 3: Bài tập thực hành", type: "video" },
-            ];
+            const lessons = chapterLessons[chapter.id] || [];
+            const isLoadingChapterLessons = loadingLessons[chapter.id];
 
             return (
               <div
@@ -260,8 +291,8 @@ const GradeChapters = () => {
                   <div className="drag-handle">
                     <GripVertical size={20} />
                   </div>
-                  
-                  <div 
+
+                  <div
                     className="chapter-main-content"
                     onClick={() => toggleExpandChapter(chapter.id)}
                   >
@@ -279,8 +310,8 @@ const GradeChapters = () => {
                       </div>
                     </div>
                     <button className="expand-toggle">
-                      <ChevronDown 
-                        size={20} 
+                      <ChevronDown
+                        size={20}
                         className={isExpanded ? "rotated" : ""}
                       />
                     </button>
@@ -322,23 +353,31 @@ const GradeChapters = () => {
                         Quản lý bài học
                       </button>
                     </div>
-                    
-                    {mockLessons.length > 0 ? (
+
+                    {isLoadingChapterLessons ? (
+                      <div className="lessons-loading">
+                        <Loader2
+                          size={24}
+                          style={{ animation: "spin 1s linear infinite" }}
+                        />
+                        <p>Đang tải bài học...</p>
+                      </div>
+                    ) : lessons.length > 0 ? (
                       <div className="lessons-list">
-                        {mockLessons.map((lesson, idx) => (
+                        {lessons.map((lesson, idx) => (
                           <div key={lesson.id} className="lesson-item">
                             <div className="lesson-icon">
-                              {lesson.type === "video" ? (
-                                <PlayCircle size={18} />
-                              ) : (
-                                <FileText size={18} />
-                              )}
+                              <FileText size={18} />
                             </div>
                             <div className="lesson-info">
-                              <span className="lesson-name">{lesson.name}</span>
-                              <span className="lesson-type">
-                                {lesson.type === "video" ? "Video" : "Tài liệu"}
+                              <span className="lesson-name">
+                                Bài {lesson.lessonNumber}: {lesson.lessonName}
                               </span>
+                              {lesson.description && (
+                                <span className="lesson-description">
+                                  {lesson.description}
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -363,7 +402,9 @@ const GradeChapters = () => {
           <div className="modal-dialog-md3">
             <div className="modal-header-md3">
               <h3>
-                {modalMode === "create" ? "Thêm chương học mới" : "Chỉnh sửa chương"}
+                {modalMode === "create"
+                  ? "Thêm chương học mới"
+                  : "Chỉnh sửa chương"}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
