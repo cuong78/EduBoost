@@ -3,7 +3,6 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import {
   Users,
-  Settings,
   BookOpen,
   BookMarked,
   FileText,
@@ -63,12 +62,6 @@ const AdminLayout = () => {
             className={`nav-item ${isActive("/admin/question-bank") ? "active" : ""}`}
           >
             <HelpCircle size={20} /> Ngân hàng câu hỏi
-          </Link>
-          <Link
-            to="/admin/settings"
-            className={`nav-item ${isActive("/admin/settings") ? "active" : ""}`}
-          >
-            <Settings size={20} /> Cài đặt hệ thống
           </Link>
         </nav>
 
