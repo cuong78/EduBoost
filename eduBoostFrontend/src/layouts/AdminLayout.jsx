@@ -8,6 +8,7 @@ import {
   BookMarked,
   FileText,
   HelpCircle,
+  GraduationCap,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 
@@ -31,6 +32,12 @@ const AdminLayout = () => {
             className={`nav-item ${isActive("/admin/users") ? "active" : ""}`}
           >
             <Users size={20} /> Quản lý tài khoản
+          </Link>
+          <Link
+            to="/admin/classes"
+            className={`nav-item ${isActive("/admin/classes") ? "active" : ""}`}
+          >
+            <GraduationCap size={20} /> Quản lý lớp học
           </Link>
           <Link
             to="/admin/subjects"

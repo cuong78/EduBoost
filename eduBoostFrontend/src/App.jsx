@@ -58,6 +58,7 @@ import AIGrading from './pages/teacher/AIGrading';
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
+import ClassManagement from "./pages/admin/ClassManagement";
 import Settings from "./pages/admin/Settings";
 import Subjects from "./pages/admin/Subjects";
 import Chapters from "./pages/admin/Chapters";
@@ -194,6 +195,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="users" replace />} />
               <Route path="users" element={<UserManagement />} />
+              <Route path="classes" element={<ClassManagement />} />
               <Route path="subjects" element={<Subjects />} />
               <Route path="chapters" element={<Chapters />} />
               <Route path="lesson-resources" element={<LessonResources />} />

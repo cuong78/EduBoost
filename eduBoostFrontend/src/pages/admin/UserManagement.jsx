@@ -227,7 +227,7 @@ const UserManagement = () => {
               <tr>
                 <th>Người dùng</th>
                 <th>Thông tin liên hệ</th>
-                <th>Vai trò</th>
+                <th>Vai trò & Lớp học</th>
                 <th>Trạng thái</th>
                 <th>Xác thực</th>
                 <th style={{ textAlign: "right" }}>Hành động</th>
@@ -275,16 +275,32 @@ const UserManagement = () => {
                     </div>
                   </td>
                   <td>
-                    <div className="roles-list">
-                      {user.roles?.map((role) => (
-                        <span
-                          key={role}
-                          className={`role-badge role-${role.toLowerCase()}`}
-                        >
-                          {role === "ADMIN" && <Shield size={12} />}
-                          {role}
-                        </span>
-                      ))}
+                    <div className="roles-container">
+                      <div className="roles-list">
+                        {user.roles?.map((role) => (
+                          <span
+                            key={role}
+                            className={`role-badge role-${role.toLowerCase()}`}
+                          >
+                            {role === "ADMIN" && <Shield size={12} />}
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                      {user.teachingClass && (
+                        <div className="class-info-inline">
+                          <span className="class-badge teaching">
+                            Đang dạy: {user.teachingClass}
+                          </span>
+                        </div>
+                      )}
+                      {user.studyingClass && (
+                        <div className="class-info-inline">
+                          <span className="class-badge studying">
+                            Lớp: {user.studyingClass}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -787,6 +803,47 @@ const UserManagement = () => {
         .verify-badge.unverified {
           background: rgba(245, 158, 11, 0.1);
           color: #d97706;
+        }
+
+        /* Roles Container */
+        .roles-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .roles-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.375rem;
+        }
+
+        .class-info-inline {
+          display: flex;
+          align-items: center;
+        }
+
+        .class-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.625rem;
+          border-radius: 6px;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .class-badge.teaching {
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+          color: #4f46e5;
+          border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .class-badge.studying {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+          color: #059669;
+          border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
         /* Button Styles */
