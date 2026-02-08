@@ -62,6 +62,8 @@ import ClassManagement from "./pages/admin/ClassManagement";
 import GradeLevelManagement from "./pages/admin/GradeLevelManagement";
 import Settings from "./pages/admin/Settings";
 import Subjects from "./pages/admin/Subjects";
+import SubjectDetail from "./pages/admin/SubjectDetail";
+import GradeChapters from "./pages/admin/GradeChapters";
 import Chapters from "./pages/admin/Chapters";
 import LessonResources from "./pages/admin/LessonResources";
 import QuestionBank from "./pages/admin/QuestionBank";
@@ -199,6 +201,8 @@ function App() {
               <Route path="grade-levels" element={<GradeLevelManagement />} />
               <Route path="classes" element={<ClassManagement />} />
               <Route path="subjects" element={<Subjects />} />
+              <Route path="subjects/:subjectId" element={<SubjectDetail />} />
+              <Route path="subjects/:subjectId/grade/:gradeLevel" element={<GradeChapters />} />
               <Route path="chapters" element={<Chapters />} />
               <Route path="lesson-resources" element={<LessonResources />} />
               <Route path="question-bank" element={<QuestionBank />} />

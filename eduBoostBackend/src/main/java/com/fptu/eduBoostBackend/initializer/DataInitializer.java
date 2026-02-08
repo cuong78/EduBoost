@@ -115,51 +115,73 @@ public class DataInitializer implements CommandLineRunner {
         // Create common subjects for testing
         Subject math = Subject.builder()
                 .subjectCode("TOAN")
-                .description("Toán học")
+                .subjectName("Toán học")
+                .description("Môn Toán học - Bao gồm Đại số, Hình học, Giải tích")
                 .build();
         subjectRepository.save(math);
 
         Subject physics = Subject.builder()
                 .subjectCode("LY")
-                .description("Vật lý")
+                .subjectName("Vật lý")
+                .description("Môn Vật lý - Nghiên cứu các hiện tượng tự nhiên")
                 .build();
         subjectRepository.save(physics);
 
         Subject chemistry = Subject.builder()
                 .subjectCode("HOA")
-                .description("Hóa học")
+                .subjectName("Hóa học")
+                .description("Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học")
                 .build();
         subjectRepository.save(chemistry);
 
         Subject english = Subject.builder()
                 .subjectCode("ANH")
-                .description("Tiếng Anh")
+                .subjectName("Tiếng Anh")
+                .description("Môn Tiếng Anh - Ngôn ngữ quốc tế")
                 .build();
         subjectRepository.save(english);
 
         Subject literature = Subject.builder()
                 .subjectCode("VAN")
-                .description("Ngữ văn")
+                .subjectName("Ngữ văn")
+                .description("Môn Ngữ văn - Văn học và tiếng Việt")
                 .build();
         subjectRepository.save(literature);
 
         Subject biology = Subject.builder()
                 .subjectCode("SINH")
-                .description("Sinh học")
+                .subjectName("Sinh học")
+                .description("Môn Sinh học - Nghiên cứu về sự sống")
                 .build();
         subjectRepository.save(biology);
 
         Subject history = Subject.builder()
                 .subjectCode("SU")
-                .description("Lịch sử")
+                .subjectName("Lịch sử")
+                .description("Môn Lịch sử - Tìm hiểu quá khứ")
                 .build();
         subjectRepository.save(history);
 
         Subject geography = Subject.builder()
                 .subjectCode("DIA")
-                .description("Địa lý")
+                .subjectName("Địa lý")
+                .description("Môn Địa lý - Nghiên cứu về Trái đất")
                 .build();
         subjectRepository.save(geography);
+
+        Subject civics = Subject.builder()
+                .subjectCode("GDCD")
+                .subjectName("Giáo dục công dân")
+                .description("Môn Giáo dục công dân - Đạo đức và pháp luật")
+                .build();
+        subjectRepository.save(civics);
+
+        Subject informatics = Subject.builder()
+                .subjectCode("TIN")
+                .subjectName("Tin học")
+                .description("Môn Tin học - Công nghệ thông tin")
+                .build();
+        subjectRepository.save(informatics);
     }
 
     private void initializeChaptersAndLessons() {

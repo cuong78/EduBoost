@@ -53,12 +53,6 @@ const AdminLayout = () => {
             <BookOpen size={20} /> Môn học
           </Link>
           <Link
-            to="/admin/chapters"
-            className={`nav-item ${isActive("/admin/chapters") ? "active" : ""}`}
-          >
-            <BookMarked size={20} /> Chương học
-          </Link>
-          <Link
             to="/admin/lesson-resources"
             className={`nav-item ${isActive("/admin/lesson-resources") ? "active" : ""}`}
           >

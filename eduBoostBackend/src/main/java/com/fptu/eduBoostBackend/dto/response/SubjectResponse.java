@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 public class SubjectResponse {
     private Long id;
     private String subjectCode;
+    private String subjectName;
     private String description;
     private LocalDateTime createdAt;
 }

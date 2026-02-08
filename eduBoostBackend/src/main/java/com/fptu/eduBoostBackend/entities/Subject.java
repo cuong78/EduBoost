@@ -22,6 +22,9 @@ public class Subject {
     @Column(name = "subject_code", nullable = false, unique = true, length = 20)
     private String subjectCode;
 
+    @Column(name = "subject_name", nullable = false, length = 100)
+    private String subjectName;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

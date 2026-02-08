@@ -19,6 +19,7 @@ const GradeLevelManagement = () => {
   const [gradeLevels, setGradeLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterLevel, setFilterLevel] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingGrade, setEditingGrade] = useState(null);
@@ -26,6 +27,22 @@ const GradeLevelManagement = () => {
     gradeName: "",
     description: "",
   });
+
+  // Soft Pastel Color System
+  const gradeColors = {
+    6: { bg: "rgba(59, 130, 246, 0.1)", icon: "#3b82f6", accent: "#60a5fa" }, // Blue
+    7: { bg: "rgba(139, 92, 246, 0.1)", icon: "#8b5cf6", accent: "#a78bfa" }, // Purple
+    8: { bg: "rgba(236, 72, 153, 0.1)", icon: "#ec4899", accent: "#f472b6" }, // Rose
+    9: { bg: "rgba(245, 158, 11, 0.1)", icon: "#f59e0b", accent: "#fbbf24" }, // Amber
+    10: { bg: "rgba(16, 185, 129, 0.1)", icon: "#10b981", accent: "#34d399" }, // Emerald
+    11: { bg: "rgba(6, 182, 212, 0.1)", icon: "#06b6d4", accent: "#22d3ee" }, // Cyan
+    12: { bg: "rgba(239, 68, 68, 0.1)", icon: "#ef4444", accent: "#f87171" }, // Red
+  };
+
+  const getGradeColor = (gradeName) => {
+    const gradeNum = parseInt(gradeName);
+    return gradeColors[gradeNum] || gradeColors[10];
+  };
 
   useEffect(() => {
     fetchData();
@@ -176,10 +193,10 @@ const GradeLevelManagement = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="filters-section glass">
-        <div className="search-box">
-          <Search size={20} />
+      {/* Search and Filter - Enterprise SaaS Style */}
+      <div className="search-filter-bar-saas">
+        <div className="search-box-compact">
+          <Search size={18} />
           <input
             type="text"
             placeholder="Tìm kiếm khối..."
@@ -187,10 +204,32 @@ const GradeLevelManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <div className="filters-inline">
+          <select 
+            className="filter-select-compact"
+            value={filterLevel}
+            onChange={(e) => setFilterLevel(e.target.value)}
+          >
+            <option value="all">Tất cả khối</option>
+            <option value="thcs">THCS (6-9)</option>
+            <option value="thpt">THPT (10-12)</option>
+          </select>
+        </div>
       </div>
 
       {/* Grade Cards Grid */}
-      {filteredGrades.length === 0 ? (
+      {(() => {
+        const filtered = gradeLevels.filter((grade) => {
+          const matchSearch = grade.gradeName?.toLowerCase().includes(searchTerm.toLowerCase());
+          const gradeNum = parseInt(grade.gradeName);
+          const matchFilter =
+            filterLevel === "all" ||
+            (filterLevel === "thcs" && gradeNum >= 6 && gradeNum <= 9) ||
+            (filterLevel === "thpt" && gradeNum >= 10 && gradeNum <= 12);
+          return matchSearch && matchFilter;
+        });
+        
+        return filtered.length === 0 ? (
         <div className="empty-state glass">
           <BookOpen size={48} />
           <p>Không tìm thấy khối nào</p>
@@ -203,61 +242,73 @@ const GradeLevelManagement = () => {
           </button>
         </div>
       ) : (
-        <div className="grades-grid">
-          {filteredGrades.map((grade) => (
-            <div key={grade.gradeLevelId} className="grade-card glass">
-              <div className="grade-card-header">
-                <div className="grade-icon">
-                  <GraduationCap size={32} />
+        <div className="grades-grid-pastel">
+          {filtered.map((grade) => {
+            const colors = getGradeColor(grade.gradeName);
+            return (
+              <div 
+                key={grade.gradeLevelId} 
+                className="grade-card-pastel"
+                style={{ 
+                  '--card-bg': colors.bg,
+                  '--icon-color': colors.icon,
+                  '--accent-color': colors.accent
+                }}
+              >
+                <div className="grade-card-header-pastel">
+                  <div className="grade-icon-duotone">
+                    <GraduationCap size={24} />
+                  </div>
+                  <h3 className="grade-title-bold">Khối {grade.gradeName}</h3>
+                  <div className="grade-actions-round">
+                    <button
+                      onClick={() => {
+                        setEditingGrade(grade);
+                        setShowEditModal(true);
+                      }}
+                      className="btn-icon-round"
+                      title="Chỉnh sửa"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDeleteGrade(grade.gradeLevelId, grade.gradeName)
+                      }
+                      className="btn-icon-round btn-delete-round"
+                      title="Xóa"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-                <div className="grade-badge">
-                  Khối {grade.gradeName}
-                </div>
-              </div>
 
-              <div className="grade-card-body">
-                <h3 className="grade-title">Khối {grade.gradeName}</h3>
                 {grade.description && (
-                  <p className="grade-description">{grade.description}</p>
+                  <p className="grade-description-pastel">{grade.description}</p>
                 )}
                 
-                <div className="grade-info">
-                  <div className="info-item">
-                    <Users size={16} />
-                    <span>{grade.classCount || 0} lớp học</span>
+                <div className="grade-stats-colorful">
+                  <div className="stat-colorful">
+                    <Users size={18} className="stat-icon-colorful" />
+                    <div className="stat-info-colorful">
+                      <span className="stat-number-vibrant">{grade.classCount || 0}</span>
+                      <span className="stat-label-soft">Lớp học</span>
+                    </div>
                   </div>
-                  <div className="info-item">
-                    <BookOpen size={16} />
-                    <span>{grade.studentCount || 0} học sinh</span>
+                  <div className="stat-colorful">
+                    <BookOpen size={18} className="stat-icon-colorful" />
+                    <div className="stat-info-colorful">
+                      <span className="stat-number-vibrant">{grade.studentCount || 0}</span>
+                      <span className="stat-label-soft">Học sinh</span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="grade-card-footer">
-                <button
-                  onClick={() => {
-                    setEditingGrade(grade);
-                    setShowEditModal(true);
-                  }}
-                  className="btn btn-sm btn-glass"
-                >
-                  <Edit2 size={16} />
-                  Chỉnh sửa
-                </button>
-                <button
-                  onClick={() =>
-                    handleDeleteGrade(grade.gradeLevelId, grade.gradeName)
-                  }
-                  className="btn btn-sm btn-danger-outline"
-                >
-                  <Trash2 size={16} />
-                  Xóa
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      )}
+      );
+      })()}
 
       {/* Create Modal */}
       {showCreateModal && (
@@ -487,184 +538,232 @@ const GradeLevelManagement = () => {
           font-weight: 600;
         }
 
-        /* Filters */
-        .filters-section {
-          padding: 1.5rem;
-          border-radius: 16px;
-          margin-bottom: 2rem;
-        }
-
-        .search-box {
-          flex: 1;
-          max-width: 500px;
-          position: relative;
+        /* Search and Filter - Enterprise SaaS */
+        .search-filter-bar-saas {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 0.75rem 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .search-box-compact {
+          position: relative;
+          width: 40%;
+          max-width: 400px;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.625rem 0.875rem;
           background: white;
-          border-radius: 12px;
-          border: 2px solid #e5e7eb;
-          transition: all 0.3s;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          transition: all 0.2s;
         }
 
-        .search-box:hover {
+        .search-box-compact:focus-within {
           border-color: #d1d5db;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
         }
 
-        .search-box:focus-within {
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1),
-            0 2px 8px rgba(99, 102, 241, 0.15);
-        }
-
-        .search-box svg {
-          color: var(--color-text-secondary);
+        .search-box-compact svg {
+          color: #9ca3af;
           flex-shrink: 0;
         }
 
-        .search-box input {
+        .search-box-compact input {
           flex: 1;
           border: none;
           background: transparent;
           outline: none;
-          font-size: 0.9375rem;
-          color: var(--color-text);
-        }
-
-        /* Grades Grid */
-        .grades-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .grade-card {
-          padding: 0;
-          border-radius: 16px;
-          overflow: hidden;
-          transition: all 0.3s;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .grade-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-        }
-
-        .grade-card-header {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          padding: 2rem 1.5rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .grade-card-header::before {
-          content: "";
-          position: absolute;
-          top: -50%;
-          right: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(
-            circle,
-            rgba(255, 255, 255, 0.1) 0%,
-            transparent 70%
-          );
-          animation: pulse 3s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%,
-          100% {
-            transform: scale(1);
-            opacity: 0.5;
-          }
-          50% {
-            transform: scale(1.1);
-            opacity: 0.8;
-          }
-        }
-
-        .grade-icon {
-          width: 64px;
-          height: 64px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          backdrop-filter: blur(10px);
-          position: relative;
-          z-index: 1;
-        }
-
-        .grade-badge {
-          background: rgba(255, 255, 255, 0.25);
-          color: white;
-          padding: 0.5rem 1.25rem;
-          border-radius: 9999px;
-          font-size: 1.125rem;
-          font-weight: 700;
-          backdrop-filter: blur(10px);
-          position: relative;
-          z-index: 1;
-        }
-
-        .grade-card-body {
-          padding: 1.5rem;
-          background: white;
-        }
-
-        .grade-title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--color-text);
-          margin-bottom: 0.75rem;
-          text-align: center;
-        }
-
-        .grade-description {
-          color: var(--color-text-secondary);
           font-size: 0.875rem;
-          line-height: 1.6;
-          margin-bottom: 1rem;
-          text-align: center;
+          color: #1f2937;
         }
 
-        .grade-info {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          padding-top: 1rem;
-          border-top: 1px solid #e5e7eb;
+        .search-box-compact input::placeholder {
+          color: #9ca3af;
         }
 
-        .info-item {
+        .filters-inline {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: var(--color-text-secondary);
+        }
+
+        .filter-select-compact {
+          padding: 0.625rem 0.875rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: white;
           font-size: 0.875rem;
+          color: #1f2937;
+          cursor: pointer;
+          outline: none;
+          font-weight: 500;
+          transition: all 0.2s;
         }
 
-        .info-item svg {
-          color: var(--color-primary);
-        }
-
-        .grade-card-footer {
-          padding: 1rem 1.5rem;
+        .filter-select-compact:hover {
           background: #f9fafb;
+          border-color: #d1d5db;
+        }
+
+        .filter-select-compact:focus {
+          border-color: #d1d5db;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Grades Grid - Soft Pastel + Glassmorphism */
+        .grades-grid-pastel {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.25rem;
+        }
+
+        .grade-card-pastel {
+          background: var(--card-bg);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          border-radius: 16px;
+          padding: 1.5rem;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 
+                      0 2px 8px rgba(0, 0, 0, 0.04);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .grade-card-pastel::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, 
+            rgba(255, 255, 255, 0.4) 0%, 
+            rgba(255, 255, 255, 0.1) 100%);
+          pointer-events: none;
+        }
+
+        .grade-card-pastel:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), 
+                      0 4px 16px rgba(0, 0, 0, 0.06);
+          border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .grade-card-header-pastel {
           display: flex;
-          gap: 0.75rem;
+          align-items: center;
+          gap: 0.875rem;
+          margin-bottom: 1.25rem;
+          position: relative;
+          z-index: 1;
+        }
+
+        .grade-icon-duotone {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, var(--icon-color), var(--accent-color));
+          display: flex;
+          align-items: center;
           justify-content: center;
+          color: white;
+          flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .grade-title-bold {
+          flex: 1;
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #1f2937;
+          letter-spacing: -0.02em;
+        }
+
+        .grade-actions-round {
+          display: flex;
+          gap: 0.5rem;
+          flex-shrink: 0;
+        }
+
+        .btn-icon-round {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255, 255, 255, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #9ca3af;
+          transition: all 0.2s;
+          backdrop-filter: blur(10px);
+        }
+
+        .btn-icon-round:hover {
+          background: var(--icon-color);
+          color: white;
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-delete-round:hover {
+          background: #ef4444;
+        }
+
+        .grade-description-pastel {
+          margin: 0 0 1.25rem 0;
+          font-size: 0.875rem;
+          color: #6b7280;
+          line-height: 1.6;
+          position: relative;
+          z-index: 1;
+        }
+
+        .grade-stats-colorful {
+          display: flex;
+          gap: 1.5rem;
+          padding: 1.25rem 0 0 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.5);
+          position: relative;
+          z-index: 1;
+        }
+
+        .stat-colorful {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex: 1;
+        }
+
+        .stat-icon-colorful {
+          color: var(--icon-color);
+          flex-shrink: 0;
+        }
+
+        .stat-info-colorful {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .stat-number-vibrant {
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: var(--accent-color);
+          line-height: 1;
+        }
+
+        .stat-label-soft {
+          font-size: 0.75rem;
+          color: #6b7280;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         /* Buttons */
@@ -925,12 +1024,35 @@ const GradeLevelManagement = () => {
             grid-template-columns: 1fr;
           }
 
-          .grades-grid {
+          .grades-grid-pastel {
             grid-template-columns: 1fr;
           }
 
-          .search-box {
-            max-width: 100%;
+          .search-filter-bar-saas {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .search-box-compact {
+            width: 100%;
+            max-width: none;
+          }
+
+          .filters-inline {
+            width: 100%;
+          }
+
+          .filter-select-compact {
+            width: 100%;
+          }
+
+          .grade-stats-colorful {
+            flex-direction: column;
+            gap: 1rem;
+          }
+
+          .stat-colorful {
+            flex-direction: row;
           }
         }
       `}</style>

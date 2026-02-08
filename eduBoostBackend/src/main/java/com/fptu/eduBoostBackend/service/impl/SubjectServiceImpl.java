@@ -53,6 +53,7 @@ public class SubjectServiceImpl implements SubjectService {
 
         Subject subject = Subject.builder()
                 .subjectCode(request.getSubjectCode())
+                .subjectName(request.getSubjectName())
                 .description(request.getDescription())
                 .build();
 
@@ -76,6 +77,7 @@ public class SubjectServiceImpl implements SubjectService {
         }
 
         subject.setSubjectCode(request.getSubjectCode());
+        subject.setSubjectName(request.getSubjectName());
         subject.setDescription(request.getDescription());
 
         Subject updatedSubject = subjectRepository.save(subject);
@@ -102,6 +104,7 @@ public class SubjectServiceImpl implements SubjectService {
         return SubjectResponse.builder()
                 .id(subject.getId())
                 .subjectCode(subject.getSubjectCode())
+                .subjectName(subject.getSubjectName())
                 .description(subject.getDescription())
                 .createdAt(subject.getCreatedAt())
                 .build();
