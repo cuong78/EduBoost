@@ -24,6 +24,9 @@ public class GradeLevel {
     @Column(name = "grade_name", nullable = false, unique = true, length = 50)
     private String gradeName;
 
+    @Column(name = "description", length = 500)
+    private String description;
+
     @OneToMany(mappedBy = "gradeLevel", fetch = FetchType.LAZY)
     private List<SchoolClass> classes;
 

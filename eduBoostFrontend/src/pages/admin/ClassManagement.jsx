@@ -130,7 +130,7 @@ const ClassManagement = () => {
           </div>
         </div>
 
-        {stats.byGrade.slice(0, 3).map((item) => (
+        {stats.byGrade.map((item) => (
           <div key={item.grade} className="stat-card glass">
             <div className="stat-icon-wrapper secondary">
               <GraduationCap size={24} />

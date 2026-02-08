@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GradeLevelSimpleResponse {
+public class GradeLevelDetailResponse {
     private Long gradeLevelId;
     private String gradeName;
     private String description;
+    private Integer classCount;
+    private Integer studentCount;
 }

@@ -9,6 +9,7 @@ import {
   FileText,
   HelpCircle,
   GraduationCap,
+  Award,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 
@@ -32,6 +33,12 @@ const AdminLayout = () => {
             className={`nav-item ${isActive("/admin/users") ? "active" : ""}`}
           >
             <Users size={20} /> Quản lý tài khoản
+          </Link>
+          <Link
+            to="/admin/grade-levels"
+            className={`nav-item ${isActive("/admin/grade-levels") ? "active" : ""}`}
+          >
+            <Award size={20} /> Quản lý khối
           </Link>
           <Link
             to="/admin/classes"
