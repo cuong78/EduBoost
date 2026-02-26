@@ -17,11 +17,13 @@ public class ClassResponse {
     private String classId;
     private String className;
     private String classCode;
-    private String gradeLevel;
+    private String gradeLevelName;
+    private Long gradeLevelId;
     private String teacherId;
     private String teacherName;
     private String schoolYear;
     private String description;
+    private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer studentCount;

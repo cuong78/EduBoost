@@ -3,8 +3,8 @@ package com.fptu.eduBoostBackend.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Class {
+public class SchoolClass {
     @Id
     @UuidGenerator
     @Column(name = "class_id", length = 36)
@@ -40,14 +40,6 @@ public class Class {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @Column(name = "status", length = 20)
     private String status;

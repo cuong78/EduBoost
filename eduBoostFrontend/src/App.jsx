@@ -37,29 +37,34 @@ import TakeExam from "./pages/student/TakeExam";
 
 // Teacher Pages
 
-import CreateQuestion from './pages/teacher/CreateQuestion';
-import UploadResource from './pages/teacher/UploadResource';
-import ExamGenerator from './pages/teacher/ExamGenerator';
-import QuestionBankManagement from './pages/teacher/QuestionBankManagement';
-import ResourceManagement from './pages/teacher/ResourceManagement';
-import ExamManagement from './pages/teacher/ExamManagement';
-import ClassList from './pages/teacher/ClassList';
-import ClassStudents from './pages/teacher/ClassStudents';
-import CreateStudent from './pages/teacher/CreateStudent';
-import StudentDetail from './pages/teacher/StudentDetail';
-import StudentInvitations from './pages/teacher/StudentInvitations';
-import EditStudent from './pages/teacher/EditStudent';
-import LinkStudent from './pages/parent/LinkStudent';
-import MyStudents from './pages/parent/MyStudents';
-import ParentStudentDetail from './pages/parent/StudentDetail';
-import InvitationStats from './pages/admin/InvitationStats';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import AIGrading from './pages/teacher/AIGrading';
+import CreateQuestion from "./pages/teacher/CreateQuestion";
+import UploadResource from "./pages/teacher/UploadResource";
+import ExamGenerator from "./pages/teacher/ExamGenerator";
+import QuestionBankManagement from "./pages/teacher/QuestionBankManagement";
+import ResourceManagement from "./pages/teacher/ResourceManagement";
+import ExamManagement from "./pages/teacher/ExamManagement";
+import ClassList from "./pages/teacher/ClassList";
+import ClassStudents from "./pages/teacher/ClassStudents";
+import CreateStudent from "./pages/teacher/CreateStudent";
+import StudentDetail from "./pages/teacher/StudentDetail";
+import StudentInvitations from "./pages/teacher/StudentInvitations";
+import EditStudent from "./pages/teacher/EditStudent";
+import LinkStudent from "./pages/parent/LinkStudent";
+import MyStudents from "./pages/parent/MyStudents";
+import ParentStudentDetail from "./pages/parent/StudentDetail";
+import InvitationStats from "./pages/admin/InvitationStats";
+import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import AIGrading from "./pages/teacher/AIGrading";
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
+import ClassManagement from "./pages/admin/ClassManagement";
+import GradeLevelManagement from "./pages/admin/GradeLevelManagement";
 import Settings from "./pages/admin/Settings";
 import Subjects from "./pages/admin/Subjects";
+import SubjectDetail from "./pages/admin/SubjectDetail";
+import GradeChapters from "./pages/admin/GradeChapters";
+import ChapterLessons from "./pages/admin/ChapterLessons";
 import Chapters from "./pages/admin/Chapters";
 import LessonResources from "./pages/admin/LessonResources";
 import QuestionBank from "./pages/admin/QuestionBank";
@@ -169,7 +174,10 @@ function App() {
               />
               <Route path="create-question" element={<CreateQuestion />} />
               <Route path="upload-resource" element={<UploadResource />} />
-              <Route path="question-bank" element={<QuestionBankManagement />} />
+              <Route
+                path="question-bank"
+                element={<QuestionBankManagement />}
+              />
               <Route path="resources" element={<ResourceManagement />} />
               <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
@@ -194,7 +202,18 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="users" replace />} />
               <Route path="users" element={<UserManagement />} />
+              <Route path="grade-levels" element={<GradeLevelManagement />} />
+              <Route path="classes" element={<ClassManagement />} />
               <Route path="subjects" element={<Subjects />} />
+              <Route path="subjects/:subjectId" element={<SubjectDetail />} />
+              <Route
+                path="subjects/:subjectId/grade/:gradeLevel"
+                element={<GradeChapters />}
+              />
+              <Route
+                path="subjects/:subjectId/grade/:gradeLevel/chapter/:chapterId/lessons"
+                element={<ChapterLessons />}
+              />
               <Route path="chapters" element={<Chapters />} />
               <Route path="lesson-resources" element={<LessonResources />} />
               <Route path="question-bank" element={<QuestionBank />} />

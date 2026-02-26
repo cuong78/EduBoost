@@ -1,13 +1,11 @@
 package com.fptu.eduBoostBackend.service.impl;
 
-import com.fptu.eduBoostBackend.constant.PredefinedRole;
 import com.fptu.eduBoostBackend.dto.request.LinkStudentRequest;
 import com.fptu.eduBoostBackend.dto.request.ValidateInvitationRequest;
 import com.fptu.eduBoostBackend.dto.response.LinkStudentResponse;
 import com.fptu.eduBoostBackend.dto.response.ParentStudentDetailResponse;
 import com.fptu.eduBoostBackend.dto.response.ValidateInvitationResponse;
 import com.fptu.eduBoostBackend.entities.*;
-import com.fptu.eduBoostBackend.entities.Class;
 import com.fptu.eduBoostBackend.entities.enums.InvitationStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
@@ -94,7 +92,7 @@ public class ParentServiceImpl implements ParentService {
 
         // Lấy thông tin student
         Student student = invitation.getStudent();
-        String className = student.getClassEntity() != null ? student.getClassEntity().getClassName() : "N/A";
+        String className = student.getSchoolClass() != null ? student.getSchoolClass().getClassName() : "N/A";
         String gradeLevel = extractGradeLevel(className);
 
         // Build response cho mã hợp lệ
@@ -205,8 +203,8 @@ public class ParentServiceImpl implements ParentService {
                 .studentCode(student.getStudentCode())
                 .fullName(student.getUser().getFullName() != null ? 
                         student.getUser().getFullName() : student.getUser().getUsername())
-                .className(student.getClassEntity() != null ? 
-                        student.getClassEntity().getClassName() : "N/A")
+                .className(student.getSchoolClass() != null ? 
+                        student.getSchoolClass().getClassName() : "N/A")
                 .avatar(student.getUser().getAvatarUrl())
                 .build();
 
@@ -249,7 +247,7 @@ public class ParentServiceImpl implements ParentService {
 
     private ParentStudentDetailResponse convertToParentStudentDetailResponse(ParentStudent parentStudent) {
         Student student = parentStudent.getStudent();
-        Class classEntity = student.getClassEntity();
+        SchoolClass schoolClass = student.getSchoolClass();
 
         // Student info
         ParentStudentDetailResponse.StudentDetailDTO studentDTO = ParentStudentDetailResponse.StudentDetailDTO.builder()
@@ -265,8 +263,8 @@ public class ParentServiceImpl implements ParentService {
 
         // Class info
         ParentStudentDetailResponse.ClassDetailDTO classDTO = null;
-        if (classEntity != null) {
-            Teacher teacher = classEntity.getTeacher();
+        if (schoolClass != null) {
+            Teacher teacher = schoolClass.getTeacher();
             ParentStudentDetailResponse.TeacherDTO teacherDTO = null;
             if (teacher != null) {
                 teacherDTO = ParentStudentDetailResponse.TeacherDTO.builder()
@@ -278,9 +276,9 @@ public class ParentServiceImpl implements ParentService {
             }
 
             classDTO = ParentStudentDetailResponse.ClassDetailDTO.builder()
-                    .classId(classEntity.getClassId())
-                    .className(classEntity.getClassName())
-                    .gradeLevel(extractGradeLevel(classEntity.getClassName()))
+                    .classId(schoolClass.getClassId())
+                    .className(schoolClass.getClassName())
+                    .gradeLevel(extractGradeLevel(schoolClass.getClassName()))
                     .teacher(teacherDTO)
                     .build();
         }

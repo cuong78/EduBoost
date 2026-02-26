@@ -129,49 +129,49 @@ const UserManagement = () => {
       <div className="stats-grid">
         <div className="stat-card glass">
           <div className="stat-header">
-            <div>
-              <p className="stat-label">Tổng người dùng</p>
+            <div className="stat-content">
+              <p className="stat-label">TỔNG NGƯỜI DÙNG</p>
               <h3 className="stat-value">{stats.total}</h3>
             </div>
             <div className="stat-icon-wrapper bg-indigo">
               <Users size={24} color="white" />
             </div>
           </div>
-          <div className="stat-trend">
-            <span className="trend-value positive">
+          <div className="stat-footer">
+            <span className="stat-indicator positive">
               <TrendingUp size={16} /> +{stats.active}
             </span>
-            <span className="trend-label">đang hoạt động</span>
+            <span className="stat-description">đang hoạt động</span>
           </div>
         </div>
 
         <div className="stat-card glass">
           <div className="stat-header">
-            <div>
-              <p className="stat-label">Đang hoạt động</p>
+            <div className="stat-content">
+              <p className="stat-label">ĐANG HOẠT ĐỘNG</p>
               <h3 className="stat-value">{stats.active}</h3>
             </div>
             <div className="stat-icon-wrapper bg-green">
               <UserCheck size={24} color="white" />
             </div>
           </div>
-          <div className="stat-trend">
-            <span className="trend-label">Tài khoản đã xác thực</span>
+          <div className="stat-footer">
+            <span className="stat-description">Tài khoản đã xác thực</span>
           </div>
         </div>
 
         <div className="stat-card glass">
           <div className="stat-header">
-            <div>
-              <p className="stat-label">Không hoạt động</p>
+            <div className="stat-content">
+              <p className="stat-label">KHÔNG HOẠT ĐỘNG</p>
               <h3 className="stat-value">{stats.inactive}</h3>
             </div>
             <div className="stat-icon-wrapper bg-red">
               <AlertCircle size={24} color="white" />
             </div>
           </div>
-          <div className="stat-trend">
-            <span className="trend-label">Tài khoản bị vô hiệu hóa</span>
+          <div className="stat-footer">
+            <span className="stat-description">Tài khoản bị vô hiệu hóa</span>
           </div>
         </div>
       </div>
@@ -227,7 +227,7 @@ const UserManagement = () => {
               <tr>
                 <th>Người dùng</th>
                 <th>Thông tin liên hệ</th>
-                <th>Vai trò</th>
+                <th>Vai trò & Lớp học</th>
                 <th>Trạng thái</th>
                 <th>Xác thực</th>
                 <th style={{ textAlign: "right" }}>Hành động</th>
@@ -275,16 +275,32 @@ const UserManagement = () => {
                     </div>
                   </td>
                   <td>
-                    <div className="roles-list">
-                      {user.roles?.map((role) => (
-                        <span
-                          key={role}
-                          className={`role-badge role-${role.toLowerCase()}`}
-                        >
-                          {role === "ADMIN" && <Shield size={12} />}
-                          {role}
-                        </span>
-                      ))}
+                    <div className="roles-container">
+                      <div className="roles-list">
+                        {user.roles?.map((role) => (
+                          <span
+                            key={role}
+                            className={`role-badge role-${role.toLowerCase()}`}
+                          >
+                            {role === "ADMIN" && <Shield size={12} />}
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                      {user.teachingClass && (
+                        <div className="class-info-inline">
+                          <span className="class-badge teaching">
+                            Đang dạy: {user.teachingClass}
+                          </span>
+                        </div>
+                      )}
+                      {user.studyingClass && (
+                        <div className="class-info-inline">
+                          <span className="class-badge studying">
+                            Lớp: {user.studyingClass}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -458,78 +474,101 @@ const UserManagement = () => {
         /* Stats Grid */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: 1.5rem;
           margin-bottom: 2rem;
         }
 
         .stat-card {
+          background: white;
           padding: 1.5rem;
           border-radius: 16px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .stat-header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
+          align-items: center;
+          gap: 12px;
           margin-bottom: 1rem;
         }
 
+        .stat-content {
+          flex: 1;
+          min-width: 0;
+        }
+
         .stat-label {
-          font-size: 0.875rem;
-          color: var(--color-text-secondary);
+          font-size: 0.75rem;
+          color: #9ca3af;
           font-weight: 600;
-          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin: 0 0 0.5rem 0;
         }
 
         .stat-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: var(--color-text-primary);
+          font-size: 2.25rem;
+          font-weight: 700;
+          color: #1f2937;
+          margin: 0;
+          line-height: 1;
         }
 
         .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
+          width: 56px;
+          height: 56px;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .bg-indigo {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
         }
 
         .bg-green {
-          background: linear-gradient(135deg, #10b981, #34d399);
-        }
-
-        .bg-gray {
-          background: linear-gradient(135deg, #6b7280, #9ca3af);
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
         .bg-red {
-          background: linear-gradient(135deg, #ef4444, #f87171);
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
 
-        .stat-trend {
+        .stat-footer {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.875rem;
+          padding-top: 0.75rem;
+          border-top: 1px solid #f3f4f6;
         }
 
-        .trend-value {
+        .stat-indicator {
           display: flex;
           align-items: center;
           gap: 0.25rem;
           font-weight: 600;
+          font-size: 0.875rem;
+        }
+
+        .stat-indicator.positive {
           color: #10b981;
         }
 
-        .trend-label {
-          color: var(--color-text-secondary);
+        .stat-description {
+          color: #6b7280;
+          font-size: 0.875rem;
         }
 
         /* Filters */
@@ -787,6 +826,47 @@ const UserManagement = () => {
         .verify-badge.unverified {
           background: rgba(245, 158, 11, 0.1);
           color: #d97706;
+        }
+
+        /* Roles Container */
+        .roles-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .roles-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.375rem;
+        }
+
+        .class-info-inline {
+          display: flex;
+          align-items: center;
+        }
+
+        .class-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.625rem;
+          border-radius: 6px;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .class-badge.teaching {
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+          color: #4f46e5;
+          border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .class-badge.studying {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+          color: #059669;
+          border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
         /* Button Styles */

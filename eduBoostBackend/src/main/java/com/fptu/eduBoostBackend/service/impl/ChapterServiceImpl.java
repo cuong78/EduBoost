@@ -6,6 +6,7 @@ import com.fptu.eduBoostBackend.entities.Chapter;
 import com.fptu.eduBoostBackend.entities.Subject;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ChapterRepository;
+import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.SubjectRepository;
 import com.fptu.eduBoostBackend.service.ChapterService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     private final ChapterRepository chapterRepository;
     private final SubjectRepository subjectRepository;
+    private final LessonRepository lessonRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -117,6 +119,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .chapterNumber(chapter.getChapterNumber())
                 .chapterName(chapter.getChapterName())
                 .description(chapter.getDescription())
+                .lessonCount((int) lessonRepository.countByChapterId(chapter.getId()))
                 .createdAt(chapter.getCreatedAt())
                 .build();
     }

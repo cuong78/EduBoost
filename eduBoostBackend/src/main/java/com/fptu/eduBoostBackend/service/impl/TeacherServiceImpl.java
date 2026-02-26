@@ -4,7 +4,7 @@ import com.fptu.eduBoostBackend.constant    .PredefinedRole;
 import com.fptu.eduBoostBackend.dto.request.*;
 import com.fptu.eduBoostBackend.dto.response.*;
 import com.fptu.eduBoostBackend.entities.*;
-import com.fptu.eduBoostBackend.entities.Class;
+import com.fptu.eduBoostBackend.entities.SchoolClass;
 import com.fptu.eduBoostBackend.entities.enums.InvitationStatus;
 import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
@@ -33,7 +33,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -47,6 +46,7 @@ public class TeacherServiceImpl implements TeacherService {
     private final ClassRepository classRepository;
     private final StudentRepository studentRepository;
     private final StudentInvitationRepository studentInvitationRepository;
+    private final GradeLevelRepository gradeLevelRepository;
     private final ParentRepository parentRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -77,9 +77,9 @@ public class TeacherServiceImpl implements TeacherService {
                 .orElseThrow(() -> new ForbiddenException("User is not a teacher"));
     }
 
-    private void validateTeacherHasClassAccess(Class classEntity) {
+    private void validateTeacherHasClassAccess(SchoolClass schoolClass) {
         Teacher currentTeacher = getCurrentTeacher();
-        if (!classEntity.getTeacher().getTeacherId().equals(currentTeacher.getTeacherId())) {
+        if (!schoolClass.getTeacher().getTeacherId().equals(currentTeacher.getTeacherId())) {
             throw new ForbiddenException("You do not have access to this class");
         }
     }
@@ -88,22 +88,20 @@ public class TeacherServiceImpl implements TeacherService {
     @Transactional(readOnly = true)
     public List<ClassResponse> getMyClasses() {
         Teacher teacher = getCurrentTeacher();
-        List<Class> classes = classRepository.findByTeacher(teacher);
+        List<SchoolClass> classes = classRepository.findByTeacher(teacher);
         
         return classes.stream().map(classEntity -> {
-            int studentCount = studentRepository.findByClassEntity(classEntity).size();
+            int studentCount = studentRepository.findBySchoolClass(classEntity).size();
             return ClassResponse.builder()
                     .classId(classEntity.getClassId())
                     .className(classEntity.getClassName())
                     .classCode(classEntity.getClassCode())
-                    .gradeLevel(classEntity.getGradeLevel())
+                    .gradeLevelName(classEntity.getGradeLevel().getGradeName())
                     .teacherId(teacher.getTeacherId())
                     .teacherName(teacher.getUser().getFullName() != null ? 
                             teacher.getUser().getFullName() : teacher.getUser().getUsername())
                     .schoolYear(classEntity.getSchoolYear())
                     .description(classEntity.getDescription())
-                    .createdAt(classEntity.getCreatedAt())
-                    .updatedAt(classEntity.getUpdatedAt())
                     .studentCount(studentCount)
                     .build();
         }).collect(Collectors.toList());
@@ -118,16 +116,19 @@ public class TeacherServiceImpl implements TeacherService {
             throw new ConflictException("Class code already exists");
         }
 
-        Class newClass = Class.builder()
+        GradeLevel gradeLevel = gradeLevelRepository.findById(request.getGradeLevelId())
+                .orElseThrow(() -> new ResourceNotFoundException("Grade level not found"));
+
+        SchoolClass newClass = SchoolClass.builder()
                 .className(request.getClassName())
                 .classCode(request.getClassCode())
-                .gradeLevel(request.getGradeLevel())
+                .gradeLevel(gradeLevel)
                 .teacher(teacher)
                 .schoolYear(request.getSchoolYear())
                 .description(request.getDescription())
                 .build();
 
-        Class savedClass = classRepository.save(newClass);
+        SchoolClass savedClass = classRepository.save(newClass);
         
         log.info("Class created: {} by teacher: {}", savedClass.getClassId(), teacher.getTeacherId());
         
@@ -135,14 +136,12 @@ public class TeacherServiceImpl implements TeacherService {
                 .classId(savedClass.getClassId())
                 .className(savedClass.getClassName())
                 .classCode(savedClass.getClassCode())
-                .gradeLevel(savedClass.getGradeLevel())
+                .gradeLevelName(savedClass.getGradeLevel().getGradeName())
                 .teacherId(teacher.getTeacherId())
                 .teacherName(teacher.getUser().getFullName() != null ? 
                         teacher.getUser().getFullName() : teacher.getUser().getUsername())
                 .schoolYear(savedClass.getSchoolYear())
                 .description(savedClass.getDescription())
-                .createdAt(savedClass.getCreatedAt())
-                .updatedAt(savedClass.getUpdatedAt())
                 .studentCount(0)
                 .build();
     }
@@ -150,25 +149,26 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     @Transactional(readOnly = true)
     public List<StudentResponse> getStudentsByClass(String classId) {
-        Class classEntity = classRepository.findById(classId)
+        SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "classId", classId));
+
+        validateTeacherHasClassAccess(schoolClass);
+
+        List<Student> students = studentRepository.findBySchoolClass(schoolClass);
         
-        validateTeacherHasClassAccess(classEntity);
-        
-        List<Student> students = studentRepository.findByClassEntity(classEntity);
-        
-        return students.stream().map(this::mapToStudentResponse).collect(Collectors.toList());
+        return students.stream()
+                .map(this::mapToStudentResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional
     public CreateStudentResponse createStudent(CreateStudentRequest request) {
         Teacher teacher = getCurrentTeacher();
         
         // Validate class access
-        Class classEntity = classRepository.findById(request.getClassId())
+        SchoolClass schoolClass = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "classId", request.getClassId()));
-        validateTeacherHasClassAccess(classEntity);
+        validateTeacherHasClassAccess(schoolClass);
         
         // Validate email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -212,7 +212,7 @@ public class TeacherServiceImpl implements TeacherService {
         Student student = Student.builder()
                 .user(savedUser)
                 .studentCode(studentCode)
-                .classEntity(classEntity)
+                .schoolClass(schoolClass)
                 .dateOfBirth(request.getDateOfBirth())
                 .gender(request.getGender())
                 .address(request.getAddress())
@@ -337,8 +337,8 @@ public class TeacherServiceImpl implements TeacherService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
         
-        if (student.getClassEntity() != null) {
-            validateTeacherHasClassAccess(student.getClassEntity());
+        if (student.getSchoolClass() != null) {
+            validateTeacherHasClassAccess(student.getSchoolClass());
         }
         
         return mapToStudentResponse(student);
@@ -350,8 +350,8 @@ public class TeacherServiceImpl implements TeacherService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
         
-        if (student.getClassEntity() != null) {
-            validateTeacherHasClassAccess(student.getClassEntity());
+        if (student.getSchoolClass() != null) {
+            validateTeacherHasClassAccess(student.getSchoolClass());
         }
         
         // Update user info
@@ -366,10 +366,10 @@ public class TeacherServiceImpl implements TeacherService {
         
         // Update student info
         if (request.getClassId() != null) {
-            Class newClass = classRepository.findById(request.getClassId())
+            SchoolClass newClass = classRepository.findById(request.getClassId())
                     .orElseThrow(() -> new ResourceNotFoundException("Class", "classId", request.getClassId()));
             validateTeacherHasClassAccess(newClass);
-            student.setClassEntity(newClass);
+            student.setSchoolClass(newClass);
         }
         if (request.getDateOfBirth() != null) {
             student.setDateOfBirth(request.getDateOfBirth());
@@ -397,8 +397,8 @@ public class TeacherServiceImpl implements TeacherService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
         
-        if (student.getClassEntity() != null) {
-            validateTeacherHasClassAccess(student.getClassEntity());
+        if (student.getSchoolClass() != null) {
+            validateTeacherHasClassAccess(student.getSchoolClass());
         }
         
         // Delete student will cascade to user due to ON DELETE CASCADE
@@ -418,8 +418,8 @@ public class TeacherServiceImpl implements TeacherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
 
         // Validate teacher has access to student's class
-        if (student.getClassEntity() != null) {
-            validateTeacherHasClassAccess(student.getClassEntity());
+        if (student.getSchoolClass() != null) {
+            validateTeacherHasClassAccess(student.getSchoolClass());
         } else {
             throw new BadRequestException("Student is not assigned to any class");
         }
@@ -496,8 +496,8 @@ public class TeacherServiceImpl implements TeacherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
 
         // Validate teacher has access to student's class
-        if (student.getClassEntity() != null) {
-            validateTeacherHasClassAccess(student.getClassEntity());
+        if (student.getSchoolClass() != null) {
+            validateTeacherHasClassAccess(student.getSchoolClass());
         } else {
             throw new BadRequestException("Student is not assigned to any class");
         }
@@ -559,7 +559,7 @@ public class TeacherServiceImpl implements TeacherService {
     }
     private StudentResponse mapToStudentResponse(Student student) {
         User user = student.getUser();
-        Class classEntity = student.getClassEntity();
+        SchoolClass schoolClass = student.getSchoolClass();
         
         return StudentResponse.builder()
                 .studentId(student.getStudentId())
@@ -567,8 +567,8 @@ public class TeacherServiceImpl implements TeacherService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .classId(classEntity != null ? classEntity.getClassId() : null)
-                .className(classEntity != null ? classEntity.getClassName() : null)
+                .classId(schoolClass != null ? schoolClass.getClassId() : null)
+                .className(schoolClass != null ? schoolClass.getClassName() : null)
                 .dateOfBirth(student.getDateOfBirth())
                 .gender(student.getGender())
                 .address(student.getAddress())
@@ -845,7 +845,7 @@ public class TeacherServiceImpl implements TeacherService {
     private void sendInvitationEmail(String email, StudentInvitation invitation, String username, String password, String autoLoginToken) {
         Student student = invitation.getStudent();
         User studentUser = student.getUser();
-        Class classEntity = student.getClassEntity();
+        SchoolClass schoolClass = student.getSchoolClass();
 
         // Format thời gian hết hạn
         String expiresAt = formatExpiresAt(invitation.getExpiresAt());
@@ -857,7 +857,7 @@ public class TeacherServiceImpl implements TeacherService {
         String subject = password != null ? "Thông tin tài khoản và mã mời kết nối - EduBoost" : "Mời kết nối tài khoản phụ huynh";
         String htmlContent = buildInvitationHtml(
                 studentUser.getFullName() != null ? studentUser.getFullName() : "Học sinh",
-                classEntity != null ? classEntity.getClassName() : "Chưa xác định",
+                schoolClass != null ? schoolClass.getClassName() : "Chưa xác định",
                 invitation.getInvitationCode(),
                 expiresAt,
                 registerLink,

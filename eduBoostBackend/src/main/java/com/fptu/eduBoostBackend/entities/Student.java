@@ -5,7 +5,7 @@ import com.fptu.eduBoostBackend.entities.enums.StudentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
@@ -20,8 +20,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Student {
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @UuidGenerator
     @Column(name = "student_id", length = 36)
     private String studentId;
 
@@ -34,7 +33,7 @@ public class Student {
 
     @ManyToOne
     @JoinColumn(name = "class_id")
-    private Class classEntity;
+    private SchoolClass schoolClass;
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;

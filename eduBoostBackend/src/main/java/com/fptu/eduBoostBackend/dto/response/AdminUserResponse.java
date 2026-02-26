@@ -1,5 +1,6 @@
 package com.fptu.eduBoostBackend.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,9 +22,26 @@ public class AdminUserResponse {
     private String fullName;
     private String avatarUrl;
     private UserStatus status;
+    
+    @JsonProperty("isVerify")
     private boolean isVerify;
+    
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Set<String> roles;
+    
+    // For teachers
+    private String teachingClass;
+    
+    // For students
+    private String studyingClass;
+    
+    public boolean isVerify() {
+        return isVerify;
+    }
+    
+    public void setVerify(boolean verify) {
+        this.isVerify = verify;
+    }
 }

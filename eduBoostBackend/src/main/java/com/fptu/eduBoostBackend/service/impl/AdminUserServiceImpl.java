@@ -4,8 +4,14 @@ import com.fptu.eduBoostBackend.dto.request.UpdateUserRequest;
 import com.fptu.eduBoostBackend.dto.request.UpdateUserStatusRequest;
 import com.fptu.eduBoostBackend.dto.response.AdminUserResponse;
 import com.fptu.eduBoostBackend.entities.Role;
+import com.fptu.eduBoostBackend.entities.SchoolClass;
+import com.fptu.eduBoostBackend.entities.Student;
+import com.fptu.eduBoostBackend.entities.Teacher;
 import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.RoleRepository;
+import com.fptu.eduBoostBackend.repositories.StudentRepository;
+import com.fptu.eduBoostBackend.repositories.TeacherRepository;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
 import com.fptu.eduBoostBackend.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +29,9 @@ public class AdminUserServiceImpl implements AdminUserService {
     
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final TeacherRepository teacherRepository;
+    private final StudentRepository studentRepository;
+    private final ClassRepository classRepository;
 
     @Override
     public List<AdminUserResponse> getAllUsers() {
@@ -99,6 +108,26 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     private AdminUserResponse convertToAdminUserResponse(User user) {
+        // Get teaching classes for teachers
+        String teachingClass = null;
+        Teacher teacher = teacherRepository.findByUser(user).orElse(null);
+        if (teacher != null) {
+            List<SchoolClass> classes = classRepository.findByTeacher(teacher);
+            if (!classes.isEmpty()) {
+                // Join multiple class names with comma
+                teachingClass = classes.stream()
+                        .map(SchoolClass::getClassName)
+                        .collect(Collectors.joining(", "));
+            }
+        }
+        
+        // Get studying class for students
+        String studyingClass = null;
+        Student student = studentRepository.findByUser(user).orElse(null);
+        if (student != null && student.getSchoolClass() != null) {
+            studyingClass = student.getSchoolClass().getClassName();
+        }
+        
         return AdminUserResponse.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
@@ -114,6 +143,8 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .roles(user.getRoles().stream()
                         .map(Role::getName)
                         .collect(Collectors.toSet()))
+                .teachingClass(teachingClass)
+                .studyingClass(studyingClass)
                 .build();
     }
 }

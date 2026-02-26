@@ -22,5 +22,6 @@ public class ChapterResponse {
     private Integer chapterNumber;
     private String chapterName;
     private String description;
+    private Integer lessonCount;
     private LocalDateTime createdAt;
 }

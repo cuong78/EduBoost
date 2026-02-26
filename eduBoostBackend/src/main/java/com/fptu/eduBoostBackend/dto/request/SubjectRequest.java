@@ -17,5 +17,9 @@ public class SubjectRequest {
     @Size(max = 20, message = "Subject code must not exceed 20 characters")
     private String subjectCode;
 
+    @NotBlank(message = "Subject name cannot be blank")
+    @Size(max = 100, message = "Subject name must not exceed 100 characters")
+    private String subjectName;
+
     private String description;
 }

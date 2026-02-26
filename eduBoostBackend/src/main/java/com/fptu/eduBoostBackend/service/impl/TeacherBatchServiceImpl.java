@@ -4,7 +4,7 @@ import com.fptu.eduBoostBackend.dto.request.BatchImportStudentRequest;
 import com.fptu.eduBoostBackend.dto.request.CreateStudentRequest;
 import com.fptu.eduBoostBackend.dto.response.BatchImportStudentResponse;
 import com.fptu.eduBoostBackend.dto.response.TemplateDownloadResponse;
-import com.fptu.eduBoostBackend.entities.Class;
+import com.fptu.eduBoostBackend.entities.SchoolClass;
 import com.fptu.eduBoostBackend.entities.Teacher;
 import com.fptu.eduBoostBackend.entities.User;
 import com.fptu.eduBoostBackend.entities.enums.Gender;
@@ -25,23 +25,25 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TeacherBatchServiceImpl implements TeacherBatchService {
-
     private final TeacherRepository teacherRepository;
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
@@ -193,9 +195,9 @@ public class TeacherBatchServiceImpl implements TeacherBatchService {
         Teacher teacher = getCurrentTeacher();
 
         // Validate class access
-        Class classEntity = classRepository.findById(request.getClassId())
+        SchoolClass schoolClass = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "classId", request.getClassId()));
-        validateTeacherHasClassAccess(classEntity, teacher);
+        validateTeacherHasClassAccess(schoolClass, teacher);
 
 
         List<BatchImportStudentResponse.ImportError> errors = new ArrayList<>();
@@ -322,8 +324,8 @@ public class TeacherBatchServiceImpl implements TeacherBatchService {
         }
     }
 
-    private void validateTeacherHasClassAccess(Class classEntity, Teacher teacher) {
-        if (!classEntity.getTeacher().getTeacherId().equals(teacher.getTeacherId())) {
+    private void validateTeacherHasClassAccess(SchoolClass schoolClass, Teacher teacher) {
+        if (!schoolClass.getTeacher().getTeacherId().equals(teacher.getTeacherId())) {
             throw new ForbiddenException("You do not have access to this class");
         }
     }

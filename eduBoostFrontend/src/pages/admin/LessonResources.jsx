@@ -20,6 +20,7 @@ import { adminChapterService } from "../../services/adminChapterService";
 import { adminSubjectService } from "../../services/adminSubjectService";
 import { adminResourceService } from "../../services/adminResourceService";
 import { showSuccessToast, showErrorToast } from "../../utils/show-toast";
+import "./LessonResources.css";
 
 const LessonResources = () => {
   const [resources, setResources] = useState([]);
@@ -30,10 +31,13 @@ const LessonResources = () => {
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedGrade, setSelectedGrade] = useState(null);
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
+  const grades = [6, 7, 8, 9, 10, 11, 12];
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState("file"); // 'file' or 'url'
+  // eslint-disable-next-line no-unused-vars
+  const [modalMode, setModalMode] = useState("file"); // 'file' or 'url' - kept for backward compatibility
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [uploadData, setUploadData] = useState({
@@ -44,15 +48,41 @@ const LessonResources = () => {
     textContent: "",
   });
 
+  // Wizard states
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardData, setWizardData] = useState({
+    grade: null,
+    subject: null,
+    chapter: null,
+    lesson: null,
+    resourceName: "",
+    description: "",
+    resourceType: "PDF",
+    file: null,
+    fileUrl: "",
+  });
+  const [wizardChapters, setWizardChapters] = useState([]);
+  const [wizardLessons, setWizardLessons] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isWizardClosing, setIsWizardClosing] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
+
   useEffect(() => {
     fetchSubjects();
   }, []);
 
   useEffect(() => {
-    if (selectedSubject) {
-      fetchChaptersBySubject(selectedSubject);
+    if (selectedSubject && selectedGrade) {
+      fetchChaptersBySubject(selectedSubject, selectedGrade);
+    } else if (selectedSubject) {
+      setChapters([]);
+      setLessons([]);
+      setResources([]);
+      setSelectedChapter(null);
+      setSelectedLesson(null);
     }
-  }, [selectedSubject]);
+  }, [selectedSubject, selectedGrade]);
 
   useEffect(() => {
     if (selectedChapter) {
@@ -74,6 +104,7 @@ const LessonResources = () => {
       setSubjects(subjectList);
       if (subjectList.length > 0) {
         setSelectedSubject(subjectList[0].id);
+        setSelectedGrade(grades[0]);
       }
     } catch (error) {
       console.error("Error loading subjects:", error);
@@ -83,10 +114,13 @@ const LessonResources = () => {
     }
   };
 
-  const fetchChaptersBySubject = async (subjectId) => {
+  const fetchChaptersBySubject = async (subjectId, gradeLevel) => {
     try {
       setLoading(true);
-      const data = await adminChapterService.getChaptersBySubject(subjectId);
+      const data = await adminChapterService.getChaptersBySubject(
+        subjectId,
+        gradeLevel,
+      );
       const chapterList = Array.isArray(data) ? data : data?.data || [];
       setChapters(chapterList);
       if (chapterList.length > 0) {
@@ -147,27 +181,173 @@ const LessonResources = () => {
   );
 
   const handleUploadFile = () => {
-    setModalMode("file");
-    setUploadData({
+    setWizardStep(1);
+    setWizardData({
+      grade: null,
+      subject: null,
+      chapter: null,
+      lesson: null,
       resourceName: "",
+      description: "",
       resourceType: "PDF",
       file: null,
       fileUrl: "",
-      textContent: "",
     });
-    setShowModal(true);
+    setWizardChapters([]);
+    setWizardLessons([]);
+    setIsWizardClosing(false);
+    setShowWizard(true);
   };
 
-  const handleCreateUrl = () => {
-    setModalMode("url");
-    setUploadData({
-      resourceName: "",
-      resourceType: "URL",
-      file: null,
-      fileUrl: "",
-      textContent: "",
+  const handleWizardClose = () => {
+    setIsWizardClosing(true);
+    setTimeout(() => {
+      setShowWizard(false);
+      setIsWizardClosing(false);
+    }, 300);
+  };
+
+  // Wizard handlers
+  const handleWizardNext = () => {
+    if (wizardStep < 3) {
+      setWizardStep(wizardStep + 1);
+    }
+  };
+
+  const handleWizardBack = () => {
+    if (wizardStep > 1) {
+      setWizardStep(wizardStep - 1);
+    }
+  };
+
+  const handleWizardGradeSelect = (grade) => {
+    setWizardData({
+      ...wizardData,
+      grade,
+      subject: null,
+      chapter: null,
+      lesson: null,
     });
-    setShowModal(true);
+    setWizardChapters([]);
+    setWizardLessons([]);
+  };
+
+  const handleWizardSubjectSelect = async (subjectId) => {
+    setWizardData({
+      ...wizardData,
+      subject: subjectId,
+      chapter: null,
+      lesson: null,
+    });
+    setWizardLessons([]);
+
+    // Fetch chapters for selected subject and grade
+    if (wizardData.grade) {
+      try {
+        const data = await adminChapterService.getChaptersBySubject(
+          subjectId,
+          wizardData.grade,
+        );
+        const chapterList = Array.isArray(data) ? data : data?.data || [];
+        setWizardChapters(chapterList);
+      } catch (error) {
+        console.error("Error loading chapters:", error);
+        showErrorToast("Không thể tải danh sách chương");
+        setWizardChapters([]);
+      }
+    }
+  };
+
+  const handleWizardChapterSelect = async (chapterId) => {
+    setWizardData({ ...wizardData, chapter: chapterId, lesson: null });
+
+    // Fetch lessons for selected chapter
+    try {
+      const data = await adminLessonService.getLessonsByChapter(chapterId);
+      const lessonList = Array.isArray(data) ? data : data?.data || [];
+      setWizardLessons(lessonList);
+    } catch (error) {
+      console.error("Error loading lessons:", error);
+      showErrorToast("Không thể tải danh sách bài học");
+      setWizardLessons([]);
+    }
+  };
+
+  const handleWizardDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleWizardDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleWizardDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      setWizardData({ ...wizardData, file });
+    }
+  };
+
+  const handleWizardSubmit = async () => {
+    try {
+      setUploading(true);
+
+      if (wizardData.resourceType === "URL") {
+        // Create URL resource
+        const payload = {
+          lessonId: wizardData.lesson,
+          resourceName: wizardData.resourceName,
+          resourceType: "URL",
+          fileUrl: wizardData.fileUrl,
+          textContent: null,
+        };
+        await adminResourceService.createResource(payload);
+        showSuccessToast("Tạo tài nguyên URL thành công!");
+      } else {
+        // Upload file resource
+        await adminResourceService.uploadFileResource(
+          wizardData.lesson,
+          wizardData.resourceType,
+          wizardData.file,
+          wizardData.resourceName || wizardData.file.name,
+        );
+        showSuccessToast("Upload tài nguyên thành công!");
+      }
+
+      setShowWizard(false);
+
+      // Refresh resources if we're viewing the same lesson
+      if (selectedLesson === wizardData.lesson) {
+        fetchResourcesByLesson(selectedLesson);
+      }
+    } catch (error) {
+      console.error("Error uploading resource:", error);
+      showErrorToast(
+        error.response?.data?.message || "Không thể upload tài nguyên",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const canProceedStep1 = wizardData.grade && wizardData.subject;
+  const canProceedStep2 = wizardData.chapter && wizardData.lesson;
+  const canSubmit =
+    wizardData.resourceName.trim() &&
+    (wizardData.resourceType === "URL"
+      ? wizardData.fileUrl.trim()
+      : wizardData.file);
+
+  const handleModalClose = () => {
+    setIsModalClosing(true);
+    setTimeout(() => {
+      setShowModal(false);
+      setIsModalClosing(false);
+    }, 300);
   };
 
   const handleDelete = (resource) => {
@@ -331,8 +511,8 @@ const LessonResources = () => {
       </nav>
 
       <div className="page-header">
-        <div>
-          <h2>Quản lý Tài nguyên</h2>
+        <div className="page-header-info">
+          <h2>Quản lý Tài nguyên bài học</h2>
           <p>Upload và quản lý tài liệu, file học tập</p>
         </div>
         <div className="btn-group">
@@ -341,44 +521,34 @@ const LessonResources = () => {
             className="btn btn-primary"
             disabled={!selectedLesson}
           >
-            <Upload size={20} />
-            Upload File
-          </button>
-          <button
-            onClick={handleCreateUrl}
-            className="btn btn-glass"
-            disabled={!selectedLesson}
-          >
             <Plus size={20} />
-            Thêm URL/Text
+            Thêm tài nguyên
           </button>
         </div>
       </div>
 
-      <div className="stats-grid single-stat">
-        <div className="stat-card glass">
-          <div className="stat-header">
-            <div>
-              <p className="stat-label">Tổng tài nguyên</p>
-              <h3 className="stat-value">{resources.length}</h3>
+      <div className="stats-container">
+        <div className="stat-card-resources">
+          <div className="stat-card-header">
+            <div className="stat-card-content">
+              <div className="stat-label">Tổng tài nguyên</div>
+              <div className="stat-value">{resources.length}</div>
             </div>
-            <div className="stat-icon-wrapper bg-indigo">
+            <div className="stat-icon-wrapper">
               <FileText size={24} color="white" />
             </div>
           </div>
-          <div className="stat-trend">
-            <span className="trend-label">
-              {lessons.find((l) => l.id === selectedLesson)?.lessonName ||
-                "Chưa chọn bài học"}
-            </span>
+          <div className="stat-subtitle">
+            {lessons.find((l) => l.id === selectedLesson)?.lessonName ||
+              "Chưa chọn bài học"}
           </div>
         </div>
       </div>
 
-      <div className="filters-section glass">
-        <div className="filter-row-4">
+      <div className="filters-section">
+        <div className="filter-grid">
           <div className="search-box">
-            <Search size={20} className="search-icon" />
+            <Search size={18} className="search-icon" />
             <input
               type="text"
               placeholder="Tìm kiếm tài nguyên..."
@@ -388,21 +558,49 @@ const LessonResources = () => {
             />
           </div>
           <select
+            value={selectedGrade || ""}
+            onChange={(e) => {
+              const grade = Number(e.target.value);
+              setSelectedGrade(grade);
+              setSelectedChapter(null);
+              setSelectedLesson(null);
+            }}
+            className="filter-select"
+            disabled={!selectedSubject}
+          >
+            {!selectedSubject ? (
+              <option>Chọn khối</option>
+            ) : (
+              grades.map((grade) => (
+                <option key={grade} value={grade}>
+                  Khối {grade}
+                </option>
+              ))
+            )}
+          </select>
+          <select
             value={selectedSubject || ""}
-            onChange={(e) => setSelectedSubject(Number(e.target.value))}
+            onChange={(e) => {
+              setSelectedSubject(Number(e.target.value));
+              setSelectedChapter(null);
+              setSelectedLesson(null);
+            }}
             className="filter-select"
           >
             {subjects.map((subject) => (
               <option key={subject.id} value={subject.id}>
-                {subject.subjectCode}
+                {subject.subjectName}
               </option>
             ))}
           </select>
           <select
             value={selectedChapter || ""}
-            onChange={(e) => setSelectedChapter(Number(e.target.value))}
+            onChange={(e) => {
+              setSelectedChapter(Number(e.target.value));
+              setSelectedLesson(null);
+            }}
             className="filter-select"
-            disabled={!chapters.length}
+            disabled={!chapters.length || !selectedGrade}
           >
             {chapters.length === 0 ? (
               <option>Không có chương</option>
@@ -489,11 +687,11 @@ const LessonResources = () => {
                   ) && (
                     <button
                       onClick={() => handleDownload(resource)}
-                      className="resource-btn btn-download"
+                      className="btn-download-icon"
                       title="Tải xuống"
                     >
-                      <Download size={18} />
-                      <span>Tải xuống</span>
+                      <Download size={16} />
+                      <span>Tải</span>
                     </button>
                   )}
                   {resource.resourceType === "URL" && (
@@ -501,18 +699,18 @@ const LessonResources = () => {
                       href={resource.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="resource-btn btn-link"
+                      className="btn-link-icon"
                     >
-                      <LinkIcon size={18} />
-                      <span>Mở link</span>
+                      <LinkIcon size={16} />
+                      <span>Mở</span>
                     </a>
                   )}
                   <button
                     onClick={() => handleDelete(resource)}
-                    className="resource-btn-icon btn-delete"
+                    className="resource-btn-icon btn-delete-icon"
                     title="Xóa"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
@@ -523,18 +721,17 @@ const LessonResources = () => {
 
       {/* Upload/Create Modal */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content glass">
+        <div className={`modal-overlay ${isModalClosing ? "closing" : ""}`}>
+          <div
+            className={`modal-content glass ${isModalClosing ? "closing" : ""}`}
+          >
             <div className="modal-header">
               <h3>
                 {modalMode === "file"
                   ? "Upload tài nguyên file"
                   : "Tạo tài nguyên URL/Text"}
               </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="modal-close-btn"
-              >
+              <button onClick={handleModalClose} className="modal-close-btn">
                 <X size={24} />
               </button>
             </div>
@@ -675,7 +872,7 @@ const LessonResources = () => {
               <div className="form-actions">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={handleModalClose}
                   className="btn btn-glass"
                   disabled={uploading}
                 >
@@ -742,553 +939,362 @@ const LessonResources = () => {
         </div>
       )}
 
-      <style>{`
-        .lesson-resources-page {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 2rem;
-        }
-        .breadcrumb {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 1.5rem;
-          color: var(--color-text-secondary);
-          font-size: 0.875rem;
-        }
-        .breadcrumb span:last-child {
-          color: var(--color-text-primary);
-          font-weight: 600;
-        }
-        .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-        }
-        .page-header h2 {
-          font-size: 2rem;
-          font-weight: 800;
-          margin-bottom: 0.25rem;
-        }
-        .page-header p {
-          color: var(--color-text-secondary);
-        }
-        .btn-group {
-          display: flex;
-          gap: 0.75rem;
-        }
-        .stats-grid.single-stat {
-          max-width: 400px;
-          margin-bottom: 2rem;
-        }
-        .stat-card {
-          padding: 1.5rem;
-          border-radius: 16px;
-        }
-        .stat-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 1rem;
-        }
-        .stat-label {
-          font-size: 0.875rem;
-          color: var(--color-text-secondary);
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-        }
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: var(--color-text-primary);
-        }
-        .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .bg-indigo {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        }
-        .stat-trend {
-          margin-top: 0.5rem;
-        }
-        .trend-label {
-          font-size: 0.875rem;
-          color: var(--color-text-secondary);
-        }
-        .filters-section {
-          padding: 1.5rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-        }
-        .filter-row-4 {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr;
-          gap: 1rem;
-        }
-        .search-box {
-          position: relative;
-        }
-        .search-icon {
-          position: absolute;
-          left: 1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--color-text-secondary);
-          pointer-events: none;
-        }
-        .search-input {
-          width: 100%;
-          padding: 0.875rem 1rem 0.875rem 3rem;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 12px;
-          font-family: var(--font-main);
-          background: white;
-          transition: all 0.2s;
-        }
-        .search-input:focus {
-          outline: none;
-          border-color: var(--color-accent-1);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-        .filter-select {
-          padding: 0.875rem 1rem;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 12px;
-          font-family: var(--font-main);
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .filter-select:focus {
-          outline: none;
-          border-color: var(--color-accent-1);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-        .filter-select:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .empty-state {
-          text-align: center;
-          padding: 4rem 2rem;
-          border-radius: 16px;
-        }
-        .empty-state svg {
-          color: var(--color-text-secondary);
-          margin-bottom: 1rem;
-        }
-        .empty-state p {
-          color: var(--color-text-secondary);
-          margin-bottom: 1.5rem;
-        }
-        .empty-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-        }
-        .empty-state svg {
-          color: var(--color-text-secondary);
-          margin-bottom: 1rem;
-        }
-        .empty-state p {
-          color: var(--color-text-secondary);
-          margin-bottom: 1.5rem;
-        }
-        .resources-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-          margin-top: 2rem;
-        }
-        .resource-card {
-          background: white;
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .resource-card:hover {
-          transform: translateY(-8px);
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-        }
-        .resource-header-bg {
-          height: 140px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          position: relative;
-          overflow: hidden;
-        }
-        .resource-header-bg::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: inherit;
-          opacity: 0.1;
-        }
-        .resource-pdf {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-        .resource-docx {
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        }
-        .resource-video {
-          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-        }
-        .resource-image {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-        .resource-url {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        }
-        .resource-text {
-          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        }
-        .resource-icon-large {
-          width: 64px;
-          height: 64px;
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          position: relative;
-          z-index: 1;
-        }
-        .resource-icon-large svg {
-          width: 32px;
-          height: 32px;
-        }
-        .resource-type-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: white;
-          background: rgba(0, 0, 0, 0.2);
-          padding: 0.35rem 1rem;
-          border-radius: 20px;
-          position: relative;
-          z-index: 1;
-        }
-        .resource-body {
-          padding: 1.5rem;
-        }
-        .resource-title {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: var(--color-text-primary);
-          margin: 0 0 1rem 0;
-          line-height: 1.4;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          min-height: 2.8rem;
-        }
-        .resource-info {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          margin-bottom: 1.25rem;
-          padding-bottom: 1.25rem;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-        }
-        .info-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-          color: var(--color-text-secondary);
-        }
-        .info-icon {
-          font-size: 1rem;
-        }
-        .mime-type {
-          font-family: 'Courier New', monospace;
-          font-weight: 600;
-        }
-        .resource-footer {
-          display: flex;
-          gap: 0.75rem;
-          align-items: center;
-        }
-        .resource-btn {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          border: none;
-          border-radius: 12px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-decoration: none;
-        }
-        .btn-download {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-        }
-        .btn-download:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-        }
-        .btn-link {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: white;
-        }
-        .btn-link:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-        }
-        .resource-btn-icon {
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.2s;
-          flex-shrink: 0;
-        }
-        .btn-delete {
-          background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
-        }
-        .btn-delete:hover {
-          background: #ef4444;
-          color: white;
-          transform: scale(1.05);
-        }
-        .lessons-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 1.5rem;
-        }
-        .lesson-card {
-          padding: 1.5rem;
-          border-radius: 16px;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .lesson-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        }
-        .lesson-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1rem;
-        }
-        .lesson-number-badge {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-          padding: 0.375rem 0.875rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 700;
-        }
-        .lesson-actions {
-          display: flex;
-          gap: 0.5rem;
-        }
-        .btn-icon {
-          padding: 0.5rem;
-          border: none;
-          background: rgba(0, 0, 0, 0.05);
-          border-radius: 8px;
-          cursor: pointer;
-          color: var(--color-text-primary);
-          transition: all 0.2s;
-        }
-        .btn-icon:hover {
-          background: rgba(99, 102, 241, 0.1);
-          color: var(--color-accent-1);
-        }
-        .btn-icon.btn-danger:hover {
-          background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
-        }
-        .lesson-name {
-          font-size: 1.125rem;
-          font-weight: 700;
-          margin-bottom: 0.75rem;
-          color: var(--color-text-primary);
-        }
-        .lesson-description {
-          font-size: 0.875rem;
-          color: var(--color-text-secondary);
-          line-height: 1.5;
-          margin-bottom: 1rem;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .lesson-footer {
-          padding-top: 1rem;
-          border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .lesson-stat {
-          font-size: 0.875rem;
-          color: var(--color-text-secondary);
-        }
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 1rem;
-        }
-        .modal-content {
-          width: 100%;
-          max-width: 600px;
-          max-height: 90vh;
-          overflow-y: auto;
-          border-radius: 16px;
-          background: white;
-        }
-        .modal-content.modal-small {
-          max-width: 400px;
-        }
-        .modal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1.5rem;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-          border-radius: 16px 16px 0 0;
-        }
-        .modal-header h3 {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin: 0;
-        }
-        .modal-header-danger {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-        .modal-header-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 1rem;
-        }
-        .modal-close-btn {
-          padding: 0.5rem;
-          border: none;
-          background: rgba(255, 255, 255, 0.2);
-          color: white;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .modal-close-btn:hover {
-          background: rgba(255, 255, 255, 0.3);
-        }
-        .modal-form {
-          padding: 1.5rem;
-        }
-        .modal-body {
-          padding: 1.5rem;
-        }
-        .modal-body p {
-          margin-bottom: 0.5rem;
-          line-height: 1.6;
-        }
-        .warning-text {
-          color: #ef4444;
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
-        .form-group {
-          margin-bottom: 1.25rem;
-        }
-        .form-group label {
-          display: block;
-          margin-bottom: 0.5rem;
-          font-weight: 600;
-          color: var(--color-text-primary);
-        }
-        .required {
-          color: #ef4444;
-        }
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 12px;
-          font-family: var(--font-main);
-          transition: all 0.2s;
-        }
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-          outline: none;
-          border-color: var(--color-accent-1);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-        .form-group textarea {
-          resize: vertical;
-        }
-        .form-actions,
-        .modal-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: flex-end;
-          padding: 1rem 1.5rem;
-          border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        @media (max-width: 768px) {
-          .filter-row-4 {
-            grid-template-columns: 1fr;
-          }
-          .resources-grid,
-          .lessons-grid {
-            grid-template-columns: 1fr;
-          }
-          .btn-group {
-            flex-direction: column;
-          }
-        }
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
+      {/* Upload Wizard Modal */}
+      {showWizard && (
+        <div className={`modal-overlay ${isWizardClosing ? "closing" : ""}`}>
+          <div className={`wizard-modal ${isWizardClosing ? "closing" : ""}`}>
+            <div className="wizard-header">
+              <h3>Upload Tài nguyên</h3>
+              <button onClick={handleWizardClose} className="modal-close-btn">
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Stepper */}
+            <div className="wizard-stepper">
+              <div
+                className={`wizard-step ${wizardStep >= 1 ? "active" : ""} ${wizardStep > 1 ? "completed" : ""}`}
+              >
+                <div className="step-number">1</div>
+                <div className="step-label">Chọn Khối & Môn</div>
+              </div>
+              <div className="step-line"></div>
+              <div
+                className={`wizard-step ${wizardStep >= 2 ? "active" : ""} ${wizardStep > 2 ? "completed" : ""}`}
+              >
+                <div className="step-number">2</div>
+                <div className="step-label">Chọn Chương & Bài</div>
+              </div>
+              <div className="step-line"></div>
+              <div className={`wizard-step ${wizardStep >= 3 ? "active" : ""}`}>
+                <div className="step-number">3</div>
+                <div className="step-label">Tải lên file</div>
+              </div>
+            </div>
+
+            <div className="wizard-content">
+              {/* Step 1: Select Grade & Subject */}
+              {wizardStep === 1 && (
+                <div className="wizard-step-content">
+                  <h4 className="step-title">Chọn Khối học</h4>
+                  <div className="grade-chips">
+                    {grades.map((grade) => (
+                      <button
+                        key={grade}
+                        type="button"
+                        className={`grade-chip ${wizardData.grade === grade ? "selected" : ""}`}
+                        onClick={() => handleWizardGradeSelect(grade)}
+                      >
+                        Khối {grade}
+                      </button>
+                    ))}
+                  </div>
+
+                  {wizardData.grade && (
+                    <>
+                      <h4 className="step-title">Chọn Môn học</h4>
+                      <div className="subject-list">
+                        {subjects.map((subject) => (
+                          <button
+                            key={subject.id}
+                            type="button"
+                            className={`subject-card ${wizardData.subject === subject.id ? "selected" : ""}`}
+                            onClick={() =>
+                              handleWizardSubjectSelect(subject.id)
+                            }
+                          >
+                            <div className="subject-icon">📚</div>
+                            <div className="subject-name">
+                              {subject.subjectName}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Select Chapter & Lesson */}
+              {wizardStep === 2 && (
+                <div className="wizard-step-content">
+                  <h4 className="step-title">Chọn Chương học</h4>
+                  <select
+                    value={wizardData.chapter || ""}
+                    onChange={(e) =>
+                      handleWizardChapterSelect(Number(e.target.value))
+                    }
+                    className="wizard-select"
+                  >
+                    <option value="">-- Chọn chương học --</option>
+                    {wizardChapters.map((chapter) => (
+                      <option key={chapter.id} value={chapter.id}>
+                        Chương {chapter.chapterNumber}: {chapter.chapterName}
+                      </option>
+                    ))}
+                  </select>
+
+                  {wizardData.chapter && (
+                    <>
+                      <h4 className="step-title">Chọn Bài học</h4>
+                      <select
+                        value={wizardData.lesson || ""}
+                        onChange={(e) =>
+                          setWizardData({
+                            ...wizardData,
+                            lesson: Number(e.target.value),
+                          })
+                        }
+                        className="wizard-select"
+                      >
+                        <option value="">-- Chọn bài học --</option>
+                        {wizardLessons.map((lesson) => (
+                          <option key={lesson.id} value={lesson.id}>
+                            Bài {lesson.lessonNumber}: {lesson.lessonName}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Upload File */}
+              {wizardStep === 3 && (
+                <div className="wizard-step-content">
+                  <h4 className="step-title">Loại tài nguyên</h4>
+                  <div className="resource-type-selector">
+                    <button
+                      type="button"
+                      className={`resource-type-btn ${wizardData.resourceType === "PDF" ? "selected" : ""}`}
+                      onClick={() =>
+                        setWizardData({ ...wizardData, resourceType: "PDF" })
+                      }
+                    >
+                      <File size={20} />
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      className={`resource-type-btn ${wizardData.resourceType === "DOCX" ? "selected" : ""}`}
+                      onClick={() =>
+                        setWizardData({ ...wizardData, resourceType: "DOCX" })
+                      }
+                    >
+                      <FileText size={20} />
+                      DOCX
+                    </button>
+                    <button
+                      type="button"
+                      className={`resource-type-btn ${wizardData.resourceType === "VIDEO" ? "selected" : ""}`}
+                      onClick={() =>
+                        setWizardData({ ...wizardData, resourceType: "VIDEO" })
+                      }
+                    >
+                      <FileVideo size={20} />
+                      Video
+                    </button>
+                    <button
+                      type="button"
+                      className={`resource-type-btn ${wizardData.resourceType === "IMAGE" ? "selected" : ""}`}
+                      onClick={() =>
+                        setWizardData({ ...wizardData, resourceType: "IMAGE" })
+                      }
+                    >
+                      <ImageIcon size={20} />
+                      Hình ảnh
+                    </button>
+                    <button
+                      type="button"
+                      className={`resource-type-btn ${wizardData.resourceType === "URL" ? "selected" : ""}`}
+                      onClick={() =>
+                        setWizardData({
+                          ...wizardData,
+                          resourceType: "URL",
+                          file: null,
+                        })
+                      }
+                    >
+                      <LinkIcon size={20} />
+                      URL
+                    </button>
+                  </div>
+
+                  {wizardData.resourceType === "URL" ? (
+                    <>
+                      <h4 className="step-title">Nhập đường dẫn URL</h4>
+                      <div className="form-group">
+                        <label>
+                          Nhập đường dẫn URL <span className="required">*</span>
+                        </label>
+                        <input
+                          type="url"
+                          value={wizardData.fileUrl}
+                          onChange={(e) =>
+                            setWizardData({
+                              ...wizardData,
+                              fileUrl: e.target.value,
+                            })
+                          }
+                          placeholder="https://youtube.com/watch?v=... hoặc https://drive.google.com/..."
+                          className="wizard-input"
+                          maxLength="500"
+                        />
+                        <p className="input-hint">
+                          Ví dụ: Link Youtube, Google Drive, hoặc trang web khác
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h4 className="step-title">Tải lên file</h4>
+                      <div
+                        className={`drag-drop-area ${isDragging ? "dragging" : ""}`}
+                        onDragOver={handleWizardDragOver}
+                        onDragLeave={handleWizardDragLeave}
+                        onDrop={handleWizardDrop}
+                      >
+                        <div className="drag-drop-icon">
+                          <Upload size={48} color="#8b5cf6" />
+                        </div>
+                        <p className="drag-drop-text">
+                          Kéo thả file vào đây hoặc{" "}
+                          <label className="file-select-label">
+                            chọn file
+                            <input
+                              type="file"
+                              onChange={(e) =>
+                                setWizardData({
+                                  ...wizardData,
+                                  file: e.target.files[0],
+                                })
+                              }
+                              accept={
+                                wizardData.resourceType === "PDF"
+                                  ? ".pdf"
+                                  : wizardData.resourceType === "DOCX"
+                                    ? ".docx,.doc"
+                                    : wizardData.resourceType === "VIDEO"
+                                      ? "video/*"
+                                      : "image/*"
+                              }
+                              style={{ display: "none" }}
+                            />
+                          </label>
+                        </p>
+                        {wizardData.file && (
+                          <div className="selected-file">
+                            <FileText size={20} />
+                            <span>{wizardData.file.name}</span>
+                            <span className="file-size">
+                              ({formatFileSize(wizardData.file.size)})
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="form-group">
+                    <label>
+                      Tên hiển thị của tài liệu{" "}
+                      <span className="required">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={wizardData.resourceName}
+                      onChange={(e) =>
+                        setWizardData({
+                          ...wizardData,
+                          resourceName: e.target.value,
+                        })
+                      }
+                      placeholder="Ví dụ: Bài giảng chương 1 - Giới thiệu"
+                      className="wizard-input"
+                      maxLength="200"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Mô tả ngắn</label>
+                    <textarea
+                      value={wizardData.description}
+                      onChange={(e) =>
+                        setWizardData({
+                          ...wizardData,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Mô tả ngắn gọn về tài liệu này..."
+                      className="wizard-textarea"
+                      rows="3"
+                      maxLength="500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Wizard Navigation */}
+            <div className="wizard-footer">
+              <button
+                type="button"
+                onClick={handleWizardClose}
+                className="btn btn-glass"
+              >
+                Hủy
+              </button>
+
+              <div className="wizard-footer-actions">
+                <button
+                  type="button"
+                  onClick={handleWizardBack}
+                  className="btn btn-glass"
+                  disabled={wizardStep === 1}
+                >
+                  Quay lại
+                </button>
+
+                {wizardStep < 3 ? (
+                  <button
+                    type="button"
+                    onClick={handleWizardNext}
+                    className="btn btn-primary"
+                    disabled={
+                      (wizardStep === 1 && !canProceedStep1) ||
+                      (wizardStep === 2 && !canProceedStep2)
+                    }
+                  >
+                    Tiếp theo
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleWizardSubmit}
+                    className="btn btn-primary"
+                    disabled={!canSubmit || uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2
+                          size={18}
+                          style={{ animation: "spin 1s linear infinite" }}
+                        />
+                        Đang tải lên...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        Upload
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

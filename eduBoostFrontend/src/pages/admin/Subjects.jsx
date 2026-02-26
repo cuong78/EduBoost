@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Edit2,
@@ -9,14 +10,24 @@ import {
   ChevronRight,
   X,
   AlertCircle,
+  TrendingUp,
+  Users,
+  Award,
+  Filter,
+  AlertTriangle,
+  FileText,
+  Clock,
 } from "lucide-react";
 import { adminSubjectService } from "../../services/adminSubjectService";
 import { showSuccessToast, showErrorToast } from "../../utils/show-toast";
+import "./Subjects.css";
 
 const Subjects = () => {
+  const navigate = useNavigate();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("create"); // 'create' or 'edit'
   const [editingSubject, setEditingSubject] = useState(null);
@@ -49,6 +60,7 @@ const Subjects = () => {
   };
 
   const filteredSubjects = subjects.filter((subject) =>
+    subject.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     subject.subjectCode?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
@@ -56,6 +68,7 @@ const Subjects = () => {
     setModalMode("create");
     setEditingSubject({
       subjectCode: "",
+      subjectName: "",
       description: "",
     });
     setShowModal(true);
@@ -66,6 +79,7 @@ const Subjects = () => {
     setEditingSubject({
       id: subject.id,
       subjectCode: subject.subjectCode || "",
+      subjectName: subject.subjectName || "",
       description: subject.description || "",
     });
     setShowModal(true);
@@ -95,12 +109,14 @@ const Subjects = () => {
       if (modalMode === "create") {
         await adminSubjectService.createSubject({
           subjectCode: editingSubject.subjectCode,
+          subjectName: editingSubject.subjectName,
           description: editingSubject.description,
         });
         showSuccessToast("Tạo môn học thành công");
       } else {
         await adminSubjectService.updateSubject(editingSubject.id, {
           subjectCode: editingSubject.subjectCode,
+          subjectName: editingSubject.subjectName,
           description: editingSubject.description,
         });
         showSuccessToast("Cập nhật môn học thành công");
@@ -146,28 +162,58 @@ const Subjects = () => {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid single-stat">
-        <div className="stat-card glass">
-          <div className="stat-header">
-            <div>
-              <p className="stat-label">Tổng số môn học</p>
-              <h3 className="stat-value">{subjects.length}</h3>
+      {/* Quick Stats & Recent Activity */}
+      <div className="header-stats-section">
+        <div className="quick-stats-grid">
+          <div className="stat-card stat-warning">
+            <div className="stat-icon-warning">
+              <AlertTriangle size={24} />
             </div>
-            <div className="stat-icon-wrapper bg-indigo">
-              <BookOpen size={24} color="white" />
+            <div className="stat-content">
+              <div className="stat-value">3</div>
+              <div className="stat-label">Môn chưa có bài học</div>
             </div>
           </div>
-          <div className="stat-trend">
-            <span className="trend-label">Đang hoạt động trong hệ thống</span>
+
+          <div className="stat-card stat-purple">
+            <div className="stat-icon-purple">
+              <FileText size={24} />
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">127</div>
+              <div className="stat-label">Tổng tài liệu PDF</div>
+            </div>
           </div>
+
+          <div className="stat-card stat-info">
+            <div className="stat-icon-info">
+              <Clock size={24} />
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">2 giờ</div>
+              <div className="stat-label">Cập nhật lần cuối</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="recent-activity-panel">
+          <h4 className="activity-title">
+            <Clock size={16} />
+            Hoạt động gần đây
+          </h4>
+          <div className="activity-tags">
+            <span className="activity-tag tag-edited">Toán học</span>
+            <span className="activity-tag tag-edited">Vật lý</span>
+            <span className="activity-tag tag-edited">Hóa học</span>
+          </div>
+          <p className="activity-time">Vừa chỉnh sửa 15 phút trước</p>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="filters-section glass">
-        <div className="search-box">
-          <Search size={20} className="search-icon" />
+      {/* Search & Filter Toolbar */}
+      <div className="search-filter-toolbar">
+        <div className="search-box-compact-50">
+          <Search size={18} className="search-icon" />
           <input
             type="text"
             placeholder="Tìm kiếm môn học..."
@@ -175,6 +221,20 @@ const Subjects = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
+        </div>
+        <div className="filter-dropdown">
+          <Filter size={16} />
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">Tất cả môn học</option>
+            <option value="khtn">Khoa học tự nhiên</option>
+            <option value="khxh">Khoa học xã hội</option>
+            <option value="ngoaingu">Ngoại ngữ</option>
+            <option value="other">Khác</option>
+          </select>
         </div>
       </div>
 
@@ -213,8 +273,12 @@ const Subjects = () => {
                   </button>
                 </div>
               </div>
-              <div className="subject-card-body">
-                <h3 className="subject-name">{subject.subjectCode}</h3>
+              <div 
+                className="subject-card-body"
+                onClick={() => navigate(`/admin/subjects/${subject.id}`)}
+                style={{ cursor: "pointer" }}
+              >
+                <h3 className="subject-name">{subject.subjectName || subject.subjectCode}</h3>
                 <p className="subject-description">
                   {subject.description || "Chưa có mô tả"}
                 </p>
@@ -259,9 +323,28 @@ const Subjects = () => {
                       subjectCode: e.target.value,
                     })
                   }
-                  placeholder="Ví dụ: MATH10, ENG11"
+                  placeholder="Ví dụ: TOAN, LY, HOA"
                   required
                   maxLength="20"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Tên môn học <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingSubject.subjectName}
+                  onChange={(e) =>
+                    setEditingSubject({
+                      ...editingSubject,
+                      subjectName: e.target.value,
+                    })
+                  }
+                  placeholder="Ví dụ: Toán học, Vật lý, Hóa học"
+                  required
+                  maxLength="100"
                 />
               </div>
 

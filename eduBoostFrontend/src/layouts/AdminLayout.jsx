@@ -3,11 +3,12 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import {
   Users,
-  Settings,
   BookOpen,
   BookMarked,
   FileText,
   HelpCircle,
+  GraduationCap,
+  Award,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 
@@ -33,16 +34,22 @@ const AdminLayout = () => {
             <Users size={20} /> Quản lý tài khoản
           </Link>
           <Link
+            to="/admin/grade-levels"
+            className={`nav-item ${isActive("/admin/grade-levels") ? "active" : ""}`}
+          >
+            <Award size={20} /> Quản lý khối
+          </Link>
+          <Link
+            to="/admin/classes"
+            className={`nav-item ${isActive("/admin/classes") ? "active" : ""}`}
+          >
+            <GraduationCap size={20} /> Quản lý lớp học
+          </Link>
+          <Link
             to="/admin/subjects"
             className={`nav-item ${isActive("/admin/subjects") ? "active" : ""}`}
           >
             <BookOpen size={20} /> Môn học
-          </Link>
-          <Link
-            to="/admin/chapters"
-            className={`nav-item ${isActive("/admin/chapters") ? "active" : ""}`}
-          >
-            <BookMarked size={20} /> Chương học
           </Link>
           <Link
             to="/admin/lesson-resources"
@@ -55,12 +62,6 @@ const AdminLayout = () => {
             className={`nav-item ${isActive("/admin/question-bank") ? "active" : ""}`}
           >
             <HelpCircle size={20} /> Ngân hàng câu hỏi
-          </Link>
-          <Link
-            to="/admin/settings"
-            className={`nav-item ${isActive("/admin/settings") ? "active" : ""}`}
-          >
-            <Settings size={20} /> Cài đặt hệ thống
           </Link>
         </nav>
 
