@@ -57,12 +57,20 @@ const Forum = () => {
                     justify-content: space-between;
                     align-items: center;
                     margin-bottom: 2rem;
+                    flex-wrap: wrap;
+                    gap: 1rem;
                 }
 
                 .forum-layout {
                     display: grid;
-                    grid-template-columns: 1fr 300px;
+                    grid-template-columns: 1fr;
                     gap: 2rem;
+                }
+                
+                @media (min-width: 1024px) {
+                    .forum-layout {
+                        grid-template-columns: 1fr 300px;
+                    }
                 }
 
                 .post-list {
@@ -73,12 +81,19 @@ const Forum = () => {
 
                 .post-card {
                     display: flex;
-                    padding: 1.5rem;
+                    padding: 1rem;
                     background: white;
                     border-radius: 16px;
-                    gap: 1.5rem;
+                    gap: 1rem;
                     transition: transform 0.2s;
                     cursor: pointer;
+                }
+                
+                @media (min-width: 768px) {
+                    .post-card {
+                        padding: 1.5rem;
+                        gap: 1.5rem;
+                    }
                 }
 
                 .post-card:hover {
@@ -92,7 +107,13 @@ const Forum = () => {
                     align-items: center;
                     gap: 4px;
                     color: var(--color-text-secondary);
-                    min-width: 40px;
+                    min-width: 30px;
+                }
+                
+                @media (min-width: 768px) {
+                    .post-vote {
+                        min-width: 40px;
+                    }
                 }
 
                 .post-content {
@@ -101,7 +122,8 @@ const Forum = () => {
 
                 .post-meta {
                     display: flex;
-                    gap: 1rem;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
                     font-size: 0.85rem;
                     margin-bottom: 0.5rem;
                 }

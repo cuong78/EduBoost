@@ -62,7 +62,7 @@ export default function CreateStudentPage() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        
+
         if (name === 'dateOfBirth') {
             // Nếu từ date picker (yyyy-MM-dd)
             if (type === 'date') {
@@ -71,18 +71,18 @@ export default function CreateStudentPage() {
             } else {
                 // Nếu từ text input (dd/MM/yyyy)
                 let formatted = value.replace(/[^0-9/]/g, '');
-                
+
                 // Tự động thêm dấu /
                 if (formatted.length === 2 && !formatted.includes('/')) {
                     formatted = formatted + '/';
                 } else if (formatted.length === 5 && formatted.split('/').length === 2) {
                     formatted = formatted + '/';
                 }
-                
+
                 if (formatted.length > 10) formatted = formatted.slice(0, 10);
-                
+
                 setDateDisplay(formatted);
-                
+
                 // Convert sang ISO nếu đầy đủ 10 ký tự
                 if (formatted.length === 10) {
                     const iso = formatDateToISO(formatted);
@@ -109,7 +109,7 @@ export default function CreateStudentPage() {
         if (!form.fullName?.trim()) next.fullName = 'Họ tên không được để trống';
         if (!form.classId) next.classId = 'Vui lòng chọn lớp';
         if (form.password && form.password.length < 6) next.password = 'Mật khẩu tối thiểu 6 ký tự';
-        
+
         // Validate ngày sinh nếu có nhập
         if (dateDisplay && dateDisplay.length === 10) {
             const datePattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
@@ -117,7 +117,7 @@ export default function CreateStudentPage() {
                 next.dateOfBirth = 'Ngày sinh không hợp lệ (dd/MM/yyyy)';
             }
         }
-        
+
         setErrors(next);
         return Object.keys(next).length === 0;
     };
@@ -203,7 +203,7 @@ export default function CreateStudentPage() {
                         )}
                     </div>
                     <div className="success-actions">
-                       
+
                         <Link to={`/teacher/classes/${form.classId}/students`} className="btn btn-glass">
                             Về danh sách lớp
                         </Link>
@@ -349,7 +349,7 @@ export default function CreateStudentPage() {
                 </div>
 
 
-                
+
                 <div className="form-actions">
                     <Link to={form.classId ? `/teacher/classes/${form.classId}/students` : '/teacher/classes'} className="btn btn-glass">
                         Hủy
@@ -365,8 +365,14 @@ export default function CreateStudentPage() {
                 .breadcrumb { margin-bottom: 1rem; font-size: 0.9rem; color: var(--color-text-secondary); }
                 .breadcrumb a { color: var(--color-accent-1); }
                 .subtitle { color: var(--color-text-secondary); margin-bottom: 2rem; }
-                .form-card { padding: 2rem; border-radius: 16px; }
-                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+                .form-card { padding: 1.5rem; border-radius: 16px; }
+                @media (min-width: 640px) {
+                    .form-card { padding: 2rem; }
+                }
+                .form-row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+                @media (min-width: 640px) {
+                    .form-row { grid-template-columns: 1fr 1fr; }
+                }
                 .form-group { margin-bottom: 1.25rem; }
                 .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
                 .form-group input, .form-group select {

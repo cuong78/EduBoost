@@ -77,7 +77,7 @@ const TeacherDashboard = () => {
                     </div>
                 </div>
 
-               
+
             </div>
 
             <style>{`
@@ -121,9 +121,15 @@ const TeacherDashboard = () => {
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr;
             gap: 1.5rem;
             margin-bottom: 2rem;
+        }
+        
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
         }
 
         .stat-card {
@@ -135,6 +141,12 @@ const TeacherDashboard = () => {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .stat-header > div:first-child {
+            flex: 1;
+            min-width: 0; /* Important for text truncation to work */
         }
 
         .stat-label {
@@ -142,6 +154,9 @@ const TeacherDashboard = () => {
             color: var(--color-text-secondary);
             font-weight: 500;
             margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .stat-value {

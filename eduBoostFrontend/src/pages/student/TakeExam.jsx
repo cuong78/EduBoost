@@ -152,10 +152,13 @@ const TakeExam = () => {
                     .auth-card {
                         max-width: 450px;
                         width: 100%;
-                        padding: 3rem;
+                        padding: 1.5rem;
                         border-radius: 1.5rem;
                         text-align: center;
                         background: rgba(255, 255, 255, 0.8);
+                    }
+                    @media (min-width: 640px) {
+                        .auth-card { padding: 3rem; }
                     }
                     .auth-icon-wrapper {
                         width: 80px;
@@ -252,10 +255,13 @@ const TakeExam = () => {
                     .result-card {
                         max-width: 500px;
                         width: 100%;
-                        padding: 3rem;
+                        padding: 1.5rem;
                         border-radius: 1.5rem;
                         text-align: center;
                         background: white;
+                    }
+                    @media (min-width: 640px) {
+                        .result-card { padding: 3rem; }
                     }
                     .result-icon-wrapper {
                         width: 80px;
@@ -406,7 +412,7 @@ const TakeExam = () => {
                                 key={idx}
                                 onClick={() => setCurrentQuestion(idx)}
                                 className={`palette-btn ${currentQuestion === idx ? 'current' :
-                                        answers[idx] ? 'answered' : ''
+                                    answers[idx] ? 'answered' : ''
                                     }`}
                             >
                                 {idx + 1}
