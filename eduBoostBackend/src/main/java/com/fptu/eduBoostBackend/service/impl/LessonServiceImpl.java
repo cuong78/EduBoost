@@ -55,11 +55,15 @@ public class LessonServiceImpl implements LessonService {
 
         Chapter chapter = chapterRepository.findById(request.getChapterId())
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + request.getChapterId()));
-
+        if (request.getLessonName() == null || request.getLessonName().trim().isEmpty()) {
+            throw new BadRequestException("Lesson name must not be empty");
+        }
         // Check if lesson number already exists in this chapter
         boolean lessonNumberExists = lessonRepository.findByChapter(chapter).stream()
                 .anyMatch(lesson -> lesson.getLessonNumber().equals(request.getLessonNumber()));
-
+        if (request.getLessonNumber() == null || request.getLessonNumber() <= 0) {
+            throw new BadRequestException("Lesson number must be greater than 0");
+        }
         if (lessonNumberExists) {
             throw new BadRequestException("Lesson number " + request.getLessonNumber() +
                     " already exists in this chapter");
@@ -84,14 +88,18 @@ public class LessonServiceImpl implements LessonService {
 
         Lesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + id));
-
+        if (request.getLessonName() == null || request.getLessonName().trim().isEmpty()) {
+            throw new BadRequestException("Lesson name must not be empty");
+        }
         // Check if chapter is being changed
         if (!lesson.getChapter().getId().equals(request.getChapterId())) {
             Chapter newChapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + request.getChapterId()));
             lesson.setChapter(newChapter);
         }
-
+        if (request.getLessonNumber() == null || request.getLessonNumber() <= 0) {
+            throw new BadRequestException("Lesson number must be greater than 0");
+        }
         // Check if lesson number is being changed and if it conflicts
         if (!lesson.getLessonNumber().equals(request.getLessonNumber())) {
             boolean lessonNumberExists = lessonRepository.findByChapter(lesson.getChapter()).stream()
@@ -119,9 +127,9 @@ public class LessonServiceImpl implements LessonService {
         Lesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + id));
 
-        // TODO: Add validation if lesson has resources or questions
-        // For now, we'll allow deletion
-
+        if (lessonRepository.hasQuestions(id)) {
+            throw new BadRequestException("Cannot delete lesson because it has questions");
+        }
         lessonRepository.delete(lesson);
         log.info("Lesson deleted successfully with id: {}", id);
     }

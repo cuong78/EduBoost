@@ -7,6 +7,8 @@ import com.fptu.eduBoostBackend.dto.request.UpdateClassRequest;
 import com.fptu.eduBoostBackend.entities.GradeLevel;
 import com.fptu.eduBoostBackend.entities.SchoolClass;
 import com.fptu.eduBoostBackend.entities.Teacher;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.GradeLevelRepository;
@@ -67,9 +69,19 @@ public class ClassServiceImpl implements ClassService {
 
         // Check if class code already exists
         if (classRepository.existsByClassCode(request.getClassCode())) {
-            throw new IllegalArgumentException("Class code already exists: " + request.getClassCode());
+            throw new ConflictException("Class code already exists: " + request.getClassCode());
+        }
+        if (request.getClassName() == null || request.getClassName().trim().isEmpty()) {
+            throw new BadRequestException("Class name must not be empty");
         }
 
+        if (request.getClassCode() == null || request.getClassCode().trim().isEmpty()) {
+            throw new BadRequestException("Class code must not be empty");
+        }
+
+        if (request.getSchoolYear() == null || request.getSchoolYear().trim().isEmpty()) {
+            throw new BadRequestException("School year must not be empty");
+        }
         SchoolClass schoolClass = SchoolClass.builder()
                 .className(request.getClassName())
                 .classCode(request.getClassCode())
@@ -131,7 +143,7 @@ public class ClassServiceImpl implements ClassService {
         // Check if class has students
         int studentCount = classRepository.countStudentsByClassId(classId);
         if (studentCount > 0) {
-            throw new IllegalStateException("Cannot delete class with " + studentCount + " students");
+            throw new ConflictException ("Cannot delete class with " + studentCount + " students");
         }
         
         classRepository.delete(schoolClass);

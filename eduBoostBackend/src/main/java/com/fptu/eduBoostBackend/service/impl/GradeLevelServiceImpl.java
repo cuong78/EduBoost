@@ -7,6 +7,7 @@ import com.fptu.eduBoostBackend.dto.response.GradeLevelDetailResponse;
 import com.fptu.eduBoostBackend.dto.response.GradeLevelSimpleResponse;
 import com.fptu.eduBoostBackend.entities.GradeLevel;
 import com.fptu.eduBoostBackend.entities.SchoolClass;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.GradeLevelRepository;
@@ -101,7 +102,10 @@ public class GradeLevelServiceImpl implements GradeLevelService {
     @Override
     @Transactional
     public GradeLevelSimpleResponse createGradeLevel(CreateGradeLevelRequest request) {
-        // Check if grade name already exists
+
+        if (request.getGradeName() == null || request.getGradeName().trim().isEmpty()) {
+            throw new BadRequestException("Grade name must not be empty");
+        }
         if (gradeLevelRepository.existsByGradeName(request.getGradeName())) {
             throw new IllegalArgumentException("Grade level already exists: " + request.getGradeName());
         }
@@ -131,7 +135,7 @@ public class GradeLevelServiceImpl implements GradeLevelService {
             // Check if new grade name already exists (excluding current grade)
             if (!gradeLevel.getGradeName().equals(request.getGradeName()) && 
                 gradeLevelRepository.existsByGradeName(request.getGradeName())) {
-                throw new IllegalArgumentException("Grade level already exists: " + request.getGradeName());
+                throw new BadRequestException("Grade level already exists: " + request.getGradeName());
             }
             gradeLevel.setGradeName(request.getGradeName());
         }

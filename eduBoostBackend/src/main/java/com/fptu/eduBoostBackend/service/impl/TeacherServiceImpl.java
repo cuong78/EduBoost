@@ -336,10 +336,11 @@ public class TeacherServiceImpl implements TeacherService {
     public StudentResponse getStudentById(String studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
-        
-        if (student.getSchoolClass() != null) {
-            validateTeacherHasClassAccess(student.getSchoolClass());
+
+        if (student.getSchoolClass() == null) {
+            throw new ForbiddenException("Student is not assigned to your class");
         }
+        validateTeacherHasClassAccess(student.getSchoolClass());
         
         return mapToStudentResponse(student);
     }
@@ -421,7 +422,7 @@ public class TeacherServiceImpl implements TeacherService {
         if (student.getSchoolClass() != null) {
             validateTeacherHasClassAccess(student.getSchoolClass());
         } else {
-            throw new BadRequestException("Student is not assigned to any class");
+            throw new ForbiddenException("Student is not assigned to any class");
         }
 
         // Check if parent account exists, if not create one
@@ -499,7 +500,7 @@ public class TeacherServiceImpl implements TeacherService {
         if (student.getSchoolClass() != null) {
             validateTeacherHasClassAccess(student.getSchoolClass());
         } else {
-            throw new BadRequestException("Student is not assigned to any class");
+            throw new ForbiddenException("Student is not assigned to any class");
         }
 
         // Tính toán page (Spring Data JPA page bắt đầu từ 0)

@@ -14,13 +14,17 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Validated
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
 @Slf4j
 @SecurityRequirement(name = "api")
+@PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
 @Tag(name = "AI Question Generator", description = "APIs for AI-powered question generation")
 public class AIQuestionController {
 

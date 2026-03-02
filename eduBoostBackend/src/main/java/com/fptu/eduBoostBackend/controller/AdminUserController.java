@@ -9,13 +9,16 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+@PreAuthorize("hasRole('ADMIN')")
+@Validated
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
@@ -38,7 +41,7 @@ public class AdminUserController {
                description = "Returns detailed information of a specific user")
     public ResponseEntity<AdminUserResponse> getUserById(
             @Parameter(description = "User ID", required = true)
-            @PathVariable Long userId) {
+            @PathVariable  @Min(1) Long userId) {
         AdminUserResponse user = adminUserService.getUserById(userId);
         return ResponseEntity.ok(user);
     }

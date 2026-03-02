@@ -83,14 +83,7 @@ public class LessonResourceController {
     public ResponseEntity<LessonResourceResponse> createResource(
             @Valid @RequestBody LessonResourceRequest request) {
 
-        // Validate that it's only for URL/TEXT
-        if (request.getResourceType() == LessonResourceType.PDF ||
-                request.getResourceType() == LessonResourceType.DOCX ||
-                request.getResourceType() == LessonResourceType.VIDEO ||
-                request.getResourceType() == LessonResourceType.IMAGE) {
-            throw new BadRequestException("Use /resources/file endpoint for " +
-                    request.getResourceType() + " resources");
-        }
+
 
         log.info("Creating resource for lesson: {}, type: {}",
                 request.getLessonId(), request.getResourceType());

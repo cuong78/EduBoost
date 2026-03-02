@@ -60,6 +60,13 @@ public class ExamServiceImpl implements ExamService {
     @Override
     public Page<ExamResponse> getExams(Long subjectId, Integer gradeLevel, Long examTypeId,
                                         ExamStatus status, Long createdById, Pageable pageable) {
+        if (subjectId != null && !subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject", "id", subjectId);
+        }
+
+        if (examTypeId != null && !examTypeRepository.existsById(examTypeId)) {
+            throw new ResourceNotFoundException("ExamType", "id", examTypeId);
+        }
         Page<Exam> exams = examRepository.findByFilters(subjectId, gradeLevel, examTypeId, status, createdById, pageable);
         return exams.map(this::mapToExamResponse);
     }
@@ -86,7 +93,17 @@ public class ExamServiceImpl implements ExamService {
     @Override
     public ExamResponse createExam(ExamRequest request) {
         User currentUser = getCurrentUser();
-        
+        if (request.getConfig() != null && request.getRequirements() != null) {
+            throw new IllegalArgumentException("Cannot use config and requirements together");
+        }
+
+        if (request.getGradeLevel() == null || request.getGradeLevel() <= 0) {
+            throw new IllegalArgumentException("Invalid grade level");
+        }
+
+        if (request.getExamTitle() == null || request.getExamTitle().isBlank()) {
+            throw new IllegalArgumentException("Exam title is required");
+        }
         ExamType examType = examTypeRepository.findById(request.getExamTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam type not found"));
         
@@ -203,7 +220,9 @@ public class ExamServiceImpl implements ExamService {
         // For simplicity, get questions from related lessons
         List<QuestionBank> availableQuestions = questionBankRepository.findByLessonChapterIdOrdered(
                 exam.getChapter() != null ? exam.getChapter().getId() : null);
-        
+        if (exam.getTotalQuestions() <= 0) {
+            throw new IllegalStateException("Exam has no question configuration");
+        }
         int needed = exam.getTotalQuestions() - examQuestionRepository.countByExamId(examId);
         BigDecimal pointsPerQuestion = exam.getTotalPoints().divide(BigDecimal.valueOf(exam.getTotalQuestions()), 1, RoundingMode.HALF_UP);
         
@@ -273,6 +292,9 @@ public class ExamServiceImpl implements ExamService {
         int aiGenerated = 0;
         List<ExamQuestion> addedQuestions = new ArrayList<>();
         int orderNumber = Optional.ofNullable(examQuestionRepository.findMaxOrderNumber(examId)).orElse(0);
+        if (exam.getTotalQuestions() <= 0) {
+            throw new IllegalStateException("Exam has no question configuration");
+        }
         BigDecimal pointsPerQuestion = exam.getTotalPoints().divide(BigDecimal.valueOf(exam.getTotalQuestions()), 1, RoundingMode.HALF_UP);
         
         // Resolve cognitive level distribution by code to ID
@@ -334,7 +356,12 @@ public class ExamServiceImpl implements ExamService {
                     int stillNeeded = needed - addedForLesson;
                     if (stillNeeded > 0 && Boolean.TRUE.equals(request.getUseAiGeneration())) {
                         // Use default cognitive level (first one)
-                        CognitiveLevel defaultLevel = cognitiveLevelRepository.findAll().stream().findFirst().orElse(null);
+
+                        CognitiveLevel defaultLevel = cognitiveLevelRepository.findAll().stream()
+                                .findFirst()
+                                .orElseThrow(() ->
+                                        new IllegalStateException("No cognitive levels configured in system")
+                                );
                         if (defaultLevel != null) {
                             List<ExamQuestion> aiQuestions = generateAIQuestionsForExam(exam, lessonId, defaultLevel.getId(), stillNeeded, orderNumber, pointsPerQuestion);
                             orderNumber += aiQuestions.size();
@@ -477,11 +504,16 @@ public class ExamServiceImpl implements ExamService {
     public ExamQuestionResponse addQuestionToExam(Long examId, AddQuestionToExamRequest request) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
+        if (request.getPoints() == null || request.getPoints().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Points must be greater than zero");
+        }
+        if (request.getOrderNumber() != null && request.getOrderNumber() <= 0) {
+            throw new IllegalArgumentException("Order number must be positive");
+        }
         if (exam.getStatus() != ExamStatus.DRAFT) {
             throw new IllegalStateException("Can only add questions to exams in DRAFT status");
         }
-        
+
         QuestionBank question = questionBankRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
         
@@ -620,15 +652,34 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     public void reorderQuestions(Long examId, ReorderQuestionsRequest request) {
+
+        if (request == null || request.getQuestionOrders() == null || request.getQuestionOrders().isEmpty()) {
+            throw new IllegalArgumentException("Question order list must not be empty");
+        }
+
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
+
         if (exam.getStatus() != ExamStatus.DRAFT) {
             throw new IllegalStateException("Can only reorder questions in DRAFT exams");
         }
-        
+
         for (QuestionOrderRequest order : request.getQuestionOrders()) {
-            examQuestionRepository.updateOrderNumber(order.getExamQuestionId(), order.getNewOrderNumber());
+
+            if (order.getExamQuestionId() == null) {
+                throw new IllegalArgumentException("ExamQuestionId must not be null");
+            }
+
+            if (order.getNewOrderNumber() == null || order.getNewOrderNumber() <= 0) {
+                throw new IllegalArgumentException("Order number must be greater than 0");
+            }
+        }
+
+        for (QuestionOrderRequest order : request.getQuestionOrders()) {
+            examQuestionRepository.updateOrderNumber(
+                    order.getExamQuestionId(),
+                    order.getNewOrderNumber()
+            );
         }
     }
 

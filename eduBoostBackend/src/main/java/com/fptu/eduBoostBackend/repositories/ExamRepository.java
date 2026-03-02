@@ -58,4 +58,5 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     
     @Query("SELECT COUNT(e) FROM Exam e WHERE e.subject.id = :subjectId AND e.gradeLevel = :gradeLevel")
     long countBySubjectAndGrade(@Param("subjectId") Long subjectId, @Param("gradeLevel") Integer gradeLevel);
+    boolean existsBySubjectId(Long subjectId);
 }

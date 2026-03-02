@@ -4,6 +4,7 @@ package com.fptu.eduBoostBackend.service.impl;
 import com.fptu.eduBoostBackend.dto.response.TokenRefreshResponse;
 import com.fptu.eduBoostBackend.entities.RefreshToken;
 import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.TokenRefreshException;
 import com.fptu.eduBoostBackend.repositories.RefreshTokenRepository;
 import com.fptu.eduBoostBackend.service.RefreshTokenService;
@@ -64,6 +65,13 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .map(this::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
+                    if (user.getStatus() != UserStatus.ACTIVE) {
+                        throw new TokenRefreshException(
+                                requestRefreshToken,
+                                "User account is not active"
+                        );
+                    }
+
                     String newAccessToken = tokenService.generateToken(user);
                     return new TokenRefreshResponse(newAccessToken, requestRefreshToken);
                 })

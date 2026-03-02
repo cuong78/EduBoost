@@ -1,6 +1,7 @@
 package com.fptu.eduBoostBackend.service.impl;
 
 import com.fptu.eduBoostBackend.dto.response.CognitiveLevelResponse;
+import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.service.CognitiveLevelService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,14 @@ public class CognitiveLevelServiceImpl implements CognitiveLevelService {
     @Transactional(readOnly = true)
     public List<CognitiveLevelResponse> getAllCognitiveLevels() {
         log.info("Fetching all cognitive levels");
-        return cognitiveLevelRepository.findAllByOrderByDisplayOrderAsc().stream()
+
+        var levels = cognitiveLevelRepository.findAllByOrderByDisplayOrderAsc();
+
+        if (levels.isEmpty()) {
+            throw new ResourceNotFoundException("Cognitive levels not configured");
+        }
+
+        return levels.stream()
                 .map(level -> CognitiveLevelResponse.builder()
                         .id(level.getId())
                         .level(level.getLevel())

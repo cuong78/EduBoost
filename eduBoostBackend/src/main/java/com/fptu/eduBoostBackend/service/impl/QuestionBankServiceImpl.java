@@ -87,7 +87,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         // Get current user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-
+        if (!currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER")
+                        || a.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new BadRequestException("Only teachers can create questions");
+        }
         // Validate lesson
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));

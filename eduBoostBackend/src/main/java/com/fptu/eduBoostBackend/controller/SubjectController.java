@@ -42,7 +42,7 @@ public class SubjectController {
         SubjectResponse subject = subjectService.getSubjectById(id);
         return ResponseEntity.ok(subject);
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Create new subject",
                description = "Creates a new subject (Admin only)")
@@ -51,7 +51,7 @@ public class SubjectController {
         SubjectResponse subject = subjectService.createSubject(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(subject);
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     @Operation(summary = "Update subject",
                description = "Updates an existing subject (Admin only)")
@@ -62,7 +62,7 @@ public class SubjectController {
         SubjectResponse subject = subjectService.updateSubject(id, request);
         return ResponseEntity.ok(subject);
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete subject",
                description = "Deletes a subject (Admin only)")

@@ -74,6 +74,13 @@ public class LessonResourceServiceImpl implements LessonResourceService {
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));
 
+        if (request.getResourceName() != null &&
+                lessonResourceRepository.existsByLessonAndResourceName(
+                        lesson, request.getResourceName().trim())) {
+            throw new BadRequestException(
+                    "Resource name already exists in this lesson: "
+                            + request.getResourceName());
+        }
         // Get current user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User uploadedBy = (User) authentication.getPrincipal();
@@ -202,26 +209,39 @@ public class LessonResourceServiceImpl implements LessonResourceService {
 
 
     private void validateResourceRequest(LessonResourceRequest request, MultipartFile file) {
+
         switch (request.getResourceType()) {
+
             case PDF:
             case DOCX:
             case VIDEO:
             case IMAGE:
                 if (file == null || file.isEmpty()) {
-                    throw new BadRequestException("File is required for " +
-                            request.getResourceType() + " resources");
+                    throw new BadRequestException(
+                            request.getResourceType() + " resource requires file upload");
                 }
                 break;
+
             case URL:
+                if (file != null) {
+                    throw new BadRequestException("URL resource must not include file");
+                }
                 if (request.getFileUrl() == null || request.getFileUrl().trim().isEmpty()) {
                     throw new BadRequestException("URL is required for URL resources");
                 }
                 break;
+
             case TEXT:
+                if (file != null) {
+                    throw new BadRequestException("TEXT resource must not include file");
+                }
                 if (request.getTextContent() == null || request.getTextContent().trim().isEmpty()) {
                     throw new BadRequestException("Text content is required for TEXT resources");
                 }
                 break;
+
+            default:
+                throw new BadRequestException("Unsupported resource type");
         }
     }
 

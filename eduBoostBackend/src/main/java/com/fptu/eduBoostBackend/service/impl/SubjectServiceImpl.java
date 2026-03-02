@@ -3,8 +3,12 @@ package com.fptu.eduBoostBackend.service.impl;
 import com.fptu.eduBoostBackend.dto.request.SubjectRequest;
 import com.fptu.eduBoostBackend.dto.response.SubjectResponse;
 import com.fptu.eduBoostBackend.entities.Subject;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
+import com.fptu.eduBoostBackend.repositories.ChapterRepository;
+import com.fptu.eduBoostBackend.repositories.ExamRepository;
+import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.SubjectRepository;
 import com.fptu.eduBoostBackend.service.SubjectService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +25,9 @@ import java.util.stream.Collectors;
 public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
-
+    private final ChapterRepository chapterRepository;
+    private final LessonRepository lessonRepository;
+    private final ExamRepository examRepository;
     @Override
     @Transactional(readOnly = true)
     public List<SubjectResponse> getAllSubjects() {
@@ -93,9 +99,11 @@ public class SubjectServiceImpl implements SubjectService {
         Subject subject = subjectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
 
-        // TODO: Add validation if subject is used by chapters/lessons/exams
-        // For now, we'll allow deletion
-
+        if (chapterRepository.existsBySubjectId(id)
+                || lessonRepository.existsBySubjectId(id)
+                || examRepository.existsBySubjectId(id)) {
+            throw new BadRequestException("Cannot delete subject that is already in use");
+        }
         subjectRepository.delete(subject);
         log.info("Subject deleted successfully with id: {}", id);
     }

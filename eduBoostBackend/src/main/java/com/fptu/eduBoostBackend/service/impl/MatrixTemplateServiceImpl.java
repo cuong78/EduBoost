@@ -62,7 +62,14 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
     @Transactional
     public MatrixTemplateResponse createMatrixTemplate(MatrixTemplateRequest request) {
         log.info("Creating matrix template: {}", request.getTemplateName());
-        
+        long distinctCount = request.getDetails().stream()
+                .map(MatrixTemplateDetailRequest::getCognitiveLevelId)
+                .distinct()
+                .count();
+
+        if (distinctCount != request.getDetails().size()) {
+            throw new BadRequestException("Duplicate cognitive levels are not allowed in a matrix template");
+        }
         // Get current user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
@@ -79,7 +86,9 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
         int totalQuestions = request.getDetails().stream()
                 .mapToInt(MatrixTemplateDetailRequest::getNumberOfQuestions)
                 .sum();
-        
+        if (totalQuestions <= 0) {
+            throw new BadRequestException("Total number of questions must be greater than 0");
+        }
         // Create template
         ExamMatrixTemplate template = ExamMatrixTemplate.builder()
                 .templateName(request.getTemplateName())
@@ -164,6 +173,9 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
             int totalQuestions = request.getDetails().stream()
                     .mapToInt(MatrixTemplateDetailRequest::getNumberOfQuestions)
                     .sum();
+            if (totalQuestions <= 0) {
+                throw new BadRequestException("Total number of questions must be greater than 0");
+            }
             template.setTotalQuestions(totalQuestions);
             
             // Create new details

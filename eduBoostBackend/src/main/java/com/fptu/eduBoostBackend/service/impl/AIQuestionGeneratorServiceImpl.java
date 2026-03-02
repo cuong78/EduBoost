@@ -17,6 +17,7 @@ import com.fptu.eduBoostBackend.entities.LessonResource;
 import com.fptu.eduBoostBackend.entities.QuestionBank;
 import com.fptu.eduBoostBackend.entities.enums.QuestionType;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.InternalServerErrorException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
@@ -32,6 +33,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -68,6 +70,9 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));
 
+        if (!resource.getLesson().getId().equals(lesson.getId())) {
+            throw new BadRequestException("Resource does not belong to the specified lesson");
+        }
         // 3. Check if resource has extracted content
         String content = resource.getExtractedContent();
         if (content == null || content.trim().isEmpty()) {
@@ -81,11 +86,16 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         String prompt = buildPrompt(content, request, cognitiveLevels, lesson);
         
         // 6. Call DeepSeek API
+        if (request.getNumberOfQuestions() <= 0 || request.getNumberOfQuestions() > 50) {
+            throw new BadRequestException("Number of questions must be between 1 and 50");
+        }
         AIResponse aiResponse = callDeepSeekAPI(prompt, request.getNumberOfQuestions());
         
         // 7. Parse response
         List<AIGeneratedQuestionResponse> questions = parseAIResponse(aiResponse.content, request.getQuestionType());
-        
+        if (questions.isEmpty()) {
+            throw new BadRequestException("AI did not generate any valid questions");
+        }
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI generation completed in {}ms, generated {} questions", generationTime, questions.size());
 
@@ -225,38 +235,67 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
             
         } catch (Exception e) {
             log.error("Error calling DeepSeek API", e);
-            throw new BadRequestException("Error calling AI service: " + e.getMessage());
+            throw new InternalServerErrorException("AI service is temporarily unavailable");
         }
     }
 
     private List<AIGeneratedQuestionResponse> parseAIResponse(String content, QuestionType questionType) {
         List<AIGeneratedQuestionResponse> questions = new ArrayList<>();
-        
+
         try {
             String jsonContent = extractJsonFromResponse(content);
-            
+
             List<Map<String, Object>> rawQuestions = objectMapper.readValue(
-                    jsonContent, new TypeReference<List<Map<String, Object>>>() {});
-            
+                    jsonContent,
+                    new TypeReference<List<Map<String, Object>>>() {}
+            );
+
             for (Map<String, Object> raw : rawQuestions) {
+
+                String questionText = Objects.toString(raw.get("questionText"), null);
+                String correctAnswer = Objects.toString(raw.get("correctAnswer"), null);
+
+                if (questionText == null || correctAnswer == null) {
+                    log.warn("Skipping invalid AI question (missing required fields): {}", raw);
+                    continue;
+                }
+
+                // SAFE parsing of wrongAnswers (Problem 6)
+                Object wrongAnswersRaw = raw.get("wrongAnswers");
+                List<String> wrongAnswers;
+
+                if (wrongAnswersRaw instanceof List<?>) {
+                    wrongAnswers = ((List<?>) wrongAnswersRaw).stream()
+                            .filter(Objects::nonNull)
+                            .map(Object::toString)
+                            .toList();
+                } else {
+                    wrongAnswers = List.of();
+                }
+
                 AIGeneratedQuestionResponse question = AIGeneratedQuestionResponse.builder()
-                        .questionText((String) raw.get("questionText"))
-                        .correctAnswer((String) raw.get("correctAnswer"))
-                        .wrongAnswers((List<String>) raw.get("wrongAnswers"))
-                        .explanation((String) raw.get("explanation"))
-                        .cognitiveLevel((String) raw.get("cognitiveLevel"))
+                        .questionText(questionText)
+                        .correctAnswer(correctAnswer)
+                        .wrongAnswers(wrongAnswers)
+                        .explanation(Objects.toString(raw.get("explanation"), null))
+                        .cognitiveLevel(Objects.toString(raw.get("cognitiveLevel"), null))
                         .questionType(questionType)
                         .build();
+
                 questions.add(question);
             }
+
         } catch (Exception e) {
-            log.error("Error parsing AI response: {}", e.getMessage());
+            log.error("Error parsing AI response", e);
             throw new BadRequestException("Error parsing AI response. Please try again.");
         }
-        
+
+        if (questions.isEmpty()) {
+            throw new BadRequestException("AI did not return any valid questions");
+        }
+
         return questions;
     }
-
     private String extractJsonFromResponse(String content) {
         content = content.trim();
         if (content.startsWith("```json")) content = content.substring(7);
@@ -300,6 +339,9 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         
         // 4. Call DeepSeek API
         int estimatedQuestions = baseQuestions.size() * request.getNumberOfVariations();
+        if (request.getNumberOfVariations() <= 0 || request.getNumberOfVariations() > 10) {
+            throw new BadRequestException("Number of variations must be between 1 and 10");
+        }
         AIResponse aiResponse = callDeepSeekAPI(prompt, estimatedQuestions);
         
         // 5. Parse response and group by base question
@@ -330,44 +372,89 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
 
         // 1. Validate lesson
         Lesson lesson = lessonRepository.findById(request.getLessonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId())
+                );
 
-        // 2. Fetch content from URL using Jsoup
+        // 2. Validate & parse URL (Problem 8 fix)
+        URI uri;
+        try {
+            uri = URI.create(request.getUrl());
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid URL format");
+        }
+
+        if (!"http".equalsIgnoreCase(uri.getScheme()) &&
+                !"https".equalsIgnoreCase(uri.getScheme())) {
+            throw new BadRequestException("Only HTTP/HTTPS URLs are allowed");
+        }
+
+        String host = uri.getHost();
+        if (host == null ||
+                host.equalsIgnoreCase("localhost") ||
+                host.startsWith("127.") ||
+                host.startsWith("192.168.") ||
+                host.startsWith("10.") ||
+                host.endsWith(".internal")) {
+            throw new BadRequestException("URL is not allowed");
+        }
+
+        // 3. Fetch content safely
         String content;
         String title;
+
         try {
-            Document doc = Jsoup.connect(request.getUrl())
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            Document doc = Jsoup.connect(uri.toString())
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
                     .timeout(30000)
                     .get();
-            
+
             title = doc.title();
-            // Extract main text content, remove scripts and styles
+
             doc.select("script, style, nav, footer, header, aside").remove();
-            content = doc.body().text();
-            
+            content = doc.body() != null ? doc.body().text() : null;
+
             if (content == null || content.trim().isEmpty()) {
                 throw new BadRequestException("Could not extract content from URL");
             }
+
+            if (content.length() > 50_000) {
+                content = content.substring(0, 50_000);
+                log.warn("URL content truncated to 50k characters");
+            }
+
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Error fetching URL content: {}", e.getMessage());
-            throw new BadRequestException("Failed to fetch content from URL: " + e.getMessage());
+            log.error("Error fetching URL content", e);
+            throw new BadRequestException("Failed to fetch content from URL");
         }
 
-        // 3. Fetch cognitive levels
+        // 4. Fetch cognitive levels
         List<CognitiveLevel> cognitiveLevels = cognitiveLevelRepository.findAll();
-        
-        // 4. Build prompt and call AI
+        if (cognitiveLevels.isEmpty()) {
+            throw new InternalServerErrorException("Cognitive levels are not configured");
+        }
+
+        // 5. Validate question count
+        if (request.getNumberOfQuestions() <= 0 || request.getNumberOfQuestions() > 50) {
+            throw new BadRequestException("Number of questions must be between 1 and 50");
+        }
+
+        // 6. Build prompt
         String prompt = buildUrlPrompt(content, title, request, cognitiveLevels, lesson);
-        
-        // 5. Call DeepSeek API
+
+        // 7. Call AI
         AIResponse aiResponse = callDeepSeekAPI(prompt, request.getNumberOfQuestions());
-        
-        // 6. Parse response
-        List<AIGeneratedQuestionResponse> questions = parseAIResponse(aiResponse.content, request.getQuestionType());
-        
+
+        // 8. Parse AI response (safe)
+        List<AIGeneratedQuestionResponse> questions =
+                parseAIResponse(aiResponse.content, request.getQuestionType());
+
         long generationTime = System.currentTimeMillis() - startTime;
-        log.info("AI URL generation completed in {}ms, generated {} questions", generationTime, questions.size());
+
+        log.info("AI URL generation completed in {}ms, generated {} questions",
+                generationTime, questions.size());
 
         return AIGenerateFromUrlResponse.builder()
                 .sourceUrl(request.getUrl())
@@ -383,7 +470,6 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
                 .warnings(new ArrayList<>())
                 .build();
     }
-
     private String buildVariationsPrompt(List<QuestionBank> baseQuestions, int numberOfVariations, 
                                          List<CognitiveLevel> cognitiveLevels) {
         StringBuilder sb = new StringBuilder();

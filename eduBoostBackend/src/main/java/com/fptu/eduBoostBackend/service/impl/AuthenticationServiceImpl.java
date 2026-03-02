@@ -10,6 +10,8 @@ import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
+import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
+import com.fptu.eduBoostBackend.exception.exceptions.UnauthorizedException;
 import com.fptu.eduBoostBackend.mapper.UserMapper;
 import com.fptu.eduBoostBackend.repositories.*;
 import com.fptu.eduBoostBackend.service.AuthenticationService;
@@ -255,11 +257,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void verifyAccount(String token) {
         VerificationToken verificationToken = verificationTokenRepository.findByToken(token);
         if (verificationToken == null) {
-            throw new BadRequestException("Token không hợp lệ");
+            throw new BadRequestException("Verification token is invalid");
         }
 
         if (verificationToken.isExpired()) {
-            throw new BadRequestException("Token đã hết hạn");
+            throw new BadRequestException("Verification token has expired");
         }
 
         User user = verificationToken.getUser();
@@ -294,15 +296,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 throw new DisabledException("Account has been deactivated. Please contact administrator.");
             }
 
-        } catch (BadCredentialsException e) {
-            // Fixed: Preserve stack trace
-            throw new BadRequestException("Username/ password is invalid. Please try again!", e);
-        } catch (LockedException e) {
-            // Fixed: Preserve stack trace
-            throw new BadRequestException("Account has been locked!", e);
-        } catch (Exception e) {
-            // Fixed: Preserve stack trace
-            throw new BadRequestException("Login failed: " + e.getMessage(), e);
+        } catch (DisabledException e) {
+            throw new BadRequestException(e.getMessage(), e);
+        }
+        catch (BadCredentialsException e) {
+            throw new BadRequestException("Username or password is invalid", e);
+        }
+        catch (LockedException e) {
+            throw new BadRequestException("Account has been locked", e);
         }
 
         User user = userRepository
@@ -330,7 +331,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public User validatePasswordResetToken(String token) {
         PasswordResetToken passToken = passwordResetTokenRepository.findByToken(token);
         if (passToken.getExpiryDate().before(new Date())) {
-            throw new IllegalArgumentException("Token expired");
+            throw new BadRequestException("Password reset token has expired");
         }
         return passToken.getUser();
     }
@@ -346,6 +347,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void deleteResetToken(String token) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token);
+        if (resetToken == null) {
+            throw new BadRequestException("Reset token is invalid");
+        }
         passwordResetTokenRepository.delete(resetToken);
     }
 
@@ -383,6 +387,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void changeUserPassword(String oldPassword, String newPassword) {
         // Get current authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new UnauthorizedException("User is not authenticated");
+        }
         String username = authentication.getName();
 
         User user = userRepository
@@ -488,7 +495,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
                 // Check if account is inactive
                 if (user.getStatus() == UserStatus.INACTIVE) {
-                    throw new DisabledException("Account has been deactivated. Please contact administrator.");
+                    throw new ForbiddenException("Account has been deactivated. Please contact administrator.");
                 }
 
                 // User already exists, just login

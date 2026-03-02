@@ -33,4 +33,10 @@ public interface ExamMatrixTemplateRepository extends JpaRepository<ExamMatrixTe
     List<ExamMatrixTemplate> findBySubjectIdAndGradeLevel(Long subjectId, Integer gradeLevel);
     
     boolean existsByTemplateNameAndSubjectIdAndGradeLevel(String templateName, Long subjectId, Integer gradeLevel);
+    boolean existsByTemplateNameAndExamTypeIdAndSubjectIdAndGradeLevel(
+            String templateName,
+            Long examTypeId,
+            Long subjectId,
+            Integer gradeLevel
+    );
 }

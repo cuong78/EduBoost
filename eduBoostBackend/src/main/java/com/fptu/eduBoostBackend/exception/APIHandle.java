@@ -81,16 +81,16 @@ public class APIHandle {
                         .data(null)
                         .build());
     }
-
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ResponseObject> handleRuntimeExceptionException(RuntimeException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ResponseObject.builder()
-                        .statusCode(HttpStatus.BAD_REQUEST.value())
-                        .message(exception.getMessage())
-                        .data(null)
-                        .build());
-    }
+//
+//    @ExceptionHandler(RuntimeException.class)
+//    public ResponseEntity<ResponseObject> handleRuntimeExceptionException(RuntimeException exception) {
+//        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                .body(ResponseObject.builder()
+//                        .statusCode(HttpStatus.BAD_REQUEST.value())
+//                        .message(exception.getMessage())
+//                        .data(null)
+//                        .build());
+//    }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ResponseObject> handleNotFoundException(NotFoundException exception) {

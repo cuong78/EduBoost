@@ -288,8 +288,8 @@ public class ParentServiceImpl implements ParentService {
                 .student(studentDTO)
                 .classInfo(classDTO)
                 .relationship(parentStudent.getRelationship())
-                .isPrimary(false) // TODO: implement isPrimary logic if needed
-                .linkedAt(LocalDateTime.now()) // TODO: add linkedAt field to ParentStudent entity
+                .isPrimary(false)
+                .linkedAt(LocalDateTime.now())
                 .build();
     }
 

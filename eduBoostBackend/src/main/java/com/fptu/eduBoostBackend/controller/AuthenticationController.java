@@ -68,52 +68,30 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<ResponseObject> register(@Valid @RequestBody UserRegistrationRequest request) {
-        try {
-            User user = authenticationService.register(request);
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(
-                            HttpStatus.OK.value(),
-                            "Registration successful, please check email for authentication",
-                            authenticationService.mapUserToCustomerResponse(user)));
-        } catch (ConflictException e) {
-            throw e;
-        } catch (RuntimeException e) {
-            // Fixed: Preserve stack trace
-            throw new BadRequestException(e.getMessage(), e);
-        }
+        User user = authenticationService.register(request);
+        return ResponseEntity.ok(
+                new ResponseObject(
+                        HttpStatus.OK.value(),
+                        "Registration successful, please check email for authentication",
+                        authenticationService.mapUserToCustomerResponse(user)
+                )
+        );
     }
 
 
     @PostMapping("/login")
     public ResponseEntity<ResponseObject> login(@RequestBody LoginRequest loginRequest) {
-        try {
-            UserResponse userResponse = authenticationService.login(loginRequest);
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(HttpStatus.OK.value(), LOGIN_SUCCESSFUL, userResponse));
-        } catch (RuntimeException e) {
-            // Fixed: Position literals first in String comparisons
-            if (ACCOUNT_LOCKED_MESSAGE.equals(e.getMessage())) {
-                // Fixed: Preserve stack trace
-                throw new ForbiddenException(e.getMessage(), e);
-            }
-            // Fixed: Preserve stack trace
-            throw new BadRequestException(e.getMessage(), e);
-        }
+        UserResponse userResponse = authenticationService.login(loginRequest);
+        return ResponseEntity.ok(
+                new ResponseObject(HttpStatus.OK.value(), LOGIN_SUCCESSFUL, userResponse)
+        );
     }
-
     @PostMapping("/refresh-token")
     public ResponseEntity<ResponseObject> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
-        try {
-            TokenRefreshResponse response = refreshTokenService.refreshToken(request.getRefreshToken());
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(
-                            HttpStatus.OK.value(),
-                            "Token refreshed successfully",
-                            response));
-        } catch (TokenRefreshException e) {
-            // Fixed: Preserve stack trace
-            throw new ForbiddenException(e.getMessage(), e);
-        }
+        TokenRefreshResponse response = refreshTokenService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(
+                new ResponseObject(HttpStatus.OK.value(), "Token refreshed successfully", response)
+        );
     }
 
     @PostMapping("/forgot-password")
@@ -149,25 +127,23 @@ public class AuthenticationController {
             throw new BadRequestException(e.getMessage(), e);
         }
     }
-
     @PostMapping("/reset-password")
     public ResponseEntity<ResponseObject> resetPasswordWithToken(@RequestBody ResetPasswordWithTokenRequest request) {
-        try {
-            authenticationService.resetPasswordWithToken(request.getToken(), request.getNewPassword());
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(HttpStatus.OK.value(), "Đặt lại mật khẩu thành công", null));
-        } catch (Exception e) {
-            // Fixed: Preserve stack trace
-            throw new BadRequestException(e.getMessage(), e);
-        }
+        authenticationService.resetPasswordWithToken(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(
+                new ResponseObject(HttpStatus.OK.value(), "Đặt lại mật khẩu thành công", null)
+        );
     }
-
     @PostMapping("/logout")
     @SecurityRequirement(name = "api")
     @Transactional
     public ResponseEntity<ResponseObject> logout() {
         try {
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+                throw new ForbiddenException("User is not authenticated");
+            }
             User user = (User) authentication.getPrincipal();
 
             authenticationService.logout(user);
@@ -183,47 +159,29 @@ public class AuthenticationController {
 
     @PostMapping("/verify")
     public ResponseEntity<ResponseObject> verifyAccount(@RequestParam String token) {
-        try {
-            authenticationService.verifyAccount(token);
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(HttpStatus.OK.value(), "Xác thực tài khoản thành công", null));
-        } catch (BadRequestException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ResponseObject(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null));
-        }
+        authenticationService.verifyAccount(token);
+        return ResponseEntity.ok(
+                new ResponseObject(HttpStatus.OK.value(), "Xác thực tài khoản thành công", null)
+        );
+
     }
 
 
     @PostMapping("/change-password")
     @SecurityRequirement(name = "api")
     public ResponseEntity<ResponseObject> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        try {
-            authenticationService.changeUserPassword(request.getOldPassword(), request.getNewPassword());
-            return ResponseEntity.ok()
-                    .body(new ResponseObject(HttpStatus.OK.value(), "Password changed successfully", null));
-        } catch (UsernameNotFoundException e) {
-            // Fixed: Preserve stack trace
-            throw new NotFoundException("User not found", e);
-        } catch (BadRequestException e) {
-            // Fixed: Preserve stack trace
-            throw new BadRequestException(e.getMessage(), e);
-        } catch (Exception e) {
-            // Fixed: Preserve stack trace
-            throw new InternalServerErrorException("Failed to change password: " + e.getMessage(), e);
-        }
+        authenticationService.changeUserPassword(request.getOldPassword(), request.getNewPassword());
+        return ResponseEntity.ok(
+                new ResponseObject(HttpStatus.OK.value(), "Password changed successfully", null)
+        );
     }
 
     @PostMapping("/google-login")
     public ResponseEntity<ResponseObject> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
-        try {
             UserResponse userResponse = authenticationService.loginWithGoogle(request.getIdToken());
             return ResponseEntity.ok()
                     .body(new ResponseObject(HttpStatus.OK.value(), "Google login successful", userResponse));
-        } catch (BadRequestException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BadRequestException("Google login failed: " + e.getMessage(), e);
-        }
+
     }
 
    

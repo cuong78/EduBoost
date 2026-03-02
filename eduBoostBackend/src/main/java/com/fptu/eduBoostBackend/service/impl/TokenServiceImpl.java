@@ -2,6 +2,7 @@ package com.fptu.eduBoostBackend.service.impl;
 
 
 import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.exception.exceptions.UnauthorizedException;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
 import com.fptu.eduBoostBackend.security.JwtTokenProvider;
 import com.fptu.eduBoostBackend.service.TokenService;
@@ -34,22 +35,24 @@ public class TokenServiceImpl implements TokenService {
     @Override
     public User validateAndGetUser(String token) {
         // Parse token để lấy claims
-        Claims claims = jwtTokenProvider.getClaims(token);
-
+        Claims claims;
+        try {
+            claims = jwtTokenProvider.getClaims(token);
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid or expired token");
+        }
         String username = claims.getSubject();
 
         // Lấy user từ database
         User user = userRepository
                 .findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
-
+                .orElseThrow(() -> new UnauthorizedException("User not found or token is invalid"));
         // Kiểm tra token version
         int tokenVersion = jwtTokenProvider.getTokenVersion(claims);
         if (tokenVersion != user.getTokenVersion()) {
             log.warn("Token version mismatch for user: {}. Expected: {}, Got: {}",
                     username, user.getTokenVersion(), tokenVersion);
-            throw new ExpiredJwtException(null, claims, "Token has been invalidated");
-        }
+            throw new UnauthorizedException("Token has been invalidated");        }
 
         log.debug("Token validated successfully for user: {}", username);
         return user;

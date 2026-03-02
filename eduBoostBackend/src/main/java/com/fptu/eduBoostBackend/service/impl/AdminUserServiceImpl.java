@@ -8,6 +8,9 @@ import com.fptu.eduBoostBackend.entities.SchoolClass;
 import com.fptu.eduBoostBackend.entities.Student;
 import com.fptu.eduBoostBackend.entities.Teacher;
 import com.fptu.eduBoostBackend.entities.User;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
+import com.fptu.eduBoostBackend.exception.exceptions.NotFoundException;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.RoleRepository;
 import com.fptu.eduBoostBackend.repositories.StudentRepository;
@@ -44,7 +47,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public AdminUserResponse getUserById(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
         return convertToAdminUserResponse(user);
     }
 
@@ -52,9 +55,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public AdminUserResponse updateUserStatus(Long userId, UpdateUserStatusRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
-        user.setStatus(request.getStatus());
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+        if (user.getStatus() == request.getStatus()) {
+            throw new BadRequestException("User already has status " + request.getStatus());
+        }
         User updatedUser = userRepository.save(user);
         
         return convertToAdminUserResponse(updatedUser);
@@ -64,7 +68,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public AdminUserResponse updateUser(Long userId, UpdateUserRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() ->new NotFoundException("User not found with id: " + userId));
         
         // Update basic info if provided
         if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
@@ -74,7 +78,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
             // Check if email already exists for another user
             if (userRepository.existsByEmailAndUserIdNot(request.getEmail(), userId)) {
-                throw new RuntimeException("Email already exists");
+                throw new ConflictException("Email already exists");
             }
             user.setEmail(request.getEmail());
         }
@@ -82,7 +86,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
             // Check if phone already exists for another user
             if (userRepository.existsByPhoneAndUserIdNot(request.getPhone(), userId)) {
-                throw new RuntimeException("Phone number already exists");
+                throw new ConflictException("Phone number already exists");
             }
             user.setPhone(request.getPhone());
         }
@@ -97,10 +101,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             Set<Role> roles = new HashSet<>();
             for (String roleName : request.getRoles()) {
                 Role role = roleRepository.findById(roleName)
-                        .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+                        .orElseThrow(() -> new BadRequestException("Role not found: " + roleName));
                 roles.add(role);
             }
-            user.setRoles(roles);
+            if (roles.isEmpty()) {
+                throw new BadRequestException("User must have at least one role");
+            }
         }
         
         User updatedUser = userRepository.save(user);

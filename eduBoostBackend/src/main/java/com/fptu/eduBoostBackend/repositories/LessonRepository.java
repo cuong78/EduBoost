@@ -13,4 +13,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByChapterOrderByLessonNumberAsc(Chapter chapter);
     List<Lesson> findByChapterId(Long chapterId);
     long countByChapterId(Long chapterId);
+    boolean hasQuestions(Long lessonId);
+    boolean existsBySubjectId(Long subjectId);
 }

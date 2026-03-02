@@ -22,5 +22,8 @@ public class PasswordResetToken {
     private User user;
 
     private Date expiryDate;
+    public boolean isExpired() {
+        return new Date().after(expiryDate);
+    }
 }
 

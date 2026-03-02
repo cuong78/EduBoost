@@ -1,6 +1,7 @@
 package com.fptu.eduBoostBackend.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -18,10 +19,10 @@ public class Subject {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @NotBlank(message = "Subject code is required")
     @Column(name = "subject_code", nullable = false, unique = true, length = 20)
     private String subjectCode;
-
+    @NotBlank(message = "Subject name is required")
     @Column(name = "subject_name", nullable = false, length = 100)
     private String subjectName;
 

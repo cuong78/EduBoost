@@ -2,7 +2,11 @@ package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.request.*;
 import com.fptu.eduBoostBackend.dto.response.*;
+import com.fptu.eduBoostBackend.entities.Exam;
 import com.fptu.eduBoostBackend.entities.enums.ExamStatus;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
+import com.fptu.eduBoostBackend.repositories.ExamRepository;
 import com.fptu.eduBoostBackend.service.ExamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,7 +36,6 @@ import java.util.List;
 public class ExamController {
 
     private final ExamService examService;
-
     // ==================== CRUD Operations ====================
 
     @GetMapping
@@ -45,6 +48,13 @@ public class ExamController {
             @Parameter(description = "Exam status") @RequestParam(required = false) ExamStatus status,
             @Parameter(description = "Creator ID") @RequestParam(required = false) Long createdById,
             @PageableDefault(size = 20) Pageable pageable) {
+        if (gradeLevel != null && (gradeLevel < 1 || gradeLevel > 12)) {
+            throw new BadRequestException("Grade level must be between 1 and 12");
+        }
+
+        if (pageable.getPageSize() > 100) {
+            throw new BadRequestException("Page size too large");
+        }
         log.info("Fetching exams with filters - subjectId: {}, gradeLevel: {}, examTypeId: {}, status: {}", 
                 subjectId, gradeLevel, examTypeId, status);
         Page<ExamResponse> exams = examService.getExams(subjectId, gradeLevel, examTypeId, status, createdById, pageable);
@@ -56,9 +66,10 @@ public class ExamController {
             description = "Returns detailed information of a specific exam including all questions")
     public ResponseEntity<ExamResponse> getExamById(
             @Parameter(description = "Exam ID", required = true) @PathVariable Long id) {
+
         log.info("Fetching exam with id: {}", id);
-        ExamResponse exam = examService.getExamById(id);
-        return ResponseEntity.ok(exam);
+        ExamResponse examR = examService.getExamById(id);
+        return ResponseEntity.ok(examR);
     }
 
     @PostMapping
@@ -67,6 +78,7 @@ public class ExamController {
             description = "Creates a new exam with the specified configuration")
     public ResponseEntity<ExamResponse> createExam(
             @Valid @RequestBody ExamRequest request) {
+
         log.info("Creating exam: {}", request.getExamTitle());
         ExamResponse exam = examService.createExam(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(exam);
