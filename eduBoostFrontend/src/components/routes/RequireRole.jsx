@@ -31,6 +31,32 @@ const getRoleName = (roles) => {
  * - wrong role -> /unauthorized
  */
 export default function RequireRole({ allow = [] }) {
-  // Bypassed for local UI testing
+  const { user, loading, isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  // Trong lúc đang kiểm tra trạng thái đăng nhập
+  if (loading) {
+    return null;
+  }
+
+  // Chưa đăng nhập → chuyển về trang login, đồng thời nhớ lại route cũ
+  if (!isAuthenticated || !user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
+  }
+
+  const roleName = getRoleName(user.roles);
+
+  // Nếu route yêu cầu role cụ thể và user không nằm trong danh sách cho phép
+  if (allow.length > 0 && !allow.includes(roleName)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Đúng role → cho phép truy cập vào subtree
   return <Outlet />;
 }

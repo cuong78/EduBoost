@@ -5,19 +5,70 @@ import { authService } from "../services/authService";
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState({
-    userId: 1,
-    username: "mock_user",
-    fullName: "Mock User",
-    email: "mock@example.com",
-    roles: [{ roleName: "ADMIN" }, { roleName: "TEACHER" }, { roleName: "STUDENT" }, { roleName: "PARENT" }],
-    permissions: []
-  });
-  const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Auth checks bypassed for local UI testing
+    let isMounted = true;
+
+    const initAuth = async () => {
+      try {
+        const token = tokenManager.getToken();
+
+        // Không có token → chưa đăng nhập
+        if (!token || tokenManager.isTokenExpired(token)) {
+          tokenManager.clearToken();
+          if (!isMounted) return;
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+
+        // Có token hợp lệ → lấy thông tin user
+        const profile = await authService.getMyInfo();
+        if (!isMounted) return;
+
+        const userInfo = {
+          userId: profile.userId || 0,
+          username: profile.username || "",
+          fullName: profile.fullName || profile.username || "",
+          email: profile.email || "",
+          phoneNumber: profile.phoneNumber || profile.phone || "",
+          identityCard: profile.identityCard || "",
+          gender: profile.gender || "OTHER",
+          dateOfBirth: profile.dateOfBirth || "",
+          address: profile.address || "",
+          avatarUrl: profile.avatarUrl || "",
+          memberScore: profile.memberScore || 0,
+          status: profile.status || "ACTIVE",
+          deleted: profile.deleted || false,
+          roles: profile.roles || [],
+          permissions: profile.permissions || [],
+        };
+
+        setUser(userInfo);
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Token không hợp lệ hoặc gọi API lỗi → coi như chưa đăng nhập
+        console.error("Failed to initialize auth state:", error);
+        tokenManager.clearToken();
+        if (!isMounted) return;
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const value = {
