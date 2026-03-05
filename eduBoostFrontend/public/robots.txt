@@ -1,0 +1,22 @@
+# robots.txt for EduBoost
+# https://eduboost.com/robots.txt
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /parent/login
+
+# Disallow private/admin routes
+Disallow: /student/
+Disallow: /teacher/
+Disallow: /admin/
+Disallow: /parent/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://eduboost.com/sitemap.xml
+
+# Crawl delay (optional, be nice to servers)
+Crawl-delay: 1
+
