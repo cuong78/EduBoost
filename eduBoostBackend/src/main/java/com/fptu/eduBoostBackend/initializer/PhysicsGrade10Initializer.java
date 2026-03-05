@@ -9,19 +9,14 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class PhysicsEnglishInitializer {
+public class PhysicsGrade10Initializer {
 
     private final SubjectRepository subjectRepository;
     private final ChapterRepository chapterRepository;
     private final LessonRepository lessonRepository;
-    private final LessonResourceRepository lessonResourceRepository;
+
 
     public void init() {
-        initPhysics10();
-        initEnglish10();
-    }
-
-    private void initPhysics10() {
         Subject physics = subjectRepository.findBySubjectCode("LY").orElse(null);
         if (physics == null) return;
 
@@ -114,19 +109,5 @@ public class PhysicsEnglishInitializer {
         lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(2).lessonName("Khối lượng riêng. Áp suất chất lỏng").build());
     }
 
-    private void initEnglish10() {
-        Subject english = subjectRepository.findBySubjectCode("ANH").orElse(null);
-        if (english == null) return;
 
-        // Unit 1: Family Life
-        Chapter unit1 = chapterRepository.save(Chapter.builder().subject(english).gradeLevel(10).chapterNumber(1)
-                .chapterName("Family Life").description("Unit 1: Family Life - Đời sống gia đình").build());
-        Lesson u1l1 = lessonRepository.save(Lesson.builder().chapter(unit1).lessonNumber(1)
-                .lessonName("Getting Started").description("Introduction to family life topic").build());
-        lessonResourceRepository.save(LessonResource.builder().lesson(u1l1).resourceName("Vocabulary - Family Life")
-                .resourceType(LessonResourceType.TEXT)
-                .extractedContent("Family members: father, mother, brother, sister... Household chores: cook, clean, wash...").build());
-        lessonRepository.save(Lesson.builder().chapter(unit1).lessonNumber(2)
-                .lessonName("Language - Grammar").description("Present Simple vs Present Continuous").build());
-    }
 }
