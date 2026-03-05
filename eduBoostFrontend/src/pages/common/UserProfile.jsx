@@ -239,24 +239,44 @@ const UserProfile = () => {
 
                 .profile-layout {
                     display: grid;
-                    grid-template-columns: 250px 1fr;
-                    gap: 2rem;
+                    grid-template-columns: 1fr;
+                    gap: 1.5rem;
                     align-items: start;
+                }
+                
+                @media (min-width: 768px) {
+                    .profile-layout {
+                        grid-template-columns: 250px 1fr;
+                        gap: 2rem;
+                    }
                 }
 
                 .profile-tabs {
                     padding: 1rem;
                     border-radius: 16px;
                     display: flex;
-                    flex-direction: column;
+                    flex-direction: row;
+                    overflow-x: auto;
                     gap: 0.5rem;
+                    white-space: nowrap;
+                }
+                
+                .profile-tabs::-webkit-scrollbar {
+                    display: none;
+                }
+                
+                @media (min-width: 768px) {
+                    .profile-tabs {
+                        flex-direction: column;
+                        overflow-x: visible;
+                    }
                 }
 
                 .tab-btn {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    padding: 1rem;
+                    padding: 0.75rem 1rem;
                     border-radius: 12px;
                     border: none;
                     background: transparent;
@@ -267,13 +287,20 @@ const UserProfile = () => {
                     transition: all 0.2s;
                     text-align: left;
                 }
+                @media (min-width: 768px) {
+                    .tab-btn { padding: 1rem; }
+                }
                 .tab-btn:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
                 .tab-btn.active { background: var(--color-accent-1); color: white; }
 
                 .profile-content {
-                    padding: 2.5rem;
+                    padding: 1.5rem;
                     border-radius: 16px;
                     min-height: 500px;
+                }
+                
+                @media (min-width: 768px) {
+                    .profile-content { padding: 2.5rem; }
                 }
 
                 .section-title {
@@ -376,7 +403,15 @@ const UserProfile = () => {
                     border-radius: 12px;
                     border: 1px solid #f1f5f9;
                     transition: background 0.2s;
+                    flex-wrap: wrap; /* Allow wrapping on small screens */
                 }
+                
+                @media (min-width: 640px) {
+                    .history-item {
+                        flex-wrap: nowrap;
+                    }
+                }
+                
                 .history-item:hover { background: #f8fafc; }
                 
                 .history-icon {
@@ -390,7 +425,10 @@ const UserProfile = () => {
                 .bg-indigo { background: #6366f1; }
                 .bg-orange { background: #f97316; }
 
-                .history-info { flex: 1; }
+                .history-info { 
+                    flex: 1; 
+                    min-width: 200px;
+                }
                 .history-info h4 { margin: 0 0 0.25rem 0; font-size: 1rem; color: var(--color-text-primary); }
                 .history-info p { margin: 0; font-size: 0.85rem; color: #94a3b8; }
 

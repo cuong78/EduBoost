@@ -2,7 +2,7 @@ import { Activity, Server, Users, DollarSign } from 'lucide-react';
 
 const AdminDashboard = () => {
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-gray-800 mb-8">System Overview</h1>
 
             {/* System Health Cards */}

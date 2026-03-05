@@ -39,12 +39,14 @@ export default function RedirectIfAuthenticated() {
   // KHÔNG redirect nếu đang ở trong protected routes (admin, teacher, student, parent)
   const protectedPaths = ['/admin', '/teacher', '/student', '/parent'];
   const isProtectedRoute = protectedPaths.some(path => location.pathname.startsWith(path));
-  
+
   if (isProtectedRoute) {
     return <Outlet />;
   }
 
+  // KHÔNG redirect trong phiên test giao diện (bỏ qua auth)
   // Nếu đã đăng nhập, redirect về dashboard tương ứng với role
+  /*
   if (user && user.roles && user.roles.length > 0) {
     const roleName = getRoleName(user.roles);
 
@@ -59,6 +61,7 @@ export default function RedirectIfAuthenticated() {
 
     return <Navigate to={roleRedirect} replace />;
   }
+  */
 
   // Nếu chưa đăng nhập, cho phép truy cập
   return <Outlet />;
