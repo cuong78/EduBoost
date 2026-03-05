@@ -1,33 +1,45 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Layers, FileText, Eye, Sparkles, Download, Pencil, RefreshCw, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
-import { knowledgeService } from '../../services/knowledgeService';
-import { examService } from '../../services/examService';
-import { showErrorToast, showSuccessToast } from '../../utils/show-toast';
-import RichTextEditor from '../../components/common/RichTextEditor';
-import MathRenderer from '../../components/common/MathRenderer';
-import { jsPDF } from 'jspdf';
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  Layers,
+  FileText,
+  Eye,
+  Sparkles,
+  Download,
+  Pencil,
+  RefreshCw,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import { knowledgeService } from "../../services/knowledgeService";
+import { examService } from "../../services/examService";
+import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
+import RichTextEditor from "../../components/common/RichTextEditor";
+import MathRenderer from "../../components/common/MathRenderer";
+import { jsPDF } from "jspdf";
 
-const GRADE_OPTIONS = [10, 11, 12];
+const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
 const DEFAULT_EXAM_TYPES = [
-  { value: '15MIN', label: "Kiểm tra 15 phút" },
-  { value: '45MIN', label: "Kiểm tra 1 tiết" },
-  { value: 'MIDTERM', label: "Kiểm tra giữa kỳ" },
-  { value: 'FINAL', label: "Kiểm tra cuối kỳ" },
+  { value: "15MIN", label: "Kiểm tra 15 phút" },
+  { value: "45MIN", label: "Kiểm tra 1 tiết" },
+  { value: "MIDTERM", label: "Kiểm tra giữa kỳ" },
+  { value: "FINAL", label: "Kiểm tra cuối kỳ" },
 ];
 
 const COGNITIVE_LEVELS = [
-  { id: 'nb', name: 'Nhận biết' },
-  { id: 'th', name: 'Thông hiểu' },
-  { id: 'vd', name: 'Vận dụng' },
-  { id: 'vdc', name: 'Vận dụng cao' },
+  { id: "nb", name: "Nhận biết" },
+  { id: "th", name: "Thông hiểu" },
+  { id: "vd", name: "Vận dụng" },
+  { id: "vdc", name: "Vận dụng cao" },
 ];
 
 const durationMinutesByTypeCode = (typeCode) => {
-  if (typeCode === '15MIN') return 15;
-  if (typeCode === '45MIN') return 45;
-  if (typeCode === 'MIDTERM') return 60;
-  if (typeCode === 'FINAL') return 90;
+  if (typeCode === "15MIN") return 15;
+  if (typeCode === "45MIN") return 45;
+  if (typeCode === "MIDTERM") return 60;
+  if (typeCode === "FINAL") return 90;
   return 45;
 };
 
@@ -44,17 +56,17 @@ const shuffleAnswers = (correct, wrong1, wrong2, wrong3, seed) => {
 };
 
 const ExamGenerator = () => {
-    const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1);
 
   const [subjects, setSubjects] = useState([]);
-  const [subjectId, setSubjectId] = useState('');
-  const [gradeLevel, setGradeLevel] = useState(10);
-  const [examType, setExamType] = useState('15MIN');
+  const [subjectId, setSubjectId] = useState("");
+  const [gradeLevel, setGradeLevel] = useState(6);
+  const [examType, setExamType] = useState("15MIN");
   const [examTypes, setExamTypes] = useState([]);
-  const [examTitle, setExamTitle] = useState('');
+  const [examTitle, setExamTitle] = useState("");
 
   const [chapters, setChapters] = useState([]);
-  const [chapterId, setChapterId] = useState('');
+  const [chapterId, setChapterId] = useState("");
   const [lessons, setLessons] = useState([]);
   const [selectedLessonIds, setSelectedLessonIds] = useState([]);
 
@@ -62,7 +74,12 @@ const ExamGenerator = () => {
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [pointsPerQuestion, setPointsPerQuestion] = useState(1);
   const [lessonDistribution, setLessonDistribution] = useState({}); // { [lessonId]: count }
-  const [levelDistribution, setLevelDistribution] = useState({ nb: 4, th: 4, vd: 2, vdc: 0 });
+  const [levelDistribution, setLevelDistribution] = useState({
+    nb: 4,
+    th: 4,
+    vd: 2,
+    vdc: 0,
+  });
 
   // Preview
   const [previewQuestions, setPreviewQuestions] = useState([]);
@@ -71,29 +88,35 @@ const ExamGenerator = () => {
   const [editingId, setEditingId] = useState(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(true); // Toggle hiển thị đáp án đúng
   const [editForm, setEditForm] = useState({
-    modifiedQuestionText: '',
-    modifiedCorrectAnswer: '',
-    modifiedExplanation: '',
-    wrongAnswer1: '',
-    wrongAnswer2: '',
-    wrongAnswer3: '',
+    modifiedQuestionText: "",
+    modifiedCorrectAnswer: "",
+    modifiedExplanation: "",
+    wrongAnswer1: "",
+    wrongAnswer2: "",
+    wrongAnswer3: "",
   });
 
-    const stats = useMemo(() => {
+  const stats = useMemo(() => {
     const byLesson = selectedLessonIds.reduce((acc, lid) => {
       acc[lid] = Number(lessonDistribution[lid] || 0);
-            return acc;
-        }, {});
-    const sumLesson = Object.values(byLesson).reduce((s, n) => s + Number(n), 0);
+      return acc;
+    }, {});
+    const sumLesson = Object.values(byLesson).reduce(
+      (s, n) => s + Number(n),
+      0,
+    );
 
-    const sumLevel = Object.values(levelDistribution).reduce((s, n) => s + Number(n), 0);
+    const sumLevel = Object.values(levelDistribution).reduce(
+      (s, n) => s + Number(n),
+      0,
+    );
 
     return { byLesson, sumLesson, sumLevel };
   }, [selectedLessonIds, lessonDistribution, levelDistribution]);
 
   const loadSubjects = async () => {
     const data = await knowledgeService.getSubjects();
-    const list = Array.isArray(data) ? data : data?.data ?? [];
+    const list = Array.isArray(data) ? data : (data?.data ?? []);
     setSubjects(list);
     if (!subjectId && list.length) setSubjectId(String(list[0].id));
   };
@@ -101,7 +124,7 @@ const ExamGenerator = () => {
   const loadExamTypes = async () => {
     try {
       const data = await examService.getExamTypes();
-      const list = Array.isArray(data) ? data : data?.data ?? [];
+      const list = Array.isArray(data) ? data : (data?.data ?? []);
       setExamTypes(list);
     } catch {
       setExamTypes([]);
@@ -109,7 +132,9 @@ const ExamGenerator = () => {
   };
 
   const getSelectedExamTypeId = () => {
-    const found = examTypes.find((t) => String(t.typeCode) === String(examType));
+    const found = examTypes.find(
+      (t) => String(t.typeCode) === String(examType),
+    );
     return found?.id ?? null;
   };
 
@@ -123,21 +148,30 @@ const ExamGenerator = () => {
 
   const loadChapters = async () => {
     if (!subjectId) return;
-    const data = await knowledgeService.getChaptersBySubject(subjectId, gradeLevel);
-    const list = Array.isArray(data) ? data : data?.data ?? [];
+    const data = await knowledgeService.getChaptersBySubject(
+      subjectId,
+      gradeLevel,
+    );
+    const list = Array.isArray(data) ? data : (data?.data ?? []);
     setChapters(list);
-    setChapterId(list.length ? String(list[0].id) : '');
+    setChapterId(list.length ? String(list[0].id) : "");
   };
 
   const loadLessons = async () => {
     if (!chapterId) return;
     const data = await knowledgeService.getLessonsByChapter(chapterId);
-    const list = Array.isArray(data) ? data : data?.data ?? [];
+    const list = Array.isArray(data) ? data : (data?.data ?? []);
     setLessons(list);
     const firstIds = list.slice(0, 2).map((l) => String(l.id));
     setSelectedLessonIds(firstIds);
     const dist = {};
-    firstIds.forEach((id) => (dist[id] = Math.max(1, Math.floor(totalQuestions / Math.max(1, firstIds.length)))));
+    firstIds.forEach(
+      (id) =>
+        (dist[id] = Math.max(
+          1,
+          Math.floor(totalQuestions / Math.max(1, firstIds.length)),
+        )),
+    );
     setLessonDistribution(dist);
   };
 
@@ -160,7 +194,9 @@ const ExamGenerator = () => {
   const toggleLesson = (lessonId) => {
     setSelectedLessonIds((prev) => {
       const id = String(lessonId);
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
       // sync distribution keys
       setLessonDistribution((d) => {
         const copy = { ...d };
@@ -177,26 +213,33 @@ const ExamGenerator = () => {
   };
 
   const goStep2 = () => {
-    if (!examTitle.trim()) return showErrorToast('Vui lòng nhập tên đề thi');
-    if (!subjectId) return showErrorToast('Vui lòng chọn môn học');
-    if (!chapterId) return showErrorToast('Vui lòng chọn chương');
-    if (selectedLessonIds.length === 0) return showErrorToast('Vui lòng chọn ít nhất 1 bài học');
+    if (!examTitle.trim()) return showErrorToast("Vui lòng nhập tên đề thi");
+    if (!subjectId) return showErrorToast("Vui lòng chọn môn học");
+    if (!chapterId) return showErrorToast("Vui lòng chọn chương");
+    if (selectedLessonIds.length === 0)
+      return showErrorToast("Vui lòng chọn ít nhất 1 bài học");
     setStep(2);
   };
 
   const generatePreview = async () => {
-    if (Number(totalQuestions) <= 0) return showErrorToast('Tổng số câu phải > 0');
+    if (Number(totalQuestions) <= 0)
+      return showErrorToast("Tổng số câu phải > 0");
     if (stats.sumLesson !== Number(totalQuestions)) {
-      return showErrorToast('Phân bổ theo bài học phải bằng tổng số câu');
+      return showErrorToast("Phân bổ theo bài học phải bằng tổng số câu");
     }
 
     const examTypeId = getSelectedExamTypeId();
     if (!examTypeId) {
-      return showErrorToast('Không tìm thấy Exam Type tương ứng. Vui lòng kiểm tra dữ liệu /api/exam-types');
+      return showErrorToast(
+        "Không tìm thấy Exam Type tương ứng. Vui lòng kiểm tra dữ liệu /api/exam-types",
+      );
     }
 
     const lessonDistList = selectedLessonIds
-      .map((lid) => ({ lessonId: Number(lid), numberOfQuestions: Number(lessonDistribution[lid] || 0) }))
+      .map((lid) => ({
+        lessonId: Number(lid),
+        numberOfQuestions: Number(lessonDistribution[lid] || 0),
+      }))
       .filter((x) => x.numberOfQuestions > 0);
 
     const payload = {
@@ -218,114 +261,150 @@ const ExamGenerator = () => {
     try {
       const created = await examService.createExam(payload);
       setCurrentExam(created);
-      
+
       // Build cognitive level distribution by code
       // levelDistribution has format: { nb: 4, th: 4, vd: 2, vdc: 0 }
       // Backend will resolve codes to cognitive level IDs
-      
+
       const autoSelectConfig = {
         lessonDistribution: lessonDistList,
         cognitiveLevelDistributionByCode: levelDistribution, // { nb: 4, th: 4, vd: 2, vdc: 0 }
-        useAiGeneration: true
+        useAiGeneration: true,
       };
-      
-      await examService.autoSelectQuestionsWithConfig(created.id, autoSelectConfig);
+
+      await examService.autoSelectQuestionsWithConfig(
+        created.id,
+        autoSelectConfig,
+      );
       await refreshExam(created.id);
       setStep(3);
     } catch (e) {
       console.error(e);
-      showErrorToast('Không thể tạo/preview đề thi. Vui lòng kiểm tra backend API.');
+      showErrorToast(
+        "Không thể tạo/preview đề thi. Vui lòng kiểm tra backend API.",
+      );
     } finally {
       setLoadingPreview(false);
     }
   };
 
   const handleSaveDraft = () => {
-    if (!currentExam?.id) return showErrorToast('Chưa có đề thi để lưu');
-    showSuccessToast('Đã tạo & lưu draft đề thi');
-    };
+    if (!currentExam?.id) return showErrorToast("Chưa có đề thi để lưu");
+    showSuccessToast("Đã tạo & lưu draft đề thi");
+  };
 
   const handleExport = async () => {
-    if (!currentExam?.id) return showErrorToast('Chưa có đề thi để export');
-    if (!currentExam?.questions?.length) return showErrorToast('Đề thi chưa có câu hỏi');
-    
+    if (!currentExam?.id) return showErrorToast("Chưa có đề thi để export");
+    if (!currentExam?.questions?.length)
+      return showErrorToast("Đề thi chưa có câu hỏi");
+
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 15;
       let y = 20;
-      
+
       // Header
       doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text(currentExam.examTitle || 'ĐỀ KIỂM TRA', pageWidth / 2, y, { align: 'center' });
+      doc.setFont(undefined, "bold");
+      doc.text(currentExam.examTitle || "ĐỀ KIỂM TRA", pageWidth / 2, y, {
+        align: "center",
+      });
       y += 10;
-      
+
       doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
-      doc.text(`Mã đề: ${currentExam.examCode || ''}`, pageWidth / 2, y, { align: 'center' });
+      doc.setFont(undefined, "normal");
+      doc.text(`Mã đề: ${currentExam.examCode || ""}`, pageWidth / 2, y, {
+        align: "center",
+      });
       y += 6;
-      doc.text(`Môn: ${currentExam.subjectName || ''} - Lớp ${currentExam.gradeLevel || ''}`, pageWidth / 2, y, { align: 'center' });
+      doc.text(
+        `Môn: ${currentExam.subjectName || ""} - Lớp ${currentExam.gradeLevel || ""}`,
+        pageWidth / 2,
+        y,
+        { align: "center" },
+      );
       y += 6;
-      doc.text(`Thời gian: ${currentExam.durationMinutes || 45} phút`, pageWidth / 2, y, { align: 'center' });
+      doc.text(
+        `Thời gian: ${currentExam.durationMinutes || 45} phút`,
+        pageWidth / 2,
+        y,
+        { align: "center" },
+      );
       y += 15;
-      
+
       // Questions
       doc.setFontSize(11);
       const questions = currentExam.questions || [];
-      
+
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
         const questionNum = i + 1;
-        
+
         // Check page break
         if (y > 270) {
           doc.addPage();
           y = 20;
         }
-        
+
         // Question text - strip HTML and LaTeX for PDF
-        const cleanText = (q.questionText || '').replace(/<[^>]*>/g, '').replace(/\$[^$]*\$/g, '[formula]');
-        doc.setFont(undefined, 'bold');
-        const questionLines = doc.splitTextToSize(`Câu ${questionNum}: ${cleanText}`, pageWidth - margin * 2);
+        const cleanText = (q.questionText || "")
+          .replace(/<[^>]*>/g, "")
+          .replace(/\$[^$]*\$/g, "[formula]");
+        doc.setFont(undefined, "bold");
+        const questionLines = doc.splitTextToSize(
+          `Câu ${questionNum}: ${cleanText}`,
+          pageWidth - margin * 2,
+        );
         doc.text(questionLines, margin, y);
         y += questionLines.length * 5 + 3;
-        
+
         // Answers
-        doc.setFont(undefined, 'normal');
-        const answers = shuffleAnswers(q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3, questionNum);
-        const labels = ['A', 'B', 'C', 'D'];
-        
+        doc.setFont(undefined, "normal");
+        const answers = shuffleAnswers(
+          q.correctAnswer,
+          q.wrongAnswer1,
+          q.wrongAnswer2,
+          q.wrongAnswer3,
+          questionNum,
+        );
+        const labels = ["A", "B", "C", "D"];
+
         answers.forEach((ans, idx) => {
           if (ans) {
-            const cleanAns = (ans || '').replace(/<[^>]*>/g, '').replace(/\$[^$]*\$/g, '[formula]');
-            const ansLines = doc.splitTextToSize(`${labels[idx]}. ${cleanAns}`, pageWidth - margin * 2 - 10);
+            const cleanAns = (ans || "")
+              .replace(/<[^>]*>/g, "")
+              .replace(/\$[^$]*\$/g, "[formula]");
+            const ansLines = doc.splitTextToSize(
+              `${labels[idx]}. ${cleanAns}`,
+              pageWidth - margin * 2 - 10,
+            );
             doc.text(ansLines, margin + 5, y);
             y += ansLines.length * 5 + 2;
           }
         });
-        
+
         y += 5;
       }
-      
+
       // Save
       doc.save(`${currentExam.examCode || `exam_${currentExam.id}`}.pdf`);
-      showSuccessToast('Đã tải xuống đề thi');
+      showSuccessToast("Đã tải xuống đề thi");
     } catch (e) {
       console.error(e);
-      showErrorToast('Không thể export đề thi');
+      showErrorToast("Không thể export đề thi");
     }
   };
 
   const startEdit = (q) => {
     setEditingId(q.id);
     setEditForm({
-      modifiedQuestionText: q.questionText || '',
-      modifiedCorrectAnswer: q.correctAnswer || '',
-      modifiedExplanation: q.explanation || '',
-      wrongAnswer1: q.wrongAnswer1 || '',
-      wrongAnswer2: q.wrongAnswer2 || '',
-      wrongAnswer3: q.wrongAnswer3 || '',
+      modifiedQuestionText: q.questionText || "",
+      modifiedCorrectAnswer: q.correctAnswer || "",
+      modifiedExplanation: q.explanation || "",
+      wrongAnswer1: q.wrongAnswer1 || "",
+      wrongAnswer2: q.wrongAnswer2 || "",
+      wrongAnswer3: q.wrongAnswer3 || "",
     });
   };
 
@@ -335,10 +414,10 @@ const ExamGenerator = () => {
       await examService.editExamQuestion(currentExam.id, editingId, editForm);
       setEditingId(null);
       await refreshExam(currentExam.id);
-      showSuccessToast('Đã cập nhật câu hỏi');
+      showSuccessToast("Đã cập nhật câu hỏi");
     } catch (e) {
       console.error(e);
-      showErrorToast('Không thể cập nhật câu hỏi');
+      showErrorToast("Không thể cập nhật câu hỏi");
     }
   };
 
@@ -347,10 +426,10 @@ const ExamGenerator = () => {
     try {
       await examService.regenerateWrongAnswers(currentExam.id, qid);
       await refreshExam(currentExam.id);
-      showSuccessToast('Đã yêu cầu sinh lại đáp án sai');
+      showSuccessToast("Đã yêu cầu sinh lại đáp án sai");
     } catch (e) {
       console.error(e);
-      showErrorToast('Không thể sinh lại đáp án sai');
+      showErrorToast("Không thể sinh lại đáp án sai");
     }
   };
 
@@ -359,10 +438,10 @@ const ExamGenerator = () => {
     try {
       await examService.deleteExamQuestion(currentExam.id, qid);
       await refreshExam(currentExam.id);
-      showSuccessToast('Đã xóa câu hỏi khỏi đề');
+      showSuccessToast("Đã xóa câu hỏi khỏi đề");
     } catch (e) {
       console.error(e);
-      showErrorToast('Không thể xóa câu hỏi');
+      showErrorToast("Không thể xóa câu hỏi");
     }
   };
 
@@ -384,63 +463,110 @@ const ExamGenerator = () => {
       await refreshExam(currentExam.id);
     } catch (e) {
       console.error(e);
-      showErrorToast('Không thể sắp xếp lại thứ tự');
+      showErrorToast("Không thể sắp xếp lại thứ tự");
     }
   };
 
-    return (
+  return (
     <div className="create-exam-page">
       <div className="steps glass">
-        <div className={`s ${step >= 1 ? 'active' : ''}`}><div className="n">1</div><span>Phạm vi</span></div>
+        <div className={`s ${step >= 1 ? "active" : ""}`}>
+          <div className="n">1</div>
+          <span>Phạm vi</span>
+        </div>
         <div className="line" />
-        <div className={`s ${step >= 2 ? 'active' : ''}`}><div className="n">2</div><span>Cấu hình</span></div>
+        <div className={`s ${step >= 2 ? "active" : ""}`}>
+          <div className="n">2</div>
+          <span>Cấu hình</span>
+        </div>
         <div className="line" />
-        <div className={`s ${step >= 3 ? 'active' : ''}`}><div className="n">3</div><span>Preview</span></div>
-            </div>
+        <div className={`s ${step >= 3 ? "active" : ""}`}>
+          <div className="n">3</div>
+          <span>Preview</span>
+        </div>
+      </div>
 
-            {step === 1 && (
+      {step === 1 && (
         <div className="panel glass">
-          <h2><Layers size={20} /> Tạo đề thi</h2>
+          <h2>
+            <Layers size={20} /> Tạo đề thi
+          </h2>
 
           <div className="row3">
             <div className="field">
               <label>Loại đề</label>
-              <select value={examType} onChange={(e) => setExamType(e.target.value)}>
-                {(examTypes.length ? examTypes.map((t) => ({ value: t.typeCode, label: t.typeName })) : DEFAULT_EXAM_TYPES)
-                  .map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              <select
+                value={examType}
+                onChange={(e) => setExamType(e.target.value)}
+              >
+                {(examTypes.length
+                  ? examTypes.map((t) => ({
+                      value: t.typeCode,
+                      label: t.typeName,
+                    }))
+                  : DEFAULT_EXAM_TYPES
+                ).map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="field">
               <label>Tên đề thi</label>
-              <input value={examTitle} onChange={(e) => setExamTitle(e.target.value)} placeholder="Ví dụ: Kiểm tra 15 phút - Chương 1" />
+              <input
+                value={examTitle}
+                onChange={(e) => setExamTitle(e.target.value)}
+                placeholder="Ví dụ: Kiểm tra 15 phút - Chương 1"
+              />
             </div>
             <div className="field">
               <label>Môn học</label>
-              <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+              <select
+                value={subjectId}
+                onChange={(e) => setSubjectId(e.target.value)}
+              >
                 {subjects.map((s) => (
-                  <option key={s.id} value={String(s.id)}>{s.subjectCode} {s.description ? `- ${s.description}` : ''}</option>
+                  <option key={s.id} value={String(s.id)}>
+                    {s.subjectCode} {s.description ? `- ${s.description}` : ""}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="field">
               <label>Khối</label>
-              <select value={gradeLevel} onChange={(e) => setGradeLevel(Number(e.target.value))}>
-                {GRADE_OPTIONS.map((g) => <option key={g} value={g}>Khối {g}</option>)}
+              <select
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(Number(e.target.value))}
+              >
+                {GRADE_OPTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    Khối {g}
+                  </option>
+                ))}
               </select>
-                            </div>
-                        </div>
+            </div>
+          </div>
 
           <div className="row2">
             <div className="field">
               <label>Chương</label>
-              <select value={chapterId} onChange={(e) => setChapterId(e.target.value)} disabled={!chapters.length}>
+              <select
+                value={chapterId}
+                onChange={(e) => setChapterId(e.target.value)}
+                disabled={!chapters.length}
+              >
                 {chapters.map((c) => (
-                  <option key={c.id} value={String(c.id)}>Chương {c.chapterNumber}: {c.chapterName}</option>
+                  <option key={c.id} value={String(c.id)}>
+                    Chương {c.chapterNumber}: {c.chapterName}
+                  </option>
                 ))}
-                                                </select>
-              {!chapters.length && <small className="muted">Chưa có chương</small>}
-                        </div>
-                    </div>
+              </select>
+              {!chapters.length && (
+                <small className="muted">Chưa có chương</small>
+              )}
+            </div>
+          </div>
 
           <div className="divider" />
           <h3>Chọn bài học</h3>
@@ -451,49 +577,78 @@ const ExamGenerator = () => {
               {lessons.map((l) => {
                 const id = String(l.id);
                 const checked = selectedLessonIds.includes(id);
-                                return (
-                  <label key={id} className={`lesson-pill ${checked ? 'on' : ''}`}>
-                    <input type="checkbox" checked={checked} onChange={() => toggleLesson(id)} />
-                    <span>Bài {l.lessonNumber}: {l.lessonName}</span>
+                return (
+                  <label
+                    key={id}
+                    className={`lesson-pill ${checked ? "on" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleLesson(id)}
+                    />
+                    <span>
+                      Bài {l.lessonNumber}: {l.lessonName}
+                    </span>
                   </label>
-                                );
-                            })}
-                        </div>
+                );
+              })}
+            </div>
           )}
 
           <div className="actions">
             <button className="btn btn-primary" onClick={goStep2}>
               Tiếp tục <ArrowRight size={16} />
-                        </button>
-                    </div>
-                </div>
+            </button>
+          </div>
+        </div>
       )}
 
       {step === 2 && (
         <div className="panel glass">
-          <h2><FileText size={20} /> Cấu hình đề</h2>
+          <h2>
+            <FileText size={20} /> Cấu hình đề
+          </h2>
 
           <div className="row3">
             <div className="field">
               <label>Tổng số câu</label>
-              <input type="number" min="1" value={totalQuestions} onChange={(e) => setTotalQuestions(Number(e.target.value))} />
+              <input
+                type="number"
+                min="1"
+                value={totalQuestions}
+                onChange={(e) => setTotalQuestions(Number(e.target.value))}
+              />
             </div>
             <div className="field">
               <label>Điểm / câu</label>
-              <input type="number" min="0.1" step="0.1" value={pointsPerQuestion} onChange={(e) => setPointsPerQuestion(Number(e.target.value))} />
-                                    </div>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={pointsPerQuestion}
+                onChange={(e) => setPointsPerQuestion(Number(e.target.value))}
+              />
+            </div>
             <div className="field">
               <label>Tổng điểm (ước tính)</label>
-              <input value={(Number(totalQuestions) * Number(pointsPerQuestion)).toFixed(1)} disabled />
-                                </div>
-                            </div>
+              <input
+                value={(
+                  Number(totalQuestions) * Number(pointsPerQuestion)
+                ).toFixed(1)}
+                disabled
+              />
+            </div>
+          </div>
 
           <div className="row2">
             <div className="box">
               <h3>Phân bổ theo bài học</h3>
               {selectedLessonIds.map((lid) => {
                 const l = lessons.find((x) => String(x.id) === String(lid));
-                const name = l ? `Bài ${l.lessonNumber}: ${l.lessonName}` : `Lesson ${lid}`;
+                const name = l
+                  ? `Bài ${l.lessonNumber}: ${l.lessonName}`
+                  : `Lesson ${lid}`;
                 return (
                   <div key={lid} className="dist-row">
                     <span className="dist-name">{name}</span>
@@ -501,36 +656,60 @@ const ExamGenerator = () => {
                       type="number"
                       min="0"
                       value={lessonDistribution[lid] ?? 0}
-                      onChange={(e) => setLessonDistribution((d) => ({ ...d, [lid]: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setLessonDistribution((d) => ({
+                          ...d,
+                          [lid]: Number(e.target.value),
+                        }))
+                      }
                       className="dist-input"
                     />
-                                    </div>
+                  </div>
                 );
               })}
-              <div className="dist-footer muted">Tổng: {stats.sumLesson}/{totalQuestions}</div>
-                                </div>
+              <div className="dist-footer muted">
+                Tổng: {stats.sumLesson}/{totalQuestions}
+              </div>
+            </div>
 
             <div className="box">
               <h3>Phân bổ theo mức độ</h3>
               {COGNITIVE_LEVELS.map((lv) => (
                 <div key={lv.id} className="dist-row">
                   <span className="dist-name">{lv.name}</span>
-                                    <input
+                  <input
                     type="number"
                     min="0"
                     value={levelDistribution[lv.id] ?? 0}
-                    onChange={(e) => setLevelDistribution((d) => ({ ...d, [lv.id]: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setLevelDistribution((d) => ({
+                        ...d,
+                        [lv.id]: Number(e.target.value),
+                      }))
+                    }
                     className="dist-input"
                   />
                 </div>
               ))}
-              <div className="dist-footer muted">Tổng: {stats.sumLevel}/{totalQuestions}</div>
-                            </div>
-                        </div>
+              <div className="dist-footer muted">
+                Tổng: {stats.sumLevel}/{totalQuestions}
+              </div>
+            </div>
+          </div>
 
           <div className="actions space">
-            <button className="btn btn-secondary" onClick={() => setStep(1)} disabled={loadingPreview}>Quay lại</button>
-            <button className="btn btn-primary" onClick={generatePreview} disabled={loadingPreview}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setStep(1)}
+              disabled={loadingPreview}
+            >
+              Quay lại
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={generatePreview}
+              disabled={loadingPreview}
+            >
               {loadingPreview ? (
                 <>
                   <RefreshCw size={16} className="spin" /> Đang tạo đề thi...
@@ -545,9 +724,10 @@ const ExamGenerator = () => {
 
           <div className="divider" />
           <p className="muted">
-            Khi backend module Exam sẵn sàng, hệ thống sẽ tự ưu tiên chọn câu từ ngân hàng (đã verify), thiếu sẽ gọi AI tạo mới theo cấu hình.
+            Khi backend module Exam sẵn sàng, hệ thống sẽ tự ưu tiên chọn câu từ
+            ngân hàng (đã verify), thiếu sẽ gọi AI tạo mới theo cấu hình.
           </p>
-                    </div>
+        </div>
       )}
 
       {step === 3 && (
@@ -555,144 +735,246 @@ const ExamGenerator = () => {
           <div className="header">
             <div>
               <h2>Preview đề thi</h2>
-              <p className="muted">{previewQuestions.length} câu • Loại: {examType}{currentExam?.examCode ? ` • Mã: ${currentExam.examCode}` : ''}</p>
-                                    </div>
-                                    <div className="actions">
+              <p className="muted">
+                {previewQuestions.length} câu • Loại: {examType}
+                {currentExam?.examCode ? ` • Mã: ${currentExam.examCode}` : ""}
+              </p>
+            </div>
+            <div className="actions">
               <label className="toggle-label">
-                <input 
-                  type="checkbox" 
-                  checked={showCorrectAnswers} 
-                  onChange={(e) => setShowCorrectAnswers(e.target.checked)} 
+                <input
+                  type="checkbox"
+                  checked={showCorrectAnswers}
+                  onChange={(e) => setShowCorrectAnswers(e.target.checked)}
                 />
                 Hiển thị đáp án
               </label>
-              <button className="btn btn-secondary" onClick={() => setStep(2)}>Chỉnh cấu hình</button>
-              <button className="btn btn-primary" onClick={handleSaveDraft} disabled={!currentExam?.id}><Sparkles size={16} /> Lưu draft</button>
-              <button className="btn btn-outline" onClick={() => { setShowCorrectAnswers(false); handleExport(); }} disabled={!currentExam?.id}>
+              <button className="btn btn-secondary" onClick={() => setStep(2)}>
+                Chỉnh cấu hình
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveDraft}
+                disabled={!currentExam?.id}
+              >
+                <Sparkles size={16} /> Lưu draft
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => {
+                  setShowCorrectAnswers(false);
+                  handleExport();
+                }}
+                disabled={!currentExam?.id}
+              >
                 <Download size={16} /> Export
               </button>
-                                    </div>
-                                </div>
+            </div>
+          </div>
 
           <div className="q-list">
             {loadingPreview ? (
-              <div className="muted" style={{ padding: '1rem' }}>
+              <div className="muted" style={{ padding: "1rem" }}>
                 <RefreshCw className="spin" size={16} /> Đang tạo preview...
               </div>
-            ) : previewQuestions.map((q, idx) => (
-              <div key={q.id} className="q-item">
-                <div className="q-top">
-                  <span className="q-num">Câu {q.orderNumber || idx + 1}</span>
-                  {q.cognitiveLevelName && <span className="badge bank">{q.cognitiveLevelName}</span>}
-                  <span className={`badge ${q.sourceFlag === 'AI_GENERATED' ? 'ai' : 'bank'}`}>
-                    {q.sourceFlag === 'AI_GENERATED' ? 'AI' : (q.sourceFlag === 'TEACHER_EDITED' ? 'EDITED' : 'BANK')}
-                  </span>
+            ) : (
+              previewQuestions.map((q, idx) => (
+                <div key={q.id} className="q-item">
+                  <div className="q-top">
+                    <span className="q-num">
+                      Câu {q.orderNumber || idx + 1}
+                    </span>
+                    {q.cognitiveLevelName && (
+                      <span className="badge bank">{q.cognitiveLevelName}</span>
+                    )}
+                    <span
+                      className={`badge ${q.sourceFlag === "AI_GENERATED" ? "ai" : "bank"}`}
+                    >
+                      {q.sourceFlag === "AI_GENERATED"
+                        ? "AI"
+                        : q.sourceFlag === "TEACHER_EDITED"
+                          ? "EDITED"
+                          : "BANK"}
+                    </span>
 
-                  <div className="q-actions">
-                    <button className="btn btn-outline btn-xs" onClick={() => moveQuestion(idx, -1)} title="Lên"><ArrowUp size={14} /></button>
-                    <button className="btn btn-outline btn-xs" onClick={() => moveQuestion(idx, 1)} title="Xuống"><ArrowDown size={14} /></button>
-                    <button className="btn btn-outline btn-xs" onClick={() => startEdit(q)} title="Sửa"><Pencil size={14} /></button>
-                    <button className="btn btn-outline btn-xs" onClick={() => handleRegenerateWrong(q.id)} title="Sinh lại đáp án sai"><RefreshCw size={14} /></button>
-                    <button className="btn btn-outline btn-xs danger" onClick={() => handleDeleteQuestion(q.id)} title="Xóa"><Trash2 size={14} /></button>
+                    <div className="q-actions">
+                      <button
+                        className="btn btn-outline btn-xs"
+                        onClick={() => moveQuestion(idx, -1)}
+                        title="Lên"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        className="btn btn-outline btn-xs"
+                        onClick={() => moveQuestion(idx, 1)}
+                        title="Xuống"
+                      >
+                        <ArrowDown size={14} />
+                      </button>
+                      <button
+                        className="btn btn-outline btn-xs"
+                        onClick={() => startEdit(q)}
+                        title="Sửa"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        className="btn btn-outline btn-xs"
+                        onClick={() => handleRegenerateWrong(q.id)}
+                        title="Sinh lại đáp án sai"
+                      >
+                        <RefreshCw size={14} />
+                      </button>
+                      <button
+                        className="btn btn-outline btn-xs danger"
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        title="Xóa"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
+
+                  {q.lessonName && (
+                    <div className="q-meta muted">{q.lessonName}</div>
+                  )}
+
+                  {editingId === q.id ? (
+                    <div className="edit-box">
+                      <label>Nội dung câu hỏi</label>
+                      <RichTextEditor
+                        value={editForm.modifiedQuestionText}
+                        onChange={(val) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            modifiedQuestionText: val,
+                          }))
+                        }
+                        placeholder="Nhập nội dung câu hỏi..."
+                      />
+                      <label>Đáp án đúng</label>
+                      <RichTextEditor
+                        value={editForm.modifiedCorrectAnswer}
+                        onChange={(val) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            modifiedCorrectAnswer: val,
+                          }))
+                        }
+                        placeholder="Nhập đáp án đúng..."
+                      />
+                      <label>Giải thích</label>
+                      <RichTextEditor
+                        value={editForm.modifiedExplanation}
+                        onChange={(val) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            modifiedExplanation: val,
+                          }))
+                        }
+                        placeholder="Nhập giải thích..."
+                      />
+                      <div className="wrong-answers-grid">
+                        <div className="field">
+                          <label>Đáp án sai 1</label>
+                          <RichTextEditor
+                            value={editForm.wrongAnswer1}
+                            onChange={(val) =>
+                              setEditForm((f) => ({ ...f, wrongAnswer1: val }))
+                            }
+                            placeholder="Nhập đáp án sai 1..."
+                          />
+                        </div>
+                        <div className="field">
+                          <label>Đáp án sai 2</label>
+                          <RichTextEditor
+                            value={editForm.wrongAnswer2}
+                            onChange={(val) =>
+                              setEditForm((f) => ({ ...f, wrongAnswer2: val }))
+                            }
+                            placeholder="Nhập đáp án sai 2..."
+                          />
+                        </div>
+                        <div className="field">
+                          <label>Đáp án sai 3</label>
+                          <RichTextEditor
+                            value={editForm.wrongAnswer3}
+                            onChange={(val) =>
+                              setEditForm((f) => ({ ...f, wrongAnswer3: val }))
+                            }
+                            placeholder="Nhập đáp án sai 3..."
+                          />
+                        </div>
+                      </div>
+
+                      <div className="actions">
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => setEditingId(null)}
+                        >
+                          Hủy
+                        </button>
+                        <button className="btn btn-primary" onClick={saveEdit}>
+                          Lưu
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="q-text">
+                        <MathRenderer content={q.questionText} />
+                      </div>
+                      <div className="exam-answers">
+                        {(() => {
+                          // Tạo mảng 4 đáp án và shuffle
+                          const allAnswers = [
+                            { content: q.correctAnswer, isCorrect: true },
+                            { content: q.wrongAnswer1, isCorrect: false },
+                            { content: q.wrongAnswer2, isCorrect: false },
+                            { content: q.wrongAnswer3, isCorrect: false },
+                          ].filter((a) => a.content); // Lọc bỏ đáp án rỗng
+
+                          // Shuffle dựa trên question id để giữ thứ tự cố định
+                          const shuffled = [...allAnswers].sort((a, b) => {
+                            const hashA = (q.id + a.content)
+                              .split("")
+                              .reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                            const hashB = (q.id + b.content)
+                              .split("")
+                              .reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                            return hashA - hashB;
+                          });
+
+                          const labels = ["A", "B", "C", "D"];
+                          return shuffled.map((ans, idx) => (
+                            <div
+                              key={idx}
+                              className={`exam-option ${showCorrectAnswers && ans.isCorrect ? "correct-marked" : ""}`}
+                            >
+                              <span className="option-label">
+                                {labels[idx]}.
+                              </span>
+                              <span className="option-content">
+                                <MathRenderer content={ans.content} />
+                              </span>
+                              {showCorrectAnswers && ans.isCorrect && (
+                                <span className="correct-icon">✓</span>
+                              )}
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </>
+                  )}
                 </div>
-
-                {q.lessonName && <div className="q-meta muted">{q.lessonName}</div>}
-
-                {editingId === q.id ? (
-                  <div className="edit-box">
-                    <label>Nội dung câu hỏi</label>
-                    <RichTextEditor 
-                      value={editForm.modifiedQuestionText} 
-                      onChange={(val) => setEditForm((f) => ({ ...f, modifiedQuestionText: val }))} 
-                      placeholder="Nhập nội dung câu hỏi..."
-                    />
-                    <label>Đáp án đúng</label>
-                    <RichTextEditor 
-                      value={editForm.modifiedCorrectAnswer} 
-                      onChange={(val) => setEditForm((f) => ({ ...f, modifiedCorrectAnswer: val }))} 
-                      placeholder="Nhập đáp án đúng..."
-                    />
-                    <label>Giải thích</label>
-                    <RichTextEditor 
-                      value={editForm.modifiedExplanation} 
-                      onChange={(val) => setEditForm((f) => ({ ...f, modifiedExplanation: val }))} 
-                      placeholder="Nhập giải thích..."
-                    />
-                    <div className="wrong-answers-grid">
-                      <div className="field">
-                        <label>Đáp án sai 1</label>
-                        <RichTextEditor 
-                          value={editForm.wrongAnswer1} 
-                          onChange={(val) => setEditForm((f) => ({ ...f, wrongAnswer1: val }))} 
-                          placeholder="Nhập đáp án sai 1..."
-                        />
-                      </div>
-                      <div className="field">
-                        <label>Đáp án sai 2</label>
-                        <RichTextEditor 
-                          value={editForm.wrongAnswer2} 
-                          onChange={(val) => setEditForm((f) => ({ ...f, wrongAnswer2: val }))} 
-                          placeholder="Nhập đáp án sai 2..."
-                        />
-                      </div>
-                      <div className="field">
-                        <label>Đáp án sai 3</label>
-                        <RichTextEditor 
-                          value={editForm.wrongAnswer3} 
-                          onChange={(val) => setEditForm((f) => ({ ...f, wrongAnswer3: val }))} 
-                          placeholder="Nhập đáp án sai 3..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="actions">
-                      <button className="btn btn-secondary" onClick={() => setEditingId(null)}>Hủy</button>
-                      <button className="btn btn-primary" onClick={saveEdit}>Lưu</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="q-text"><MathRenderer content={q.questionText} /></div>
-                    <div className="exam-answers">
-                      {(() => {
-                        // Tạo mảng 4 đáp án và shuffle
-                        const allAnswers = [
-                          { content: q.correctAnswer, isCorrect: true },
-                          { content: q.wrongAnswer1, isCorrect: false },
-                          { content: q.wrongAnswer2, isCorrect: false },
-                          { content: q.wrongAnswer3, isCorrect: false },
-                        ].filter(a => a.content); // Lọc bỏ đáp án rỗng
-                        
-                        // Shuffle dựa trên question id để giữ thứ tự cố định
-                        const shuffled = [...allAnswers].sort((a, b) => {
-                          const hashA = (q.id + a.content).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-                          const hashB = (q.id + b.content).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-                          return hashA - hashB;
-                        });
-                        
-                        const labels = ['A', 'B', 'C', 'D'];
-                        return shuffled.map((ans, idx) => (
-                          <div 
-                            key={idx} 
-                            className={`exam-option ${showCorrectAnswers && ans.isCorrect ? 'correct-marked' : ''}`}
-                          >
-                            <span className="option-label">{labels[idx]}.</span>
-                            <span className="option-content"><MathRenderer content={ans.content} /></span>
-                            {showCorrectAnswers && ans.isCorrect && <span className="correct-icon">✓</span>}
-                          </div>
-                        ));
-                      })()}
-                    </div>
-                  </>
-                )}
-                                            </div>
-                                                    ))}
-                                                </div>
-                                            </div>
+              ))
+            )}
+          </div>
+        </div>
       )}
 
-            <style>{`
+      <style>{`
         .create-exam-page { max-width: 1200px; margin: 0 auto; }
 
         .steps { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; }
@@ -775,7 +1057,7 @@ const ExamGenerator = () => {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
     </div>
-    );
+  );
 };
 
 export default ExamGenerator;
