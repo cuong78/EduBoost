@@ -14,6 +14,13 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleUserInitializer roleUserInitializer;
     private final SubjectExamInitializer subjectExamInitializer;
     private final MathGrade6Initializer mathGrade6Initializer;
+    private final ScienceGrade6Initializer scienceGrade6Initializer;
+    private final ScienceGrade7Initializer scienceGrade7Initializer;
+    private final ScienceGrade8Initializer scienceGrade8Initializer;
+    private final ScienceGrade9Initializer scienceGrade9Initializer;
+    private final MathGrade7Initializer mathGrade7Initializer;
+    private final MathGrade8Initializer mathGrade8Initializer;
+    private final MathGrade9Initializer mathGrade9Initializer;
     private final MathGrade10Initializer mathGrade10Initializer;
     private final MathGrade11Initializer mathGrade11Initializer;
     private final MathGrade12Initializer mathGrade12Initializer;
@@ -32,6 +39,13 @@ public class DataInitializer implements CommandLineRunner {
         roleUserInitializer.init();
         subjectExamInitializer.init();
         mathGrade6Initializer.init();
+        scienceGrade6Initializer.init();
+        scienceGrade7Initializer.init();
+        scienceGrade8Initializer.init();
+        scienceGrade9Initializer.init();
+        mathGrade7Initializer.init();
+        mathGrade8Initializer.init();
+        mathGrade9Initializer.init();
         mathGrade10Initializer.init();
         mathGrade11Initializer.init();
         mathGrade12Initializer.init();
