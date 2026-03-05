@@ -28,9 +28,7 @@ Hướng dẫn chi tiết từng bước để deploy ứng dụng EduBoost lên
 # Ubuntu/Debian
 sudo apt update && sudo apt upgrade -y
 
-# CentOS/RHEL
-sudo yum update -y
-```
+
 
 ### Bước 2: Cài đặt Docker
 
@@ -87,9 +85,9 @@ sudo ufw status
 
 ```bash
 # Tạo thư mục
-sudo mkdir -p /opt/eduboost
-sudo chown $USER:$USER /opt/eduboost
-cd /opt/eduboost
+sudo mkdir -p /opt/
+sudo chown $USER:$USER /opt/Eduboost
+cd /opt/
 ```
 
 ### Bước 7: Security Hardening (Khuyến nghị)
@@ -137,24 +135,25 @@ Nội dung file `.env` (thay thế các giá trị placeholder):
 # Database Configuration
 DB_NAME=eduboost
 DB_USER=postgres
-DB_PASSWORD=YOUR_SECURE_DATABASE_PASSWORD_HERE
+DB_PASSWORD=123456
 DB_PORT=5432
 
 # Backend Configuration
 BACKEND_PORT=8080
-JWT_SECRET=YOUR_JWT_SECRET_MIN_32_CHARS_HERE
+JWT_SECRET=a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
 JWT_EXPIRATION_MS=3600000
 JWT_REFRESH_EXPIRATION_MS=86400000
 
 # Email Configuration
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=YOUR_EMAIL_APP_PASSWORD_HERE
+MAIL_USERNAME=eduboostaiplatform@gmail.com
+MAIL_PASSWORD=wcjw zjbx ciya fbqw
+
 
 # Frontend Configuration
 FRONTEND_PORT=80
-VITE_API_URL=https://yourdomain.com/api
+VITE_API_URL=https://eduboost.school/api
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID_HERE
@@ -163,7 +162,7 @@ SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIE
 SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE=email,profile
 
 # Frontend URLs
-FRONTEND_URL_BASE=https://yourdomain.com
+FRONTEND_URL_BASE=https://eduboost.school
 FRONTEND_URL_PAYMENT_RETURN=${FRONTEND_URL_BASE}/payment/return
 FRONTEND_URL_EMAIL_VERIFICATION=${FRONTEND_URL_BASE}/verify-email
 FRONTEND_URL_STUDENT_LOGIN=${FRONTEND_URL_BASE}/login
@@ -180,6 +179,8 @@ JPA_DDL_AUTO=update
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin123
 MINIO_BUCKET_NAME=eduboost
+AI_DEEPSEEK_API_KEY=sk-
+AI_DEEPSEEK_MODEL=deepseek-chat
 ```
 
 **⚠️ QUAN TRỌNG**: 
@@ -238,15 +239,15 @@ sudo apt install certbot -y
 # Comment dòng redirect trong nginx/nginx.conf
 
 # Tạo SSL certificates
-sudo certbot certonly --standalone -d yourdomain.com -d www.yourdomain.com
+sudo certbot certonly --standalone -d eduboost.school -d www.eduboost.school
 
 # Nhập email khi được hỏi
 # Chọn Y để đồng ý terms of service
 # Chọn Y hoặc N cho việc chia sẻ email với EFF
 
 # Copy certificates vào thư mục nginx
-sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem nginx/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem nginx/ssl/key.pem
+sudo cp /etc/letsencrypt/live/eduboost.school/fullchain.pem nginx/ssl/cert.pem
+sudo cp /etc/letsencrypt/live/eduboost.school/privkey.pem nginx/ssl/key.pem
 
 # Cấp quyền
 sudo chown $USER:$USER nginx/ssl/*.pem
