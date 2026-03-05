@@ -4,7 +4,7 @@ import { Footer } from "../components/layout/Footer";
 import { useAuth } from "../hooks/useAuth";
 
 const PublicLayout = () => {
-  const { user l ren} = useAuth();
+  const { user } = useAuth();
 
   // Cho phép truy cập trang home ngay cả khi đã đăng nhập (để test giao diện)
   // If user is logged in, redirect to their dashboard
