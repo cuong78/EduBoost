@@ -15,7 +15,7 @@ public class ScienceGrade9Initializer {
     private final LessonRepository lessonRepository;
 
     public void init() {
-        Subject sc = subjectRepository.findBySubjectCode("SINH").orElse(null);
+        Subject sc = subjectRepository.findBySubjectCode("SCI").orElse(null);
         if (sc == null) return;
 
         // Chương I. NĂNG LƯỢNG CƠ HỌC

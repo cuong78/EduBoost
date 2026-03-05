@@ -15,7 +15,7 @@ public class ScienceGrade6Initializer {
     private final LessonRepository lessonRepository;
 
     public void init() {
-        Subject sc = subjectRepository.findBySubjectCode("SINH").orElse(null);
+        Subject sc = subjectRepository.findBySubjectCode("SCI").orElse(null);
         if (sc == null) return;
 
         // Chương 1: Mở đầu về Khoa học tự nhiên

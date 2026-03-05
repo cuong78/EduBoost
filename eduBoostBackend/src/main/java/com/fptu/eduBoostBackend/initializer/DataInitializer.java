@@ -27,6 +27,9 @@ public class DataInitializer implements CommandLineRunner {
     private final PhysicsGrade10Initializer physicsGrade10Initializer;
     private final PhysicsGrade11Initializer physicsGrade11Initializer;
     private final PhysicsGrade12Initializer physicsGrade12Initializer;
+    private final ChemistryGrade10Initializer chemistryGrade10Initializer;
+    private final ChemistryGrade11Initializer chemistryGrade11Initializer;
+    private final ChemistryGrade12Initializer chemistryGrade12Initializer;
 
     private final EnglishInitializer EnglishInitializer;
     private final ClassStudentInitializer classStudentInitializer;
@@ -52,7 +55,9 @@ public class DataInitializer implements CommandLineRunner {
         physicsGrade10Initializer.init();
         physicsGrade11Initializer.init();
         physicsGrade12Initializer.init();
-
+        chemistryGrade10Initializer.init();
+        chemistryGrade11Initializer.init();
+        chemistryGrade12Initializer.init();
         EnglishInitializer.init();
         classStudentInitializer.init();
     }
