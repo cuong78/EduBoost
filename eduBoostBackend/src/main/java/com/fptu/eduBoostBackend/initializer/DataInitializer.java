@@ -17,7 +17,11 @@ public class DataInitializer implements CommandLineRunner {
     private final MathGrade10Initializer mathGrade10Initializer;
     private final MathGrade11Initializer mathGrade11Initializer;
     private final MathGrade12Initializer mathGrade12Initializer;
-    private final PhysicsEnglishInitializer physicsEnglishInitializer;
+    private final PhysicsGrade10Initializer physicsGrade10Initializer;
+    private final PhysicsGrade11Initializer physicsGrade11Initializer;
+    private final PhysicsGrade12Initializer physicsGrade12Initializer;
+
+    private final EnglishInitializer EnglishInitializer;
     private final ClassStudentInitializer classStudentInitializer;
 
     @Override
@@ -31,7 +35,11 @@ public class DataInitializer implements CommandLineRunner {
         mathGrade10Initializer.init();
         mathGrade11Initializer.init();
         mathGrade12Initializer.init();
-        physicsEnglishInitializer.init();
+        physicsGrade10Initializer.init();
+        physicsGrade11Initializer.init();
+        physicsGrade12Initializer.init();
+
+        EnglishInitializer.init();
         classStudentInitializer.init();
     }
 }

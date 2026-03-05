@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class PhysicsEnglishInitializer {
+public class EnglishInitializer {
 
     private final SubjectRepository subjectRepository;
     private final ChapterRepository chapterRepository;
