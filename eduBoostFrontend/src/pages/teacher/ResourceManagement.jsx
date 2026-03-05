@@ -18,7 +18,7 @@ import { knowledgeService } from "../../services/knowledgeService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import { API } from "../../constants/api";
 
-const GRADE_OPTIONS = [10, 11, 12];
+const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
 const RESOURCE_TYPES = [
   { value: "PDF", label: "PDF", icon: FileText },
@@ -34,7 +34,7 @@ const ResourceManagement = () => {
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [subjects, setSubjects] = useState([]);
   const [subjectId, setSubjectId] = useState("");
-  const [gradeLevel, setGradeLevel] = useState(10);
+  const [gradeLevel, setGradeLevel] = useState(6);
 
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [chapters, setChapters] = useState([]);

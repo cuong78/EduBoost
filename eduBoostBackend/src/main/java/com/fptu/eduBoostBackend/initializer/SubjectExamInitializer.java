@@ -41,6 +41,8 @@ public class SubjectExamInitializer {
                 .description("Môn Giáo dục công dân - Đạo đức và pháp luật").build());
         subjectRepository.save(Subject.builder().subjectCode("TIN").subjectName("Tin học")
                 .description("Môn Tin học - Công nghệ thông tin").build());
+        subjectRepository.save(Subject.builder().subjectCode("SCI").subjectName("Khoa học tự nhiên")
+                .description("Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên").build());
     }
 
     private void initializeCognitiveLevels() {
