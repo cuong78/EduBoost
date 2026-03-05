@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import com.fptu.eduBoostBackend.entities.*;
+import com.fptu.eduBoostBackend.repositories.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -12,33 +14,10 @@ import org.springframework.stereotype.Component;
 import static com.fptu.eduBoostBackend.constant.PredefinedRole.ADMIN_ROLE;
 import static com.fptu.eduBoostBackend.constant.PredefinedRole.STUDENT_ROLE;
 import static com.fptu.eduBoostBackend.constant.PredefinedRole.TEACH_ROLE;
-import com.fptu.eduBoostBackend.entities.Chapter;
-import com.fptu.eduBoostBackend.entities.Lesson;
-import com.fptu.eduBoostBackend.entities.LessonResource;
-import com.fptu.eduBoostBackend.entities.Parent;
-import com.fptu.eduBoostBackend.entities.Role;
-import com.fptu.eduBoostBackend.entities.Student;
-import com.fptu.eduBoostBackend.entities.SchoolClass;
-import com.fptu.eduBoostBackend.entities.Subject;
-import com.fptu.eduBoostBackend.entities.Teacher;
-import com.fptu.eduBoostBackend.entities.User;
+
 import com.fptu.eduBoostBackend.entities.enums.Gender;
 import com.fptu.eduBoostBackend.entities.enums.LessonResourceType;
 import com.fptu.eduBoostBackend.entities.enums.StudentStatus;
-import com.fptu.eduBoostBackend.entities.GradeLevel;
-import com.fptu.eduBoostBackend.entities.CognitiveLevel;
-import com.fptu.eduBoostBackend.repositories.ChapterRepository;
-import com.fptu.eduBoostBackend.repositories.ClassRepository;
-import com.fptu.eduBoostBackend.repositories.GradeLevelRepository;
-import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
-import com.fptu.eduBoostBackend.repositories.LessonRepository;
-import com.fptu.eduBoostBackend.repositories.LessonResourceRepository;
-import com.fptu.eduBoostBackend.repositories.ParentRepository;
-import com.fptu.eduBoostBackend.repositories.RoleRepository;
-import com.fptu.eduBoostBackend.repositories.StudentRepository;
-import com.fptu.eduBoostBackend.repositories.SubjectRepository;
-import com.fptu.eduBoostBackend.repositories.TeacherRepository;
-import com.fptu.eduBoostBackend.repositories.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -57,6 +36,7 @@ public class DataInitializer implements CommandLineRunner {
     private final LessonRepository lessonRepository;
     private final LessonResourceRepository lessonResourceRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
+    private final ExamTypeRepository examTypeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -70,12 +50,55 @@ public class DataInitializer implements CommandLineRunner {
         initializeCognitiveLevels();
         initializeChaptersAndLessons();
         initializeClasses();
+        initializeExamTypes();
     }
 
     /**
      * Khởi tạo các mức độ nhận thức theo chuẩn giáo dục Việt Nam
      * 4 mức độ: Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao
      */
+    private void initializeExamTypes() {
+
+        examTypeRepository.save(
+                ExamType.builder()
+                        .typeCode("15MIN")
+                        .typeName("Kiểm tra 15 phút")
+                        .requiresMatrix(false)
+                        .description("Bài kiểm tra ngắn trong thời gian 15 phút")
+                        .displayOrder(1)
+                        .build()
+        );
+
+        examTypeRepository.save(
+                ExamType.builder()
+                        .typeCode("45MIN")
+                        .typeName("Kiểm tra 1 tiết")
+                        .requiresMatrix(true)
+                        .description("Bài kiểm tra 1 tiết, thường yêu cầu ma trận đề")
+                        .displayOrder(2)
+                        .build()
+        );
+
+        examTypeRepository.save(
+                ExamType.builder()
+                        .typeCode("MIDTERM")
+                        .typeName("Kiểm tra giữa kỳ")
+                        .requiresMatrix(true)
+                        .description("Bài kiểm tra đánh giá giữa học kỳ")
+                        .displayOrder(3)
+                        .build()
+        );
+
+        examTypeRepository.save(
+                ExamType.builder()
+                        .typeCode("FINAL")
+                        .typeName("Kiểm tra cuối kỳ")
+                        .requiresMatrix(true)
+                        .description("Bài kiểm tra tổng kết cuối học kỳ")
+                        .displayOrder(4)
+                        .build()
+        );
+    }
     private void initializeCognitiveLevels() {
         // Mức 1: Nhận biết
         CognitiveLevel level1 = CognitiveLevel.builder()
@@ -221,8 +244,8 @@ public class DataInitializer implements CommandLineRunner {
             Lesson mathC1L2 = Lesson.builder()
                     .chapter(mathChap1)
                     .lessonNumber(2)
-                    .lessonName("Tập hợp")
-                    .description("Khái niệm tập hợp, các phép toán tập hợp")
+                    .lessonName("Tập hợp và các phép toán trên tập hợp")
+                    .description("Khái niệm tập hợp, tập con, hợp, giao, hiệu của hai tập hợp")
                     .build();
             lessonRepository.save(mathC1L2);
 
@@ -248,80 +271,1131 @@ public class DataInitializer implements CommandLineRunner {
                     .subject(math)
                     .gradeLevel(10)
                     .chapterNumber(2)
-                    .chapterName("Hàm số bậc nhất và bậc hai")
-                    .description("Chương 2: Hàm số bậc nhất và bậc hai")
+                    .chapterName("Bất phương trình và hệ bất phương trình bậc nhất hai ẩn")
+                    .description("Chương 2: Bất phương trình và hệ bất phương trình bậc nhất hai ẩn")
                     .build();
             chapterRepository.save(mathChap2);
-
             Lesson mathC2L1 = Lesson.builder()
                     .chapter(mathChap2)
                     .lessonNumber(1)
-                    .lessonName("Hàm số và đồ thị")
-                    .description("Khái niệm hàm số, đồ thị hàm số")
+                    .lessonName("Bất phương trình bậc nhất hai ẩn")
+                    .description("Khái niệm bất phương trình bậc nhất hai ẩn và cách biểu diễn tập nghiệm")
                     .build();
             lessonRepository.save(mathC2L1);
 
             Lesson mathC2L2 = Lesson.builder()
                     .chapter(mathChap2)
                     .lessonNumber(2)
-                    .lessonName("Hàm số bậc nhất")
-                    .description("Hàm số bậc nhất y = ax + b")
+                    .lessonName("Hệ bất phương trình bậc nhất hai ẩn")
+                    .description("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải")
                     .build();
             lessonRepository.save(mathC2L2);
-
             LessonResource mathC2L2R1 = LessonResource.builder()
                     .lesson(mathC2L2)
-                    .resourceName("Video bài giảng Hàm bậc nhất")
+                    .resourceName("Video bài giảng Hệ bất phương trình bậc nhất hai ẩn")
                     .resourceType(LessonResourceType.URL)
                     .fileUrl("https://youtube.com/watch?v=example")
-                    .extractedContent("Hàm số bậc nhất có dạng y = ax + b với a khác 0...")
+                    .extractedContent("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải")
                     .build();
             lessonResourceRepository.save(mathC2L2R1);
         }
 
+        Chapter mathChap3 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(3)
+                .chapterName("Hệ thức lượng trong tam giác")
+                .description("Chương 3: Hệ thức lượng trong tam giác")
+                .build();
+        chapterRepository.save(mathChap3);
+
+        Lesson mathC3L1 = Lesson.builder()
+                .chapter(mathChap3)
+                .lessonNumber(1)
+                .lessonName("Giá trị lượng giác của một góc từ 0 độ đến 180 độ")
+                .description("Giá trị lượng giác của một góc trong khoảng từ 0 đến 180 độ")
+                .build();
+        lessonRepository.save(mathC3L1);
+
+        Lesson mathC3L2 = Lesson.builder()
+                .chapter(mathChap3)
+                .lessonNumber(2)
+                .lessonName("Hệ thức lượng trong tam giác")
+                .description("Các hệ thức lượng cơ bản trong tam giác")
+                .build();
+        lessonRepository.save(mathC3L2);
+
+        Chapter mathChap4 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(4)
+                .chapterName("Vectơ")
+                .description("Chương 4: Vectơ")
+                .build();
+        chapterRepository.save(mathChap4);
+
+        Lesson mathC4L1 = Lesson.builder()
+                .chapter(mathChap4)
+                .lessonNumber(1)
+                .lessonName("Các khái niệm mở đầu")
+                .description("Khái niệm vectơ, giá của vectơ, độ dài vectơ")
+                .build();
+        lessonRepository.save(mathC4L1);
+
+        Lesson mathC4L2 = Lesson.builder()
+                .chapter(mathChap4)
+                .lessonNumber(2)
+                .lessonName("Tổng và hiệu của hai vectơ")
+                .description("Phép cộng và phép trừ hai vectơ")
+                .build();
+        lessonRepository.save(mathC4L2);
+
+        Lesson mathC4L3 = Lesson.builder()
+                .chapter(mathChap4)
+                .lessonNumber(3)
+                .lessonName("Tích của một vectơ với một số")
+                .description("Phép nhân vectơ với một số thực")
+                .build();
+        lessonRepository.save(mathC4L3);
+
+        Lesson mathC4L4 = Lesson.builder()
+                .chapter(mathChap4)
+                .lessonNumber(4)
+                .lessonName("Vectơ trong mặt phẳng tọa độ")
+                .description("Biểu diễn vectơ trong hệ trục tọa độ")
+                .build();
+        lessonRepository.save(mathC4L4);
+
+        Lesson mathC4L5 = Lesson.builder()
+                .chapter(mathChap4)
+                .lessonNumber(5)
+                .lessonName("Tích vô hướng của hai vectơ")
+                .description("Khái niệm và ứng dụng của tích vô hướng")
+                .build();
+        lessonRepository.save(mathC4L5);
+
+        Chapter mathChap5 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(5)
+                .chapterName("Các số đặc trưng của mẫu số liệu không ghép nhóm")
+                .description("Chương 5: Các số đặc trưng của mẫu số liệu không ghép nhóm")
+                .build();
+        chapterRepository.save(mathChap5);
+
+        Lesson mathC5L1 = Lesson.builder()
+                .chapter(mathChap5)
+                .lessonNumber(1)
+                .lessonName("Số gần đúng và sai số")
+                .description("Khái niệm số gần đúng, sai số tuyệt đối và sai số tương đối")
+                .build();
+        lessonRepository.save(mathC5L1);
+
+        Lesson mathC5L2 = Lesson.builder()
+                .chapter(mathChap5)
+                .lessonNumber(2)
+                .lessonName("Các số đặc trưng đo xu thế trung tâm")
+                .description("Số trung bình cộng, trung vị, mốt")
+                .build();
+        lessonRepository.save(mathC5L2);
+
+        Lesson mathC5L3 = Lesson.builder()
+                .chapter(mathChap5)
+                .lessonNumber(3)
+                .lessonName("Các số đặc trưng đo độ phân tán")
+                .description("Khoảng biến thiên, phương sai và độ lệch chuẩn")
+                .build();
+        lessonRepository.save(mathC5L3);
+
+        Chapter mathChap6 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(6)
+                .chapterName("Hàm số, đồ thị và ứng dụng")
+                .description("Chương 6: Hàm số, đồ thị và ứng dụng")
+                .build();
+        chapterRepository.save(mathChap6);
+
+        Lesson mathC6L1 = Lesson.builder()
+                .chapter(mathChap6)
+                .lessonNumber(1)
+                .lessonName("Hàm số")
+                .description("Khái niệm hàm số và cách biểu diễn hàm số")
+                .build();
+        lessonRepository.save(mathC6L1);
+
+        Lesson mathC6L2 = Lesson.builder()
+                .chapter(mathChap6)
+                .lessonNumber(2)
+                .lessonName("Hàm số bậc hai")
+                .description("Hàm số bậc hai và đồ thị parabol")
+                .build();
+        lessonRepository.save(mathC6L2);
+
+        Lesson mathC6L3 = Lesson.builder()
+                .chapter(mathChap6)
+                .lessonNumber(3)
+                .lessonName("Dấu của tam thức bậc hai")
+                .description("Xét dấu tam thức bậc hai và ứng dụng")
+                .build();
+        lessonRepository.save(mathC6L3);
+
+        Lesson mathC6L4 = Lesson.builder()
+                .chapter(mathChap6)
+                .lessonNumber(4)
+                .lessonName("Phương trình quy về phương trình bậc hai")
+                .description("Các phương trình có thể đưa về dạng bậc hai")
+                .build();
+        lessonRepository.save(mathC6L4);
+
+
+        Chapter mathChap7 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(7)
+                .chapterName("Phương pháp tọa độ trong mặt phẳng")
+                .description("Chương 7: Phương pháp tọa độ trong mặt phẳng")
+                .build();
+        chapterRepository.save(mathChap7);
+
+        Lesson mathC7L1 = Lesson.builder()
+                .chapter(mathChap7)
+                .lessonNumber(1)
+                .lessonName("Phương trình đường thẳng")
+                .description("Các dạng phương trình của đường thẳng")
+                .build();
+        lessonRepository.save(mathC7L1);
+
+        Lesson mathC7L2 = Lesson.builder()
+                .chapter(mathChap7)
+                .lessonNumber(2)
+                .lessonName("Vị trí tương đối giữa hai đường thẳng. Góc và khoảng cách")
+                .description("Xét vị trí, góc và khoảng cách giữa hai đường thẳng")
+                .build();
+        lessonRepository.save(mathC7L2);
+
+        Lesson mathC7L3 = Lesson.builder()
+                .chapter(mathChap7)
+                .lessonNumber(3)
+                .lessonName("Đường tròn trong mặt phẳng tọa độ")
+                .description("Phương trình đường tròn và các bài toán liên quan")
+                .build();
+        lessonRepository.save(mathC7L3);
+
+        Lesson mathC7L4 = Lesson.builder()
+                .chapter(mathChap7)
+                .lessonNumber(4)
+                .lessonName("Ba đường conic")
+                .description("Elip, hypebol và parabol")
+                .build();
+        lessonRepository.save(mathC7L4);
+
+
+        Chapter mathChap8 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(8)
+                .chapterName("Đại số tổ hợp")
+                .description("Chương 8: Đại số tổ hợp")
+                .build();
+        chapterRepository.save(mathChap8);
+
+        Lesson mathC8L1 = Lesson.builder()
+                .chapter(mathChap8)
+                .lessonNumber(1)
+                .lessonName("Quy tắc đếm")
+                .description("Quy tắc cộng và quy tắc nhân")
+                .build();
+        lessonRepository.save(mathC8L1);
+
+        Lesson mathC8L2 = Lesson.builder()
+                .chapter(mathChap8)
+                .lessonNumber(2)
+                .lessonName("Hoán vị, chỉnh hợp và tổ hợp")
+                .description("Các khái niệm hoán vị, chỉnh hợp và tổ hợp")
+                .build();
+        lessonRepository.save(mathC8L2);
+
+        Lesson mathC8L3 = Lesson.builder()
+                .chapter(mathChap8)
+                .lessonNumber(3)
+                .lessonName("Nhị thức Newton")
+                .description("Khai triển nhị thức Newton")
+                .build();
+        lessonRepository.save(mathC8L3);
+
+
+        Chapter mathChap9 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(10)
+                .chapterNumber(9)
+                .chapterName("Tính xác suất theo định nghĩa cổ điển")
+                .description("Chương 9: Tính xác suất theo định nghĩa cổ điển")
+                .build();
+        chapterRepository.save(mathChap9);
+
+        Lesson mathC9L1 = Lesson.builder()
+                .chapter(mathChap9)
+                .lessonNumber(1)
+                .lessonName("Biến cố và định nghĩa cổ điển của xác suất")
+                .description("Khái niệm biến cố và xác suất theo định nghĩa cổ điển")
+                .build();
+        lessonRepository.save(mathC9L1);
+
+        Lesson mathC9L2 = Lesson.builder()
+                .chapter(mathChap9)
+                .lessonNumber(2)
+                .lessonName("Thực hành tính xác suất theo định nghĩa cổ điển")
+                .description("Áp dụng công thức xác suất vào bài toán thực tế")
+                .build();
+        lessonRepository.save(mathC9L2);
+        Chapter math11Chap1 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(1)
+                .chapterName("Hàm số lượng giác và phương trình lượng giác")
+                .description("Chương I: Hàm số lượng giác và phương trình lượng giác")
+                .build();
+        chapterRepository.save(math11Chap1);
+
+        Lesson math11C1L1 = Lesson.builder()
+                .chapter(math11Chap1)
+                .lessonNumber(1)
+                .lessonName("Giá trị lượng giác của góc lượng giác")
+                .description("Giá trị lượng giác của góc lượng giác")
+                .build();
+        lessonRepository.save(math11C1L1);
+
+        Lesson math11C1L2 = Lesson.builder()
+                .chapter(math11Chap1)
+                .lessonNumber(2)
+                .lessonName("Công thức lượng giác")
+                .description("Các công thức lượng giác cơ bản")
+                .build();
+        lessonRepository.save(math11C1L2);
+
+        Lesson math11C1L3 = Lesson.builder()
+                .chapter(math11Chap1)
+                .lessonNumber(3)
+                .lessonName("Hàm số lượng giác")
+                .description("Khái niệm và đồ thị các hàm số lượng giác")
+                .build();
+        lessonRepository.save(math11C1L3);
+
+        Lesson math11C1L4 = Lesson.builder()
+                .chapter(math11Chap1)
+                .lessonNumber(4)
+                .lessonName("Phương trình lượng giác cơ bản")
+                .description("Các phương trình lượng giác cơ bản")
+                .build();
+        lessonRepository.save(math11C1L4);
+
+
+        Chapter math11Chap2 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(2)
+                .chapterName("Dãy số, cấp số cộng và cấp số nhân")
+                .description("Chương II: Dãy số, cấp số cộng và cấp số nhân")
+                .build();
+        chapterRepository.save(math11Chap2);
+
+        Lesson math11C2L1 = Lesson.builder()
+                .chapter(math11Chap2)
+                .lessonNumber(1)
+                .lessonName("Dãy số")
+                .description("Khái niệm dãy số và cách cho dãy số")
+                .build();
+        lessonRepository.save(math11C2L1);
+
+        Lesson math11C2L2 = Lesson.builder()
+                .chapter(math11Chap2)
+                .lessonNumber(2)
+                .lessonName("Cấp số cộng")
+                .description("Định nghĩa và các tính chất của cấp số cộng")
+                .build();
+        lessonRepository.save(math11C2L2);
+
+        Lesson math11C2L3 = Lesson.builder()
+                .chapter(math11Chap2)
+                .lessonNumber(3)
+                .lessonName("Cấp số nhân")
+                .description("Định nghĩa và các tính chất của cấp số nhân")
+                .build();
+        lessonRepository.save(math11C2L3);
+
+
+        Chapter math11Chap3 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(3)
+                .chapterName("Các số đặc trưng đo xu thế trung tâm của mẫu số liệu ghép nhóm")
+                .description("Chương III: Các số đặc trưng đo xu thế trung tâm của mẫu số liệu ghép nhóm")
+                .build();
+        chapterRepository.save(math11Chap3);
+
+        Lesson math11C3L1 = Lesson.builder()
+                .chapter(math11Chap3)
+                .lessonNumber(1)
+                .lessonName("Mẫu số liệu ghép nhóm")
+                .description("Khái niệm mẫu số liệu ghép nhóm")
+                .build();
+        lessonRepository.save(math11C3L1);
+
+        Lesson math11C3L2 = Lesson.builder()
+                .chapter(math11Chap3)
+                .lessonNumber(2)
+                .lessonName("Các số đặc trưng đo xu thế trung tâm")
+                .description("Số trung bình, trung vị và mốt của mẫu số liệu ghép nhóm")
+                .build();
+        lessonRepository.save(math11C3L2);
+
+
+        Chapter math11Chap4 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(4)
+                .chapterName("Quan hệ song song trong không gian")
+                .description("Chương IV: Quan hệ song song trong không gian")
+                .build();
+        chapterRepository.save(math11Chap4);
+
+        Lesson math11C4L1 = Lesson.builder()
+                .chapter(math11Chap4)
+                .lessonNumber(1)
+                .lessonName("Đường thẳng và mặt phẳng trong không gian")
+                .description("Vị trí tương đối của đường thẳng và mặt phẳng")
+                .build();
+        lessonRepository.save(math11C4L1);
+
+        Lesson math11C4L2 = Lesson.builder()
+                .chapter(math11Chap4)
+                .lessonNumber(2)
+                .lessonName("Hai đường thẳng song song")
+                .description("Điều kiện và tính chất của hai đường thẳng song song")
+                .build();
+        lessonRepository.save(math11C4L2);
+
+        Lesson math11C4L3 = Lesson.builder()
+                .chapter(math11Chap4)
+                .lessonNumber(3)
+                .lessonName("Đường thẳng và mặt phẳng song song")
+                .description("Điều kiện song song giữa đường thẳng và mặt phẳng")
+                .build();
+        lessonRepository.save(math11C4L3);
+
+        Lesson math11C4L4 = Lesson.builder()
+                .chapter(math11Chap4)
+                .lessonNumber(4)
+                .lessonName("Hai mặt phẳng song song")
+                .description("Điều kiện và tính chất của hai mặt phẳng song song")
+                .build();
+        lessonRepository.save(math11C4L4);
+
+        Lesson math11C4L5 = Lesson.builder()
+                .chapter(math11Chap4)
+                .lessonNumber(5)
+                .lessonName("Phép chiếu song song")
+                .description("Khái niệm và ứng dụng của phép chiếu song song")
+                .build();
+        lessonRepository.save(math11C4L5);
+        Chapter math11Chap5 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(5)
+                .chapterName("Giới hạn. Hàm số liên tục")
+                .description("Chương V: Giới hạn. Hàm số liên tục")
+                .build();
+        chapterRepository.save(math11Chap5);
+
+        Lesson math11C5L1 = Lesson.builder()
+                .chapter(math11Chap5)
+                .lessonNumber(1)
+                .lessonName("Giới hạn của dãy số")
+                .description("Khái niệm và các dạng giới hạn của dãy số")
+                .build();
+        lessonRepository.save(math11C5L1);
+
+        Lesson math11C5L2 = Lesson.builder()
+                .chapter(math11Chap5)
+                .lessonNumber(2)
+                .lessonName("Giới hạn của hàm số")
+                .description("Giới hạn của hàm số tại một điểm")
+                .build();
+        lessonRepository.save(math11C5L2);
+
+        Lesson math11C5L3 = Lesson.builder()
+                .chapter(math11Chap5)
+                .lessonNumber(3)
+                .lessonName("Hàm số liên tục")
+                .description("Khái niệm và tính chất của hàm số liên tục")
+                .build();
+        lessonRepository.save(math11C5L3);
+
+
+        Chapter math11Chap6 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(6)
+                .chapterName("Hàm số mũ và hàm số lôgarit")
+                .description("Chương VI: Hàm số mũ và hàm số lôgarit")
+                .build();
+        chapterRepository.save(math11Chap6);
+
+        Lesson math11C6L1 = Lesson.builder()
+                .chapter(math11Chap6)
+                .lessonNumber(1)
+                .lessonName("Lũy thừa với số mũ thực")
+                .description("Khái niệm và các tính chất của lũy thừa")
+                .build();
+        lessonRepository.save(math11C6L1);
+
+        Lesson math11C6L2 = Lesson.builder()
+                .chapter(math11Chap6)
+                .lessonNumber(2)
+                .lessonName("Lôgarit")
+                .description("Khái niệm và các tính chất của lôgarit")
+                .build();
+        lessonRepository.save(math11C6L2);
+
+        Lesson math11C6L3 = Lesson.builder()
+                .chapter(math11Chap6)
+                .lessonNumber(3)
+                .lessonName("Hàm số mũ và hàm số lôgarit")
+                .description("Đồ thị và tính chất của hàm số mũ và hàm số lôgarit")
+                .build();
+        lessonRepository.save(math11C6L3);
+
+        Lesson math11C6L4 = Lesson.builder()
+                .chapter(math11Chap6)
+                .lessonNumber(4)
+                .lessonName("Phương trình, bất phương trình mũ và lôgarit")
+                .description("Giải phương trình và bất phương trình mũ, lôgarit")
+                .build();
+        lessonRepository.save(math11C6L4);
+
+
+        Chapter math11Chap7 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(7)
+                .chapterName("Quan hệ vuông góc trong không gian")
+                .description("Chương VII: Quan hệ vuông góc trong không gian")
+                .build();
+        chapterRepository.save(math11Chap7);
+
+        Lesson math11C7L1 = Lesson.builder()
+                .chapter(math11Chap7)
+                .lessonNumber(1)
+                .lessonName("Hai đường thẳng vuông góc")
+                .description("Điều kiện vuông góc của hai đường thẳng")
+                .build();
+        lessonRepository.save(math11C7L1);
+
+        Lesson math11C7L2 = Lesson.builder()
+                .chapter(math11Chap7)
+                .lessonNumber(2)
+                .lessonName("Đường thẳng vuông góc với mặt phẳng")
+                .description("Điều kiện vuông góc giữa đường thẳng và mặt phẳng")
+                .build();
+        lessonRepository.save(math11C7L2);
+
+        Lesson math11C7L3 = Lesson.builder()
+                .chapter(math11Chap7)
+                .lessonNumber(3)
+                .lessonName("Phép chiếu vuông góc. Góc giữa đường thẳng và mặt phẳng")
+                .description("Khái niệm phép chiếu vuông góc và góc trong không gian")
+                .build();
+        lessonRepository.save(math11C7L3);
+
+        Lesson math11C7L4 = Lesson.builder()
+                .chapter(math11Chap7)
+                .lessonNumber(4)
+                .lessonName("Hai mặt phẳng vuông góc")
+                .description("Điều kiện vuông góc của hai mặt phẳng")
+                .build();
+        lessonRepository.save(math11C7L4);
+
+        Lesson math11C7L5 = Lesson.builder()
+                .chapter(math11Chap7)
+                .lessonNumber(5)
+                .lessonName("Khoảng cách")
+                .description("Khoảng cách giữa điểm, đường thẳng và mặt phẳng")
+                .build();
+        lessonRepository.save(math11C7L5);
+
+        Lesson math11C7L6 = Lesson.builder()
+                .chapter(math11Chap7)
+                .lessonNumber(6)
+                .lessonName("Thể tích")
+                .description("Công thức tính thể tích các khối hình học")
+                .build();
+        lessonRepository.save(math11C7L6);
+
+
+        Chapter math11Chap8 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(8)
+                .chapterName("Các quy tắc tính xác suất")
+                .description("Chương VIII: Các quy tắc tính xác suất")
+                .build();
+        chapterRepository.save(math11Chap8);
+
+        Lesson math11C8L1 = Lesson.builder()
+                .chapter(math11Chap8)
+                .lessonNumber(1)
+                .lessonName("Biến cố hợp, biến cố giao, biến cố độc lập")
+                .description("Các loại biến cố trong xác suất")
+                .build();
+        lessonRepository.save(math11C8L1);
+
+        Lesson math11C8L2 = Lesson.builder()
+                .chapter(math11Chap8)
+                .lessonNumber(2)
+                .lessonName("Công thức cộng xác suất")
+                .description("Công thức cộng xác suất của các biến cố")
+                .build();
+        lessonRepository.save(math11C8L2);
+
+        Lesson math11C8L3 = Lesson.builder()
+                .chapter(math11Chap8)
+                .lessonNumber(3)
+                .lessonName("Công thức nhân xác suất cho hai biến cố độc lập")
+                .description("Công thức nhân xác suất cho các biến cố độc lập")
+                .build();
+        lessonRepository.save(math11C8L3);
+
+
+        Chapter math11Chap9 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(11)
+                .chapterNumber(9)
+                .chapterName("Đạo hàm")
+                .description("Chương IX: Đạo hàm")
+                .build();
+        chapterRepository.save(math11Chap9);
+
+        Lesson math11C9L1 = Lesson.builder()
+                .chapter(math11Chap9)
+                .lessonNumber(1)
+                .lessonName("Định nghĩa và ý nghĩa của đạo hàm")
+                .description("Khái niệm đạo hàm và ý nghĩa hình học")
+                .build();
+        lessonRepository.save(math11C9L1);
+
+        Lesson math11C9L2 = Lesson.builder()
+                .chapter(math11Chap9)
+                .lessonNumber(2)
+                .lessonName("Các quy tắc tính đạo hàm")
+                .description("Các quy tắc và công thức tính đạo hàm")
+                .build();
+        lessonRepository.save(math11C9L2);
+
+        Lesson math11C9L3 = Lesson.builder()
+                .chapter(math11Chap9)
+                .lessonNumber(3)
+                .lessonName("Đạo hàm cấp hai")
+                .description("Khái niệm và ứng dụng của đạo hàm cấp hai")
+                .build();
+        lessonRepository.save(math11C9L3);
+        Chapter math12Chap1 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(12)
+                .chapterNumber(1)
+                .chapterName("Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số")
+                .description("Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số")
+                .build();
+        chapterRepository.save(math12Chap1);
+
+        Lesson math12C1L1 = Lesson.builder()
+                .chapter(math12Chap1)
+                .lessonNumber(1)
+                .lessonName("Tính đơn điệu và cực trị của hàm số")
+                .description("Xét tính đơn điệu và các điểm cực trị của hàm số")
+                .build();
+        lessonRepository.save(math12C1L1);
+
+        Lesson math12C1L2 = Lesson.builder()
+                .chapter(math12Chap1)
+                .lessonNumber(2)
+                .lessonName("Giá trị lớn nhất và giá trị nhỏ nhất của hàm số")
+                .description("Tìm giá trị lớn nhất và giá trị nhỏ nhất của hàm số")
+                .build();
+        lessonRepository.save(math12C1L2);
+
+        Lesson math12C1L3 = Lesson.builder()
+                .chapter(math12Chap1)
+                .lessonNumber(3)
+                .lessonName("Đường tiệm cận của đồ thị hàm số")
+                .description("Tiệm cận đứng, tiệm cận ngang và tiệm cận xiên")
+                .build();
+        lessonRepository.save(math12C1L3);
+
+        Lesson math12C1L4 = Lesson.builder()
+                .chapter(math12Chap1)
+                .lessonNumber(4)
+                .lessonName("Khảo sát sự biến thiên và vẽ đồ thị hàm số")
+                .description("Các bước khảo sát và vẽ đồ thị hàm số")
+                .build();
+        lessonRepository.save(math12C1L4);
+
+        Lesson math12C1L5 = Lesson.builder()
+                .chapter(math12Chap1)
+                .lessonNumber(5)
+                .lessonName("Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn")
+                .description("Vận dụng đạo hàm vào các bài toán thực tiễn")
+                .build();
+        lessonRepository.save(math12C1L5);
+
+
+        Chapter math12Chap2 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(12)
+                .chapterNumber(2)
+                .chapterName("Vectơ và hệ trục tọa độ trong không gian")
+                .description("Chương 2: Vectơ và hệ trục tọa độ trong không gian")
+                .build();
+        chapterRepository.save(math12Chap2);
+
+        Lesson math12C2L1 = Lesson.builder()
+                .chapter(math12Chap2)
+                .lessonNumber(1)
+                .lessonName("Vectơ trong không gian")
+                .description("Khái niệm và các phép toán vectơ trong không gian")
+                .build();
+        lessonRepository.save(math12C2L1);
+
+        Lesson math12C2L2 = Lesson.builder()
+                .chapter(math12Chap2)
+                .lessonNumber(2)
+                .lessonName("Hệ trục tọa độ trong không gian")
+                .description("Hệ tọa độ Oxyz và biểu diễn hình học")
+                .build();
+        lessonRepository.save(math12C2L2);
+
+        Lesson math12C2L3 = Lesson.builder()
+                .chapter(math12Chap2)
+                .lessonNumber(3)
+                .lessonName("Biểu thức tọa độ của các phép toán vectơ")
+                .description("Các phép toán vectơ dưới dạng tọa độ")
+                .build();
+        lessonRepository.save(math12C2L3);
+
+
+        Chapter math12Chap3 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(12)
+                .chapterNumber(3)
+                .chapterName("Các số đặc trưng đo mức độ phân tán của mẫu số liệu ghép nhóm")
+                .description("Chương 3: Các số đặc trưng đo mức độ phân tán của mẫu số liệu ghép nhóm")
+                .build();
+        chapterRepository.save(math12Chap3);
+
+        Lesson math12C3L1 = Lesson.builder()
+                .chapter(math12Chap3)
+                .lessonNumber(1)
+                .lessonName("Khoảng biến thiên và khoảng tứ phân vị")
+                .description("Các số đo mức độ phân tán của mẫu số liệu")
+                .build();
+        lessonRepository.save(math12C3L1);
+
+        Lesson math12C3L2 = Lesson.builder()
+                .chapter(math12Chap3)
+                .lessonNumber(2)
+                .lessonName("Phương sai và độ lệch chuẩn")
+                .description("Ý nghĩa và cách tính phương sai, độ lệch chuẩn")
+                .build();
+        lessonRepository.save(math12C3L2);
+
+
+        Chapter math12Chap4 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(12)
+                .chapterNumber(4)
+                .chapterName("Nguyên hàm và tích phân")
+                .description("Chương 4: Nguyên hàm và tích phân")
+                .build();
+        chapterRepository.save(math12Chap4);
+
+        Lesson math12C4L1 = Lesson.builder()
+                .chapter(math12Chap4)
+                .lessonNumber(1)
+                .lessonName("Nguyên hàm")
+                .description("Khái niệm và các tính chất của nguyên hàm")
+                .build();
+        lessonRepository.save(math12C4L1);
+
+        Lesson math12C4L2 = Lesson.builder()
+                .chapter(math12Chap4)
+                .lessonNumber(2)
+                .lessonName("Tích phân")
+                .description("Định nghĩa và các phương pháp tính tích phân")
+                .build();
+        lessonRepository.save(math12C4L2);
+
+        Lesson math12C4L3 = Lesson.builder()
+                .chapter(math12Chap4)
+                .lessonNumber(3)
+                .lessonName("Ứng dụng hình học của tích phân")
+                .description("Tính diện tích và thể tích bằng tích phân")
+                .build();
+        lessonRepository.save(math12C4L3);
+        Chapter math12Chap5 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(12)
+                .chapterNumber(5)
+                .chapterName("Phương pháp tọa độ trong không gian")
+                .description("Chương 5: Phương pháp tọa độ trong không gian")
+                .build();
+        chapterRepository.save(math12Chap5);
+
+        Lesson math12C5L1 = Lesson.builder()
+                .chapter(math12Chap5)
+                .lessonNumber(1)
+                .lessonName("Phương trình mặt phẳng")
+                .description("Các dạng phương trình mặt phẳng trong không gian")
+                .build();
+        lessonRepository.save(math12C5L1);
+
+        Lesson math12C5L2 = Lesson.builder()
+                .chapter(math12Chap5)
+                .lessonNumber(2)
+                .lessonName("Phương trình đường thẳng trong không gian")
+                .description("Các dạng phương trình đường thẳng trong không gian")
+                .build();
+        lessonRepository.save(math12C5L2);
+
+        Lesson math12C5L3 = Lesson.builder()
+                .chapter(math12Chap5)
+                .lessonNumber(3)
+                .lessonName("Công thức tính góc trong không gian")
+                .description("Góc giữa hai đường thẳng, đường thẳng và mặt phẳng")
+                .build();
+        lessonRepository.save(math12C5L3);
+
+        Lesson math12C5L4 = Lesson.builder()
+                .chapter(math12Chap5)
+                .lessonNumber(4)
+                .lessonName("Phương trình mặt cầu")
+                .description("Phương trình mặt cầu trong không gian tọa độ")
+                .build();
+        lessonRepository.save(math12C5L4);
+
+
+        Chapter math12Chap6 = Chapter.builder()
+                .subject(math)
+                .gradeLevel(12)
+                .chapterNumber(6)
+                .chapterName("Xác suất có điều kiện")
+                .description("Chương 6: Xác suất có điều kiện")
+                .build();
+        chapterRepository.save(math12Chap6);
+
+        Lesson math12C6L1 = Lesson.builder()
+                .chapter(math12Chap6)
+                .lessonNumber(1)
+                .lessonName("Xác suất có điều kiện")
+                .description("Khái niệm và công thức xác suất có điều kiện")
+                .build();
+        lessonRepository.save(math12C6L1);
+
+        Lesson math12C6L2 = Lesson.builder()
+                .chapter(math12Chap6)
+                .lessonNumber(2)
+                .lessonName("Công thức xác suất toàn phần và công thức Bayes")
+                .description("Áp dụng công thức xác suất toàn phần và Bayes")
+                .build();
+        lessonRepository.save(math12C6L2);
         if (physics != null) {
-            // Vật lý 10 - Chương 1
-            Chapter physicsChap1 = Chapter.builder()
+
+            Chapter phy10Chap1 = Chapter.builder()
                     .subject(physics)
                     .gradeLevel(10)
                     .chapterNumber(1)
-                    .chapterName("Động học chất điểm")
-                    .description("Chương 1: Động học chất điểm")
+                    .chapterName("Mở đầu")
+                    .description("Chương 1: Mở đầu")
                     .build();
-            chapterRepository.save(physicsChap1);
+            chapterRepository.save(phy10Chap1);
 
-            Lesson physicsC1L1 = Lesson.builder()
-                    .chapter(physicsChap1)
+            Lesson phy10C1L1 = Lesson.builder()
+                    .chapter(phy10Chap1)
                     .lessonNumber(1)
-                    .lessonName("Chuyển động cơ")
-                    .description("Chất điểm, hệ quy chiếu, quỹ đạo")
+                    .lessonName("Làm quen với Vật lí")
+                    .description("Giới thiệu về Vật lí và vai trò của Vật lí trong đời sống")
                     .build();
-            lessonRepository.save(physicsC1L1);
+            lessonRepository.save(phy10C1L1);
 
-            LessonResource physicsC1L1R1 = LessonResource.builder()
-                    .lesson(physicsC1L1)
-                    .resourceName("Bài giảng Chuyển động cơ")
-                    .resourceType(LessonResourceType.PDF)
-                    .fileUrl("https://example.com/chuyen-dong-co.pdf")
-                    .extractedContent("Chuyển động cơ là sự thay đổi vị trí của vật...")
-                    .build();
-            lessonResourceRepository.save(physicsC1L1R1);
-
-            Lesson physicsC1L2 = Lesson.builder()
-                    .chapter(physicsChap1)
+            Lesson phy10C1L2 = Lesson.builder()
+                    .chapter(phy10Chap1)
                     .lessonNumber(2)
-                    .lessonName("Chuyển động thẳng đều")
-                    .description("Vận tốc, phương trình chuyển động thẳng đều")
+                    .lessonName("Các quy tắc an toàn trong phòng thực hành Vật lí")
+                    .description("Quy tắc an toàn khi học tập và thực hành Vật lí")
                     .build();
-            lessonRepository.save(physicsC1L2);
+            lessonRepository.save(phy10C1L2);
 
-            Lesson physicsC1L3 = Lesson.builder()
-                    .chapter(physicsChap1)
+            Lesson phy10C1L3 = Lesson.builder()
+                    .chapter(phy10Chap1)
                     .lessonNumber(3)
-                    .lessonName("Chuyển động thẳng biến đổi đều")
-                    .description("Gia tốc, phương trình chuyển động")
+                    .lessonName("Thực hành tính sai số trong phép đo. Ghi kết quả đo")
+                    .description("Cách xác định sai số và trình bày kết quả đo")
                     .build();
-            lessonRepository.save(physicsC1L3);
+            lessonRepository.save(phy10C1L3);
+
+
+            Chapter phy10Chap2 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(10)
+                    .chapterNumber(2)
+                    .chapterName("Động học")
+                    .description("Chương 2: Động học")
+                    .build();
+            chapterRepository.save(phy10Chap2);
+
+            Lesson phy10C2L1 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(1)
+                    .lessonName("Độ dịch chuyển và quãng đường đi được")
+                    .description("Khái niệm độ dịch chuyển và quãng đường")
+                    .build();
+            lessonRepository.save(phy10C2L1);
+
+            Lesson phy10C2L2 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(2)
+                    .lessonName("Tốc độ và vận tốc")
+                    .description("Khái niệm tốc độ và vận tốc")
+                    .build();
+            lessonRepository.save(phy10C2L2);
+
+            Lesson phy10C2L3 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(3)
+                    .lessonName("Đồ thị độ dịch chuyển – thời gian")
+                    .description("Biểu diễn chuyển động bằng đồ thị")
+                    .build();
+            lessonRepository.save(phy10C2L3);
+
+            Lesson phy10C2L4 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(4)
+                    .lessonName("Chuyển động biến đổi. Gia tốc")
+                    .description("Khái niệm chuyển động biến đổi và gia tốc")
+                    .build();
+            lessonRepository.save(phy10C2L4);
+
+            Lesson phy10C2L5 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(5)
+                    .lessonName("Chuyển động thẳng biến đổi đều")
+                    .description("Các công thức của chuyển động thẳng biến đổi đều")
+                    .build();
+            lessonRepository.save(phy10C2L5);
+
+            Lesson phy10C2L6 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(6)
+                    .lessonName("Sự rơi tự do")
+                    .description("Chuyển động rơi tự do và các đặc điểm")
+                    .build();
+            lessonRepository.save(phy10C2L6);
+
+            Lesson phy10C2L7 = Lesson.builder()
+                    .chapter(phy10Chap2)
+                    .lessonNumber(7)
+                    .lessonName("Chuyển động ném")
+                    .description("Chuyển động ném ngang và ném xiên")
+                    .build();
+            lessonRepository.save(phy10C2L7);
+
+
+            Chapter phy10Chap3 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(10)
+                    .chapterNumber(3)
+                    .chapterName("Động lực học")
+                    .description("Chương 3: Động lực học")
+                    .build();
+            chapterRepository.save(phy10Chap3);
+
+            Lesson phy10C3L1 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(1)
+                    .lessonName("Tổng hợp và phân tích lực. Cân bằng lực")
+                    .description("Cách tổng hợp, phân tích lực và điều kiện cân bằng")
+                    .build();
+            lessonRepository.save(phy10C3L1);
+
+            Lesson phy10C3L2 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(2)
+                    .lessonName("Định luật I Newton")
+                    .description("Nội dung và ý nghĩa định luật I Newton")
+                    .build();
+            lessonRepository.save(phy10C3L2);
+
+            Lesson phy10C3L3 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(3)
+                    .lessonName("Định luật II Newton")
+                    .description("Mối liên hệ giữa lực, khối lượng và gia tốc")
+                    .build();
+            lessonRepository.save(phy10C3L3);
+
+            Lesson phy10C3L4 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(4)
+                    .lessonName("Định luật III Newton")
+                    .description("Lực và phản lực")
+                    .build();
+            lessonRepository.save(phy10C3L4);
+
+            Lesson phy10C3L5 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(5)
+                    .lessonName("Trọng lực và lực căng")
+                    .description("Trọng lực, lực căng dây")
+                    .build();
+            lessonRepository.save(phy10C3L5);
+
+            Lesson phy10C3L6 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(6)
+                    .lessonName("Lực ma sát")
+                    .description("Các loại lực ma sát và đặc điểm")
+                    .build();
+            lessonRepository.save(phy10C3L6);
+
+            Lesson phy10C3L7 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(7)
+                    .lessonName("Lực cản và lực nâng")
+                    .description("Lực cản của môi trường và lực nâng")
+                    .build();
+            lessonRepository.save(phy10C3L7);
+
+            Lesson phy10C3L8 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(8)
+                    .lessonName("Một số ví dụ về cách giải các bài toán thuộc phần động lực học")
+                    .description("Vận dụng các định luật Newton để giải bài toán")
+                    .build();
+            lessonRepository.save(phy10C3L8);
+
+            Lesson phy10C3L9 = Lesson.builder()
+                    .chapter(phy10Chap3)
+                    .lessonNumber(9)
+                    .lessonName("Moment lực. Cân bằng của vật rắn")
+                    .description("Moment lực và điều kiện cân bằng của vật rắn")
+                    .build();
+            lessonRepository.save(phy10C3L9);
+
+
+            Chapter phy10Chap4 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(10)
+                    .chapterNumber(4)
+                    .chapterName("Năng lượng, công, công suất")
+                    .description("Chương 4: Năng lượng, công, công suất")
+                    .build();
+            chapterRepository.save(phy10Chap4);
+
+            Lesson phy10C4L1 = Lesson.builder()
+                    .chapter(phy10Chap4)
+                    .lessonNumber(1)
+                    .lessonName("Năng lượng. Công cơ học")
+                    .description("Khái niệm năng lượng và công cơ học")
+                    .build();
+            lessonRepository.save(phy10C4L1);
+
+            Lesson phy10C4L2 = Lesson.builder()
+                    .chapter(phy10Chap4)
+                    .lessonNumber(2)
+                    .lessonName("Công suất")
+                    .description("Khái niệm và công thức tính công suất")
+                    .build();
+            lessonRepository.save(phy10C4L2);
+
+            Lesson phy10C4L3 = Lesson.builder()
+                    .chapter(phy10Chap4)
+                    .lessonNumber(3)
+                    .lessonName("Động năng. Thế năng")
+                    .description("Động năng và thế năng của vật")
+                    .build();
+            lessonRepository.save(phy10C4L3);
+
+            Lesson phy10C4L4 = Lesson.builder()
+                    .chapter(phy10Chap4)
+                    .lessonNumber(4)
+                    .lessonName("Cơ năng và định luật bảo toàn cơ năng")
+                    .description("Cơ năng và định luật bảo toàn")
+                    .build();
+            lessonRepository.save(phy10C4L4);
+
+            Lesson phy10C4L5 = Lesson.builder()
+                    .chapter(phy10Chap4)
+                    .lessonNumber(5)
+                    .lessonName("Hiệu suất")
+                    .description("Khái niệm và cách tính hiệu suất")
+                    .build();
+            lessonRepository.save(phy10C4L5);
+            Chapter physicsChap5 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(10)
+                    .chapterNumber(5)
+                    .chapterName("Động lượng")
+                    .description("Chương 5: Động lượng và định luật bảo toàn động lượng")
+                    .build();
+            chapterRepository.save(physicsChap5);
+            Lesson.builder()
+                    .chapter(physicsChap5)
+                    .lessonNumber(1)
+                    .lessonName("Động lượng")
+                    .build();
+
+            Lesson.builder()
+                    .chapter(physicsChap5)
+                    .lessonNumber(2)
+                    .lessonName("Định luật bảo toàn động lượng")
+                    .build();
+            Chapter physicsChap6 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(10)
+                    .chapterNumber(6)
+                    .chapterName("Chuyển động tròn")
+                    .description("Chương 6: Động học và động lực học của chuyển động tròn")
+                    .build();
+            chapterRepository.save(physicsChap6);
+            Lesson.builder()
+                    .chapter(physicsChap6)
+                    .lessonNumber(1)
+                    .lessonName("Động học của chuyển động tròn đều")
+                    .build();
+
+            Lesson.builder()
+                    .chapter(physicsChap6)
+                    .lessonNumber(2)
+                    .lessonName("Lực hướng tâm và gia tốc hướng tâm")
+                    .build();
+            Chapter physicsChap7 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(10)
+                    .chapterNumber(7)
+                    .chapterName("Biến dạng của vật rắn. Áp suất chất lỏng")
+                    .description("Chương 7: Biến dạng vật rắn và các đại lượng áp suất")
+                    .build();
+            chapterRepository.save(physicsChap7);
+            Lesson.builder()
+                    .chapter(physicsChap7)
+                    .lessonNumber(1)
+                    .lessonName("Biến dạng của vật rắn")
+                    .build();
+
+            Lesson.builder()
+                    .chapter(physicsChap7)
+                    .lessonNumber(2)
+                    .lessonName("Khối lượng riêng. Áp suất chất lỏng")
+                    .build();
         }
 
         if (english != null) {
