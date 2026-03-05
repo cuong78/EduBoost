@@ -107,6 +107,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             if (roles.isEmpty()) {
                 throw new BadRequestException("User must have at least one role");
             }
+            user.setRoles(roles);
         }
         
         User updatedUser = userRepository.save(user);

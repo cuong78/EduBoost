@@ -127,9 +127,6 @@ public class LessonServiceImpl implements LessonService {
         Lesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + id));
 
-        if (lessonRepository.hasQuestions(id)) {
-            throw new BadRequestException("Cannot delete lesson because it has questions");
-        }
         lessonRepository.delete(lesson);
         log.info("Lesson deleted successfully with id: {}", id);
     }

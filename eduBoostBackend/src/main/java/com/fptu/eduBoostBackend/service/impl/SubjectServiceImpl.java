@@ -100,7 +100,7 @@ public class SubjectServiceImpl implements SubjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
 
         if (chapterRepository.existsBySubjectId(id)
-                || lessonRepository.existsBySubjectId(id)
+
                 || examRepository.existsBySubjectId(id)) {
             throw new BadRequestException("Cannot delete subject that is already in use");
         }
