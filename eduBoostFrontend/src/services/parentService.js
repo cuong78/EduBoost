@@ -7,6 +7,8 @@ import {
     mockValidateInvitationInvalid,
     mockParentStudents,
     mockParentStudentDetail,
+  mockParentStudentScores,
+  mockParentStudentScoreDetail,
 } from '../mocks/invitationMockData';
 
 const mockResolve = (data) => Promise.resolve(data);
@@ -84,4 +86,22 @@ export const parentService = {
                   .delete(API.PARENT_STUDENT_UNLINK(studentId))
                   .then((res) => res.data?.data ?? res.data)
                   .catch((err) => (useMock() || err?.response?.status === 404 || err?.code === 'ERR_NETWORK' ? mockResolve({}) : Promise.reject(err))),
+
+  getStudentScores: (studentId, params) =>
+    withMockFallback(
+      () =>
+        apiClient
+          .get(API.PARENT_STUDENT_SCORES(studentId), { params })
+          .then((res) => res.data?.data ?? res.data),
+      () => mockParentStudentScores(studentId)
+    ),
+
+  getStudentScoreDetail: (studentId, resultId) =>
+    withMockFallback(
+      () =>
+        apiClient
+          .get(API.PARENT_STUDENT_SCORE_DETAIL(studentId, resultId))
+          .then((res) => res.data?.data ?? res.data),
+      () => mockParentStudentScoreDetail(studentId, resultId)
+    ),
 };

@@ -5,6 +5,8 @@ import com.fptu.eduBoostBackend.dto.request.ValidateInvitationRequest;
 import com.fptu.eduBoostBackend.dto.response.LinkStudentResponse;
 import com.fptu.eduBoostBackend.dto.response.ParentStudentDetailResponse;
 import com.fptu.eduBoostBackend.dto.response.ValidateInvitationResponse;
+import com.fptu.eduBoostBackend.dto.response.StudentExamResultDetailResponse;
+import com.fptu.eduBoostBackend.dto.response.StudentExamResultSummaryResponse;
 import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.enums.InvitationStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
@@ -16,12 +18,15 @@ import com.fptu.eduBoostBackend.repositories.ParentStudentRepository;
 import com.fptu.eduBoostBackend.repositories.StudentInvitationRepository;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
 import com.fptu.eduBoostBackend.service.ParentService;
+import com.fptu.eduBoostBackend.service.StudentExamResultService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +41,7 @@ public class ParentServiceImpl implements ParentService {
     private final UserRepository userRepository;
     private final ParentRepository parentRepository;
     private final ParentStudentRepository parentStudentRepository;
+    private final StudentExamResultService studentExamResultService;
 
     @Override
     @Transactional(readOnly = true)
@@ -308,5 +314,39 @@ public class ParentServiceImpl implements ParentService {
 
         parentStudentRepository.delete(parentStudent);
         log.info("Successfully unlinked parent {} from student {}", parent.getParentId(), studentId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<StudentExamResultSummaryResponse> getStudentScores(String studentId,
+                                                                   Long subjectId,
+                                                                   Integer semester,
+                                                                   String schoolYear,
+                                                                   Pageable pageable) {
+        Parent parent = getCurrentParent();
+        log.info("Fetching scores for student {} and parent {}", studentId, parent.getParentId());
+
+        ensureParentLinkedToStudent(parent, studentId);
+
+        return studentExamResultService.getStudentResults(studentId, subjectId, semester, schoolYear, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentExamResultDetailResponse getStudentScoreDetail(String studentId, Long resultId) {
+        Parent parent = getCurrentParent();
+        log.info("Fetching score detail {} for student {} and parent {}", resultId, studentId, parent.getParentId());
+
+        ensureParentLinkedToStudent(parent, studentId);
+
+        return studentExamResultService.getStudentResultDetail(studentId, resultId);
+    }
+
+    private void ensureParentLinkedToStudent(Parent parent, String studentId) {
+        boolean linked = parentStudentRepository.findByParent(parent).stream()
+                .anyMatch(ps -> ps.getStudent().getStudentId().equals(studentId));
+        if (!linked) {
+            throw new ForbiddenException("Student not found or not linked to you");
+        }
     }
 }

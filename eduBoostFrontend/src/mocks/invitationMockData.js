@@ -233,6 +233,79 @@ export const mockParentStudentDetail = (studentId) => {
     };
 };
 
+export const mockParentStudentScores = (studentId) => {
+    const baseScores = [
+        {
+            resultId: 1,
+            examId: 101,
+            examTitle: 'Giữa kỳ Toán 10',
+            subjectName: 'Toán học',
+            subjectCode: 'MATH10',
+            chapterName: 'Hàm số bậc nhất',
+            semester: 1,
+            schoolYear: '2024-2025',
+            takenAt: now.toISOString(),
+            score: 8.5,
+            maxScore: 10,
+            percentage: 85,
+            status: 'PASSED',
+            sourceType: 'TEACHER_INPUT',
+        },
+        {
+            resultId: 2,
+            examId: 102,
+            examTitle: 'Giữa kỳ Vật lý 10',
+            subjectName: 'Vật lý',
+            subjectCode: 'PHYS10',
+            chapterName: 'Động học',
+            semester: 1,
+            schoolYear: '2024-2025',
+            takenAt: yesterday.toISOString(),
+            score: 7.2,
+            maxScore: 10,
+            percentage: 72,
+            status: 'PASSED',
+            sourceType: 'ONLINE_EXAM',
+        },
+    ];
+
+    return {
+        content: baseScores,
+        totalElements: baseScores.length,
+        totalPages: 1,
+        number: 0,
+        size: baseScores.length,
+    };
+};
+
+export const mockParentStudentScoreDetail = (studentId, resultId) => {
+    const list = mockParentStudentScores(studentId).content;
+    const base = list.find((x) => x.resultId === resultId) ?? list[0];
+    return {
+        ...base,
+        gradingCriteria: 'Điểm được tính theo thang 10, mỗi câu 0.25 điểm.',
+        teacherComment: 'Học sinh làm bài tốt, cần luyện thêm các câu vận dụng cao.',
+        questionBreakdowns: [
+            {
+                questionNumber: 1,
+                questionText: 'Câu hỏi 1...',
+                studentAnswer: 'A',
+                correctAnswer: 'A',
+                pointsAwarded: 0.25,
+                pointsPossible: 0.25,
+            },
+            {
+                questionNumber: 2,
+                questionText: 'Câu hỏi 2...',
+                studentAnswer: 'C',
+                correctAnswer: 'B',
+                pointsAwarded: 0,
+                pointsPossible: 0.25,
+            },
+        ],
+    };
+};
+
 export const mockAdminStats = {
     total: 150,
     totalInvitations: 150,
