@@ -156,7 +156,12 @@ public class DataInitializer implements CommandLineRunner {
                 .description("Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học")
                 .build();
         subjectRepository.save(chemistry);
-
+        Subject science = Subject.builder()
+                .subjectCode("SCI")
+                .subjectName("Khoa học tự nhiên")
+                .description("Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên")
+                .build();
+        subjectRepository.save(science);
         Subject english = Subject.builder()
                 .subjectCode("ANH")
                 .subjectName("Tiếng Anh")
@@ -212,6 +217,8 @@ public class DataInitializer implements CommandLineRunner {
         Subject math = subjectRepository.findBySubjectCode("TOAN").orElse(null);
         Subject physics = subjectRepository.findBySubjectCode("LY").orElse(null);
         Subject english = subjectRepository.findBySubjectCode("ANH").orElse(null);
+        Subject chemistry = subjectRepository.findBySubjectCode("HOA").orElse(null);
+        Subject science = subjectRepository.findBySubjectCode("SCI").orElse(null);
 
         if (math != null) {
             // Toán 10 - Chương 1
@@ -1396,8 +1403,1267 @@ public class DataInitializer implements CommandLineRunner {
                     .lessonNumber(2)
                     .lessonName("Khối lượng riêng. Áp suất chất lỏng")
                     .build();
+            Chapter phy11Chap1 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(11)
+                    .chapterNumber(1)
+                    .chapterName("Dao động")
+                    .description("Chương 1: Dao động")
+                    .build();
+            chapterRepository.save(phy11Chap1);
+
+            Lesson phy11C1L1 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(1)
+                    .lessonName("Dao động điều hòa")
+                    .description("Khái niệm và đặc điểm của dao động điều hòa")
+                    .build();
+            lessonRepository.save(phy11C1L1);
+
+            Lesson phy11C1L2 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(2)
+                    .lessonName("Mô tả dao động điều hòa")
+                    .description("Các đại lượng đặc trưng và phương trình dao động điều hòa")
+                    .build();
+            lessonRepository.save(phy11C1L2);
+
+            Lesson phy11C1L3 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(3)
+                    .lessonName("Vận tốc, gia tốc trong điều hòa dao động")
+                    .description("Mối liên hệ giữa vận tốc, gia tốc và li độ trong dao động điều hòa")
+                    .build();
+            lessonRepository.save(phy11C1L3);
+
+            Lesson phy11C1L4 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(4)
+                    .lessonName("Bài tập về điều hòa dao động")
+                    .description("Bài tập củng cố kiến thức dao động điều hòa")
+                    .build();
+            lessonRepository.save(phy11C1L4);
+
+            Lesson phy11C1L5 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(5)
+                    .lessonName("Động năng. Thế năng. Sự chuyển hóa giữa động năng và thế năng trong dao động điều hòa")
+                    .description("Năng lượng trong dao động điều hòa và sự chuyển hóa")
+                    .build();
+            lessonRepository.save(phy11C1L5);
+
+            Lesson phy11C1L6 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(6)
+                    .lessonName("Dao động tắt dần. Dao động cưỡng bức. Hiện tượng cộng hưởng")
+                    .description("Các loại dao động và hiện tượng cộng hưởng")
+                    .build();
+            lessonRepository.save(phy11C1L6);
+
+            Lesson phy11C1L7 = Lesson.builder()
+                    .chapter(phy11Chap1)
+                    .lessonNumber(7)
+                    .lessonName("Bài tập về sự chuyển năng lượng trong dao động điều hòa")
+                    .description("Bài tập về năng lượng trong dao động điều hòa")
+                    .build();
+            lessonRepository.save(phy11C1L7);
+
+            Chapter phy11Chap2 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(11)
+                    .chapterNumber(2)
+                    .chapterName("Sóng")
+                    .description("Chương 2: Sóng")
+                    .build();
+            chapterRepository.save(phy11Chap2);
+
+            Lesson phy11C2L1 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(1)
+                    .lessonName("Mô tả sóng")
+                    .description("Khái niệm và đặc điểm của sóng cơ")
+                    .build();
+            lessonRepository.save(phy11C2L1);
+
+            Lesson phy11C2L2 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(2)
+                    .lessonName("Sóng ngang, sóng dọc, sự truyền năng lượng của sóng cơ")
+                    .description("Phân loại sóng và sự truyền năng lượng")
+                    .build();
+            lessonRepository.save(phy11C2L2);
+
+            Lesson phy11C2L3 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(3)
+                    .lessonName("Thực hành: Đo tần số của sóng âm")
+                    .description("Thực hành đo tần số sóng âm")
+                    .build();
+            lessonRepository.save(phy11C2L3);
+
+            Lesson phy11C2L4 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(4)
+                    .lessonName("Sóng điện từ")
+                    .description("Khái niệm và tính chất của sóng điện từ")
+                    .build();
+            lessonRepository.save(phy11C2L4);
+
+            Lesson phy11C2L5 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(5)
+                    .lessonName("Giao thoa sóng")
+                    .description("Hiện tượng giao thoa của sóng")
+                    .build();
+            lessonRepository.save(phy11C2L5);
+
+            Lesson phy11C2L6 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(6)
+                    .lessonName("Sóng dừng")
+                    .description("Điều kiện hình thành và đặc điểm của sóng dừng")
+                    .build();
+            lessonRepository.save(phy11C2L6);
+
+            Lesson phy11C2L7 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(7)
+                    .lessonName("Bài tập về sóng")
+                    .description("Bài tập tổng hợp về sóng")
+                    .build();
+            lessonRepository.save(phy11C2L7);
+
+            Lesson phy11C2L8 = Lesson.builder()
+                    .chapter(phy11Chap2)
+                    .lessonNumber(8)
+                    .lessonName("Thực hành: Đo tốc độ truyền âm")
+                    .description("Thực hành đo tốc độ truyền của sóng âm")
+                    .build();
+            lessonRepository.save(phy11C2L8);
+
+            Chapter phy11Chap3 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(11)
+                    .chapterNumber(3)
+                    .chapterName("Điện trường")
+                    .description("Chương 3: Điện trường")
+                    .build();
+            chapterRepository.save(phy11Chap3);
+
+            Lesson phy11C3L1 = Lesson.builder()
+                    .chapter(phy11Chap3)
+                    .lessonNumber(1)
+                    .lessonName("Lực tương tác giữa hai điện tích")
+                    .description("Tương tác điện và định luật Coulomb")
+                    .build();
+            lessonRepository.save(phy11C3L1);
+
+            Lesson phy11C3L2 = Lesson.builder()
+                    .chapter(phy11Chap3)
+                    .lessonNumber(2)
+                    .lessonName("Khái niệm điện trường")
+                    .description("Điện trường và cường độ điện trường")
+                    .build();
+            lessonRepository.save(phy11C3L2);
+
+            Lesson phy11C3L3 = Lesson.builder()
+                    .chapter(phy11Chap3)
+                    .lessonNumber(3)
+                    .lessonName("Điện trường đều")
+                    .description("Đặc điểm và ứng dụng của điện trường đều")
+                    .build();
+            lessonRepository.save(phy11C3L3);
+
+            Lesson phy11C3L4 = Lesson.builder()
+                    .chapter(phy11Chap3)
+                    .lessonNumber(4)
+                    .lessonName("Thế năng điện")
+                    .description("Khái niệm thế năng của điện tích trong điện trường")
+                    .build();
+            lessonRepository.save(phy11C3L4);
+
+            Lesson phy11C3L5 = Lesson.builder()
+                    .chapter(phy11Chap3)
+                    .lessonNumber(5)
+                    .lessonName("Điện thế")
+                    .description("Khái niệm điện thế và hiệu điện thế")
+                    .build();
+            lessonRepository.save(phy11C3L5);
+
+            Lesson phy11C3L6 = Lesson.builder()
+                    .chapter(phy11Chap3)
+                    .lessonNumber(6)
+                    .lessonName("Tụ điện")
+                    .description("Cấu tạo, đặc điểm và ứng dụng của tụ điện")
+                    .build();
+            lessonRepository.save(phy11C3L6);
+
+            Chapter phy11Chap4 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(11)
+                    .chapterNumber(4)
+                    .chapterName("Dòng điện. Mạch điện")
+                    .description("Chương 4: Dòng điện. Mạch điện")
+                    .build();
+            chapterRepository.save(phy11Chap4);
+
+            Lesson phy11C4L1 = Lesson.builder()
+                    .chapter(phy11Chap4)
+                    .lessonNumber(1)
+                    .lessonName("Cường độ dòng điện")
+                    .description("Khái niệm và công thức tính cường độ dòng điện")
+                    .build();
+            lessonRepository.save(phy11C4L1);
+
+            Lesson phy11C4L2 = Lesson.builder()
+                    .chapter(phy11Chap4)
+                    .lessonNumber(2)
+                    .lessonName("Điện trở. Định luật Ohm")
+                    .description("Điện trở và định luật Ohm cho đoạn mạch")
+                    .build();
+            lessonRepository.save(phy11C4L2);
+
+            Lesson phy11C4L3 = Lesson.builder()
+                    .chapter(phy11Chap4)
+                    .lessonNumber(3)
+                    .lessonName("Nguồn điện")
+                    .description("Nguồn điện và suất điện động")
+                    .build();
+            lessonRepository.save(phy11C4L3);
+
+            Lesson phy11C4L4 = Lesson.builder()
+                    .chapter(phy11Chap4)
+                    .lessonNumber(4)
+                    .lessonName("Năng lượng điện và công suất điện")
+                    .description("Công suất và năng lượng tiêu thụ của dòng điện")
+                    .build();
+            lessonRepository.save(phy11C4L4);
+
+            Lesson phy11C4L5 = Lesson.builder()
+                    .chapter(phy11Chap4)
+                    .lessonNumber(5)
+                    .lessonName("Thực hành: Đo suất điện động và điện trở trong của pin điện hóa")
+                    .description("Thực hành đo suất điện động và điện trở trong")
+                    .build();
+            lessonRepository.save(phy11C4L5);
+            Chapter phy12Chap1 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(12)
+                    .chapterNumber(1)
+                    .chapterName("Vật lí nhiệt")
+                    .description("Chương 1: Vật lí nhiệt")
+                    .build();
+            chapterRepository.save(phy12Chap1);
+
+            Lesson phy12C1L1 = Lesson.builder()
+                    .chapter(phy12Chap1)
+                    .lessonNumber(1)
+                    .lessonName("Cấu trúc của chất. Sự chuyển thể")
+                    .description("Cấu trúc vi mô của chất và các quá trình chuyển thể")
+                    .build();
+            lessonRepository.save(phy12C1L1);
+
+            Lesson phy12C1L2 = Lesson.builder()
+                    .chapter(phy12Chap1)
+                    .lessonNumber(2)
+                    .lessonName("Nội năng. Định luật I của nhiệt động lực học")
+                    .description("Khái niệm nội năng và định luật bảo toàn năng lượng")
+                    .build();
+            lessonRepository.save(phy12C1L2);
+
+            Lesson phy12C1L3 = Lesson.builder()
+                    .chapter(phy12Chap1)
+                    .lessonNumber(3)
+                    .lessonName("Nhiệt độ. Thang nhiệt độ - Nhiệt kế")
+                    .description("Khái niệm nhiệt độ và cách đo nhiệt độ")
+                    .build();
+            lessonRepository.save(phy12C1L3);
+
+            Lesson phy12C1L4 = Lesson.builder()
+                    .chapter(phy12Chap1)
+                    .lessonNumber(4)
+                    .lessonName("Nhiệt dung riêng")
+                    .description("Khái niệm nhiệt dung riêng và ứng dụng")
+                    .build();
+            lessonRepository.save(phy12C1L4);
+
+            Lesson phy12C1L5 = Lesson.builder()
+                    .chapter(phy12Chap1)
+                    .lessonNumber(5)
+                    .lessonName("Nhiệt nóng chảy riêng")
+                    .description("Quá trình nóng chảy và nhiệt nóng chảy riêng")
+                    .build();
+            lessonRepository.save(phy12C1L5);
+
+            Lesson phy12C1L6 = Lesson.builder()
+                    .chapter(phy12Chap1)
+                    .lessonNumber(6)
+                    .lessonName("Nhiệt hóa hơi riêng")
+                    .description("Quá trình hóa hơi và nhiệt hóa hơi riêng")
+                    .build();
+            lessonRepository.save(phy12C1L6);
+
+            Chapter phy12Chap2 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(12)
+                    .chapterNumber(2)
+                    .chapterName("Khí lí tưởng")
+                    .description("Chương 2: Khí lí tưởng")
+                    .build();
+            chapterRepository.save(phy12Chap2);
+
+            Lesson phy12C2L1 = Lesson.builder()
+                    .chapter(phy12Chap2)
+                    .lessonNumber(1)
+                    .lessonName("Mô hình động học phân tử chất khí")
+                    .description("Chuyển động nhiệt và mô hình phân tử chất khí")
+                    .build();
+            lessonRepository.save(phy12C2L1);
+
+            Lesson phy12C2L2 = Lesson.builder()
+                    .chapter(phy12Chap2)
+                    .lessonNumber(2)
+                    .lessonName("Định luật Boyle")
+                    .description("Mối quan hệ giữa áp suất và thể tích của khí")
+                    .build();
+            lessonRepository.save(phy12C2L2);
+
+            Lesson phy12C2L3 = Lesson.builder()
+                    .chapter(phy12Chap2)
+                    .lessonNumber(3)
+                    .lessonName("Định luật Charles")
+                    .description("Mối quan hệ giữa nhiệt độ và thể tích của khí")
+                    .build();
+            lessonRepository.save(phy12C2L3);
+
+            Lesson phy12C2L4 = Lesson.builder()
+                    .chapter(phy12Chap2)
+                    .lessonNumber(4)
+                    .lessonName("Phương trình trạng thái của khí lí tưởng")
+                    .description("Biểu thức liên hệ giữa áp suất, thể tích và nhiệt độ")
+                    .build();
+            lessonRepository.save(phy12C2L4);
+
+            Lesson phy12C2L5 = Lesson.builder()
+                    .chapter(phy12Chap2)
+                    .lessonNumber(5)
+                    .lessonName("Áp suất khí theo mô hình động học phân tử. Quan hệ giữa động năng phân tử và nhiệt độ")
+                    .description("Giải thích áp suất và nhiệt độ theo mô hình vi mô")
+                    .build();
+            lessonRepository.save(phy12C2L5);
+
+            Chapter phy12Chap3 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(12)
+                    .chapterNumber(3)
+                    .chapterName("Từ trường")
+                    .description("Chương 3: Từ trường")
+                    .build();
+            chapterRepository.save(phy12Chap3);
+
+            Lesson phy12C3L1 = Lesson.builder()
+                    .chapter(phy12Chap3)
+                    .lessonNumber(1)
+                    .lessonName("Từ trường")
+                    .description("Khái niệm và đặc điểm của từ trường")
+                    .build();
+            lessonRepository.save(phy12C3L1);
+
+            Lesson phy12C3L2 = Lesson.builder()
+                    .chapter(phy12Chap3)
+                    .lessonNumber(2)
+                    .lessonName("Lực từ tác dụng lên dây dẫn mang dòng điện. Cảm ứng từ")
+                    .description("Lực từ và khái niệm cảm ứng từ")
+                    .build();
+            lessonRepository.save(phy12C3L2);
+
+            Lesson phy12C3L3 = Lesson.builder()
+                    .chapter(phy12Chap3)
+                    .lessonNumber(3)
+                    .lessonName("Từ thông. Hiện tượng cảm ứng điện từ")
+                    .description("Từ thông và hiện tượng cảm ứng điện từ")
+                    .build();
+            lessonRepository.save(phy12C3L3);
+
+            Lesson phy12C3L4 = Lesson.builder()
+                    .chapter(phy12Chap3)
+                    .lessonNumber(4)
+                    .lessonName("Máy phát điện xoay chiều")
+                    .description("Cấu tạo và nguyên lí hoạt động của máy phát điện xoay chiều")
+                    .build();
+            lessonRepository.save(phy12C3L4);
+
+            Lesson phy12C3L5 = Lesson.builder()
+                    .chapter(phy12Chap3)
+                    .lessonNumber(5)
+                    .lessonName("Ứng dụng hiện tượng cảm ứng điện từ")
+                    .description("Các ứng dụng thực tế của cảm ứng điện từ")
+                    .build();
+            lessonRepository.save(phy12C3L5);
+
+            Lesson phy12C3L6 = Lesson.builder()
+                    .chapter(phy12Chap3)
+                    .lessonNumber(6)
+                    .lessonName("Điện từ trường. Mô hình sóng điện từ")
+                    .description("Khái niệm điện từ trường và sóng điện từ")
+                    .build();
+            lessonRepository.save(phy12C3L6);
+
+            Chapter phy12Chap4 = Chapter.builder()
+                    .subject(physics)
+                    .gradeLevel(12)
+                    .chapterNumber(4)
+                    .chapterName("Vật lí hạt nhân")
+                    .description("Chương 4: Vật lí hạt nhân")
+                    .build();
+            chapterRepository.save(phy12Chap4);
+
+            Lesson phy12C4L1 = Lesson.builder()
+                    .chapter(phy12Chap4)
+                    .lessonNumber(1)
+                    .lessonName("Cấu trúc hạt nhân")
+                    .description("Cấu tạo và đặc điểm của hạt nhân nguyên tử")
+                    .build();
+            lessonRepository.save(phy12C4L1);
+
+            Lesson phy12C4L2 = Lesson.builder()
+                    .chapter(phy12Chap4)
+                    .lessonNumber(2)
+                    .lessonName("Phản ứng hạt nhân và năng lượng liên kết")
+                    .description("Phản ứng hạt nhân và năng lượng liên kết hạt nhân")
+                    .build();
+            lessonRepository.save(phy12C4L2);
+
+            Lesson phy12C4L3 = Lesson.builder()
+                    .chapter(phy12Chap4)
+                    .lessonNumber(3)
+                    .lessonName("Hiện tượng phóng xạ")
+                    .description("Bản chất và các dạng phóng xạ")
+                    .build();
+            lessonRepository.save(phy12C4L3);
+
+            Lesson phy12C4L4 = Lesson.builder()
+                    .chapter(phy12Chap4)
+                    .lessonNumber(4)
+                    .lessonName("Công nghiệp hạt nhân")
+                    .description("Ứng dụng của vật lí hạt nhân trong công nghiệp")
+                    .build();
+            lessonRepository.save(phy12C4L4);
+        }
+        if (chemistry !=null){
+            Chapter chem10Chap1 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(1)
+                    .chapterName("Cấu tạo nguyên tử")
+                    .description("Chương 1: Cấu tạo nguyên tử")
+                    .build();
+            chapterRepository.save(chem10Chap1);
+
+            Lesson chem10C1L1 = Lesson.builder()
+                    .chapter(chem10Chap1)
+                    .lessonNumber(1)
+                    .lessonName("Thành phần của nguyên tử")
+                    .description("Các hạt cấu tạo nên nguyên tử")
+                    .build();
+            lessonRepository.save(chem10C1L1);
+
+            Lesson chem10C1L2 = Lesson.builder()
+                    .chapter(chem10Chap1)
+                    .lessonNumber(2)
+                    .lessonName("Nguyên tố hóa học")
+                    .description("Khái niệm nguyên tố hóa học và kí hiệu nguyên tố")
+                    .build();
+            lessonRepository.save(chem10C1L2);
+
+            Lesson chem10C1L3 = Lesson.builder()
+                    .chapter(chem10Chap1)
+                    .lessonNumber(3)
+                    .lessonName("Cấu trúc lớp vỏ electron nguyên tử")
+                    .description("Sự phân bố electron trong nguyên tử")
+                    .build();
+            lessonRepository.save(chem10C1L3);
+
+            Lesson chem10C1L4 = Lesson.builder()
+                    .chapter(chem10Chap1)
+                    .lessonNumber(4)
+                    .lessonName("Ôn tập chương 1")
+                    .description("Hệ thống hóa kiến thức chương cấu tạo nguyên tử")
+                    .build();
+            lessonRepository.save(chem10C1L4);
+
+            Chapter chem10Chap2 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(2)
+                    .chapterName("Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn")
+                    .description("Chương 2: Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn")
+                    .build();
+            chapterRepository.save(chem10Chap2);
+
+            Lesson chem10C2L1 = Lesson.builder()
+                    .chapter(chem10Chap2)
+                    .lessonNumber(1)
+                    .lessonName("Cấu tạo của bảng tuần hoàn các nguyên tố hóa học")
+                    .description("Nguyên tắc sắp xếp các nguyên tố trong bảng tuần hoàn")
+                    .build();
+            lessonRepository.save(chem10C2L1);
+
+            Lesson chem10C2L2 = Lesson.builder()
+                    .chapter(chem10Chap2)
+                    .lessonNumber(2)
+                    .lessonName("Xu hướng biến đổi một số tính chất của nguyên tử các nguyên tố trong một chu kì và trong một nhóm")
+                    .description("Sự biến đổi tính chất nguyên tử theo chu kì và nhóm")
+                    .build();
+            lessonRepository.save(chem10C2L2);
+
+            Lesson chem10C2L3 = Lesson.builder()
+                    .chapter(chem10Chap2)
+                    .lessonNumber(3)
+                    .lessonName("Xu hướng biến đổi thành phần và một số tính chất của hợp chất trong một chu kì")
+                    .description("Quy luật biến đổi hợp chất trong bảng tuần hoàn")
+                    .build();
+            lessonRepository.save(chem10C2L3);
+
+            Lesson chem10C2L4 = Lesson.builder()
+                    .chapter(chem10Chap2)
+                    .lessonNumber(4)
+                    .lessonName("Định luật bảo toàn. Ý nghĩa của bảng tuần hoàn các nguyên tố hóa học")
+                    .description("Định luật bảo toàn và vai trò của bảng tuần hoàn")
+                    .build();
+            lessonRepository.save(chem10C2L4);
+
+            Lesson chem10C2L5 = Lesson.builder()
+                    .chapter(chem10Chap2)
+                    .lessonNumber(5)
+                    .lessonName("Ôn tập chương 2")
+                    .description("Hệ thống hóa kiến thức bảng tuần hoàn")
+                    .build();
+            lessonRepository.save(chem10C2L5);
+
+            Chapter chem10Chap3 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(3)
+                    .chapterName("Liên kết hóa học")
+                    .description("Chương 3: Liên kết hóa học")
+                    .build();
+            chapterRepository.save(chem10Chap3);
+
+            Lesson chem10C3L1 = Lesson.builder()
+                    .chapter(chem10Chap3)
+                    .lessonNumber(1)
+                    .lessonName("Quy tắc octet")
+                    .description("Quy tắc bát tử trong liên kết hóa học")
+                    .build();
+            lessonRepository.save(chem10C3L1);
+
+            Lesson chem10C3L2 = Lesson.builder()
+                    .chapter(chem10Chap3)
+                    .lessonNumber(2)
+                    .lessonName("Liên kết ion")
+                    .description("Bản chất và đặc điểm của liên kết ion")
+                    .build();
+            lessonRepository.save(chem10C3L2);
+
+            Lesson chem10C3L3 = Lesson.builder()
+                    .chapter(chem10Chap3)
+                    .lessonNumber(3)
+                    .lessonName("Liên kết cộng hóa trị")
+                    .description("Bản chất và phân loại liên kết cộng hóa trị")
+                    .build();
+            lessonRepository.save(chem10C3L3);
+
+            Lesson chem10C3L4 = Lesson.builder()
+                    .chapter(chem10Chap3)
+                    .lessonNumber(4)
+                    .lessonName("Liên kết hydrogen và tương tác van der Waals")
+                    .description("Các loại liên kết yếu giữa các phân tử")
+                    .build();
+            lessonRepository.save(chem10C3L4);
+
+            Lesson chem10C3L5 = Lesson.builder()
+                    .chapter(chem10Chap3)
+                    .lessonNumber(5)
+                    .lessonName("Ôn tập chương 3")
+                    .description("Hệ thống hóa kiến thức liên kết hóa học")
+                    .build();
+            lessonRepository.save(chem10C3L5);
+
+            Chapter chem10Chap4 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(4)
+                    .chapterName("Phản ứng oxi hóa - khử")
+                    .description("Chương 4: Phản ứng oxi hóa - khử")
+                    .build();
+            chapterRepository.save(chem10Chap4);
+
+            Lesson chem10C4L1 = Lesson.builder()
+                    .chapter(chem10Chap4)
+                    .lessonNumber(1)
+                    .lessonName("Phản ứng oxi hóa - khử")
+                    .description("Khái niệm và bản chất phản ứng oxi hóa - khử")
+                    .build();
+            lessonRepository.save(chem10C4L1);
+
+            Lesson chem10C4L2 = Lesson.builder()
+                    .chapter(chem10Chap4)
+                    .lessonNumber(2)
+                    .lessonName("Ôn tập chương 4")
+                    .description("Hệ thống hóa kiến thức phản ứng oxi hóa - khử")
+                    .build();
+            lessonRepository.save(chem10C4L2);
+            Chapter chem10Chap5 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(5)
+                    .chapterName("Năng lượng hóa học")
+                    .description("Chương 5: Năng lượng hóa học")
+                    .build();
+            chapterRepository.save(chem10Chap5);
+
+            Lesson chem10C5L1 = Lesson.builder()
+                    .chapter(chem10Chap5)
+                    .lessonNumber(1)
+                    .lessonName("Biến thiên enthalpy trong các phản ứng hóa học")
+                    .description("Khái niệm enthalpy và sự biến thiên enthalpy của phản ứng")
+                    .build();
+            lessonRepository.save(chem10C5L1);
+
+            Lesson chem10C5L2 = Lesson.builder()
+                    .chapter(chem10Chap5)
+                    .lessonNumber(2)
+                    .lessonName("Ôn tập chương 5")
+                    .description("Hệ thống hóa kiến thức về năng lượng hóa học")
+                    .build();
+            lessonRepository.save(chem10C5L2);
+
+            Chapter chem10Chap6 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(6)
+                    .chapterName("Tốc độ phản ứng")
+                    .description("Chương 6: Tốc độ phản ứng")
+                    .build();
+            chapterRepository.save(chem10Chap6);
+
+            Lesson chem10C6L1 = Lesson.builder()
+                    .chapter(chem10Chap6)
+                    .lessonNumber(1)
+                    .lessonName("Tốc độ phản ứng")
+                    .description("Khái niệm và các yếu tố ảnh hưởng đến tốc độ phản ứng")
+                    .build();
+            lessonRepository.save(chem10C6L1);
+
+            Lesson chem10C6L2 = Lesson.builder()
+                    .chapter(chem10Chap6)
+                    .lessonNumber(2)
+                    .lessonName("Ôn tập chương 6")
+                    .description("Hệ thống hóa kiến thức về tốc độ phản ứng")
+                    .build();
+            lessonRepository.save(chem10C6L2);
+
+            Chapter chem10Chap7 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(10)
+                    .chapterNumber(7)
+                    .chapterName("Nguyên tố nhóm halogen")
+                    .description("Chương 7: Nguyên tố nhóm halogen")
+                    .build();
+            chapterRepository.save(chem10Chap7);
+
+            Lesson chem10C7L1 = Lesson.builder()
+                    .chapter(chem10Chap7)
+                    .lessonNumber(1)
+                    .lessonName("Nhóm halogen")
+                    .description("Vị trí, cấu tạo và tính chất của nhóm halogen")
+                    .build();
+            lessonRepository.save(chem10C7L1);
+
+            Lesson chem10C7L2 = Lesson.builder()
+                    .chapter(chem10Chap7)
+                    .lessonNumber(2)
+                    .lessonName("Hydrogen halide. Muối halide")
+                    .description("Tính chất và ứng dụng của hydrogen halide và muối halide")
+                    .build();
+            lessonRepository.save(chem10C7L2);
+
+            Lesson chem10C7L3 = Lesson.builder()
+                    .chapter(chem10Chap7)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 7")
+                    .description("Hệ thống hóa kiến thức về nhóm halogen")
+                    .build();
+            lessonRepository.save(chem10C7L3);
+            Chapter chem11Chap1 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(11)
+                    .chapterNumber(1)
+                    .chapterName("Cân bằng hóa học")
+                    .description("Chương 1: Cân bằng hóa học")
+                    .build();
+            chapterRepository.save(chem11Chap1);
+
+            Lesson chem11C1L1 = Lesson.builder()
+                    .chapter(chem11Chap1)
+                    .lessonNumber(1)
+                    .lessonName("Khái niệm về cân bằng hóa học")
+                    .description("Khái niệm và đặc điểm của cân bằng hóa học")
+                    .build();
+            lessonRepository.save(chem11C1L1);
+
+            Lesson chem11C1L2 = Lesson.builder()
+                    .chapter(chem11Chap1)
+                    .lessonNumber(2)
+                    .lessonName("Cân bằng trong dung dịch nước")
+                    .description("Các dạng cân bằng trong dung dịch nước")
+                    .build();
+            lessonRepository.save(chem11C1L2);
+
+            Lesson chem11C1L3 = Lesson.builder()
+                    .chapter(chem11Chap1)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 1")
+                    .description("Hệ thống hóa kiến thức cân bằng hóa học")
+                    .build();
+            lessonRepository.save(chem11C1L3);
+
+            Chapter chem11Chap2 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(11)
+                    .chapterNumber(2)
+                    .chapterName("Nitrogen – Sulfur")
+                    .description("Chương 2: Nitrogen – Sulfur")
+                    .build();
+            chapterRepository.save(chem11Chap2);
+
+            Lesson chem11C2L1 = Lesson.builder()
+                    .chapter(chem11Chap2)
+                    .lessonNumber(1)
+                    .lessonName("Nitrogen")
+                    .description("Vị trí, cấu tạo và tính chất của nitrogen")
+                    .build();
+            lessonRepository.save(chem11C2L1);
+
+            Lesson chem11C2L2 = Lesson.builder()
+                    .chapter(chem11Chap2)
+                    .lessonNumber(2)
+                    .lessonName("Ammonia - Muối ammonium")
+                    .description("Tính chất và ứng dụng của ammonia và muối ammonium")
+                    .build();
+            lessonRepository.save(chem11C2L2);
+
+            Lesson chem11C2L3 = Lesson.builder()
+                    .chapter(chem11Chap2)
+                    .lessonNumber(3)
+                    .lessonName("Một số chất của nitrogen với oxygen")
+                    .description("Các oxide của nitrogen và tính chất")
+                    .build();
+            lessonRepository.save(chem11C2L3);
+
+            Lesson chem11C2L4 = Lesson.builder()
+                    .chapter(chem11Chap2)
+                    .lessonNumber(4)
+                    .lessonName("Sulfur và sulfur dioxide")
+                    .description("Tính chất của sulfur và sulfur dioxide")
+                    .build();
+            lessonRepository.save(chem11C2L4);
+
+            Lesson chem11C2L5 = Lesson.builder()
+                    .chapter(chem11Chap2)
+                    .lessonNumber(5)
+                    .lessonName("Sulfuric acid và muối sulfate")
+                    .description("Tính chất và ứng dụng của sulfuric acid và muối sulfate")
+                    .build();
+            lessonRepository.save(chem11C2L5);
+
+            Lesson chem11C2L6 = Lesson.builder()
+                    .chapter(chem11Chap2)
+                    .lessonNumber(6)
+                    .lessonName("Ôn tập chương 2")
+                    .description("Hệ thống hóa kiến thức nitrogen và sulfur")
+                    .build();
+            lessonRepository.save(chem11C2L6);
+
+            Chapter chem11Chap3 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(11)
+                    .chapterNumber(3)
+                    .chapterName("Đại cương về hóa học hữu cơ")
+                    .description("Chương 3: Đại cương về hóa học hữu cơ")
+                    .build();
+            chapterRepository.save(chem11Chap3);
+
+            Lesson chem11C3L1 = Lesson.builder()
+                    .chapter(chem11Chap3)
+                    .lessonNumber(1)
+                    .lessonName("Hợp chất hữu cơ và hóa học hữu cơ")
+                    .description("Khái niệm và phân loại hợp chất hữu cơ")
+                    .build();
+            lessonRepository.save(chem11C3L1);
+
+            Lesson chem11C3L2 = Lesson.builder()
+                    .chapter(chem11Chap3)
+                    .lessonNumber(2)
+                    .lessonName("Phương pháp tách biệt và tinh chế hợp chất hữu cơ")
+                    .description("Các phương pháp tách và tinh chế hợp chất hữu cơ")
+                    .build();
+            lessonRepository.save(chem11C3L2);
+
+            Lesson chem11C3L3 = Lesson.builder()
+                    .chapter(chem11Chap3)
+                    .lessonNumber(3)
+                    .lessonName("Công thức phân tử hợp chất hữu cơ")
+                    .description("Xác định công thức phân tử hợp chất hữu cơ")
+                    .build();
+            lessonRepository.save(chem11C3L3);
+
+            Lesson chem11C3L4 = Lesson.builder()
+                    .chapter(chem11Chap3)
+                    .lessonNumber(4)
+                    .lessonName("Cấu tạo hóa học hợp chất hữu cơ")
+                    .description("Liên kết và cấu tạo của hợp chất hữu cơ")
+                    .build();
+            lessonRepository.save(chem11C3L4);
+
+            Lesson chem11C3L5 = Lesson.builder()
+                    .chapter(chem11Chap3)
+                    .lessonNumber(5)
+                    .lessonName("Ôn tập chương 3")
+                    .description("Hệ thống hóa kiến thức hóa học hữu cơ")
+                    .build();
+            lessonRepository.save(chem11C3L5);
+
+            Chapter chem11Chap4 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(11)
+                    .chapterNumber(4)
+                    .chapterName("Hydrocarbon")
+                    .description("Chương 4: Hydrocarbon")
+                    .build();
+            chapterRepository.save(chem11Chap4);
+
+            Lesson chem11C4L1 = Lesson.builder()
+                    .chapter(chem11Chap4)
+                    .lessonNumber(1)
+                    .lessonName("Alkane")
+                    .description("Cấu tạo, tính chất và ứng dụng của alkane")
+                    .build();
+            lessonRepository.save(chem11C4L1);
+
+            Lesson chem11C4L2 = Lesson.builder()
+                    .chapter(chem11Chap4)
+                    .lessonNumber(2)
+                    .lessonName("Hydrocarbon không no")
+                    .description("Alkene, alkyne và tính chất")
+                    .build();
+            lessonRepository.save(chem11C4L2);
+
+            Lesson chem11C4L3 = Lesson.builder()
+                    .chapter(chem11Chap4)
+                    .lessonNumber(3)
+                    .lessonName("Arene (Hydrocarbon thơm)")
+                    .description("Cấu tạo và tính chất của hydrocarbon thơm")
+                    .build();
+            lessonRepository.save(chem11C4L3);
+
+            Lesson chem11C4L4 = Lesson.builder()
+                    .chapter(chem11Chap4)
+                    .lessonNumber(4)
+                    .lessonName("Ôn tập chương 4")
+                    .description("Hệ thống hóa kiến thức hydrocarbon")
+                    .build();
+            lessonRepository.save(chem11C4L4);
+
+            Chapter chem11Chap5 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(11)
+                    .chapterNumber(5)
+                    .chapterName("Dẫn xuất Halogen – Alcohol – Phenol")
+                    .description("Chương 5: Dẫn xuất Halogen – Alcohol – Phenol")
+                    .build();
+            chapterRepository.save(chem11Chap5);
+
+            Lesson chem11C5L1 = Lesson.builder()
+                    .chapter(chem11Chap5)
+                    .lessonNumber(1)
+                    .lessonName("Dẫn xuất halogen")
+                    .description("Cấu tạo và tính chất của dẫn xuất halogen")
+                    .build();
+            lessonRepository.save(chem11C5L1);
+
+            Lesson chem11C5L2 = Lesson.builder()
+                    .chapter(chem11Chap5)
+                    .lessonNumber(2)
+                    .lessonName("Alcohol")
+                    .description("Cấu tạo, tính chất và ứng dụng của alcohol")
+                    .build();
+            lessonRepository.save(chem11C5L2);
+
+            Lesson chem11C5L3 = Lesson.builder()
+                    .chapter(chem11Chap5)
+                    .lessonNumber(3)
+                    .lessonName("Phenol")
+                    .description("Tính chất và ứng dụng của phenol")
+                    .build();
+            lessonRepository.save(chem11C5L3);
+
+            Lesson chem11C5L4 = Lesson.builder()
+                    .chapter(chem11Chap5)
+                    .lessonNumber(4)
+                    .lessonName("Ôn tập chương 5")
+                    .description("Hệ thống hóa kiến thức dẫn xuất halogen, alcohol, phenol")
+                    .build();
+            lessonRepository.save(chem11C5L4);
+
+            Chapter chem11Chap6 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(11)
+                    .chapterNumber(6)
+                    .chapterName("Hợp chất Carbonyl – Carboxylic Acid")
+                    .description("Chương 6: Hợp chất Carbonyl – Carboxylic Acid")
+                    .build();
+            chapterRepository.save(chem11Chap6);
+
+            Lesson chem11C6L1 = Lesson.builder()
+                    .chapter(chem11Chap6)
+                    .lessonNumber(1)
+                    .lessonName("Hợp chất carbonyl")
+                    .description("Aldehyde, ketone và tính chất")
+                    .build();
+            lessonRepository.save(chem11C6L1);
+
+            Lesson chem11C6L2 = Lesson.builder()
+                    .chapter(chem11Chap6)
+                    .lessonNumber(2)
+                    .lessonName("Carboxylic acid")
+                    .description("Cấu tạo, tính chất và ứng dụng của carboxylic acid")
+                    .build();
+            lessonRepository.save(chem11C6L2);
+
+            Lesson chem11C6L3 = Lesson.builder()
+                    .chapter(chem11Chap6)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 6")
+                    .description("Hệ thống hóa kiến thức hợp chất carbonyl và carboxylic acid")
+                    .build();
+            lessonRepository.save(chem11C6L3);
+            Chapter chem12Chap1 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(1)
+                    .chapterName("Ester - lipid")
+                    .description("Chương 1: Ester - lipid")
+                    .build();
+            chapterRepository.save(chem12Chap1);
+
+            Lesson chem12C1L1 = Lesson.builder()
+                    .chapter(chem12Chap1)
+                    .lessonNumber(1)
+                    .lessonName("Ester - Lipid")
+                    .description("Cấu tạo, tính chất và ứng dụng của ester và lipid")
+                    .build();
+            lessonRepository.save(chem12C1L1);
+
+            Lesson chem12C1L2 = Lesson.builder()
+                    .chapter(chem12Chap1)
+                    .lessonNumber(2)
+                    .lessonName("Xà phòng và chất giặt rửa")
+                    .description("Cơ chế làm sạch của xà phòng và chất giặt rửa")
+                    .build();
+            lessonRepository.save(chem12C1L2);
+
+            Lesson chem12C1L3 = Lesson.builder()
+                    .chapter(chem12Chap1)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 1")
+                    .description("Hệ thống hóa kiến thức ester và lipid")
+                    .build();
+            lessonRepository.save(chem12C1L3);
+
+            Chapter chem12Chap2 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(2)
+                    .chapterName("Carbohydrate")
+                    .description("Chương 2: Carbohydrate")
+                    .build();
+            chapterRepository.save(chem12Chap2);
+
+            Lesson chem12C2L1 = Lesson.builder()
+                    .chapter(chem12Chap2)
+                    .lessonNumber(1)
+                    .lessonName("Giới thiệu về carbohydrate. Glucose và fructose")
+                    .description("Khái niệm carbohydrate và các monosaccharide tiêu biểu")
+                    .build();
+            lessonRepository.save(chem12C2L1);
+
+            Lesson chem12C2L2 = Lesson.builder()
+                    .chapter(chem12Chap2)
+                    .lessonNumber(2)
+                    .lessonName("Saccharose và maltose")
+                    .description("Cấu tạo và tính chất của disaccharide")
+                    .build();
+            lessonRepository.save(chem12C2L2);
+
+            Lesson chem12C2L3 = Lesson.builder()
+                    .chapter(chem12Chap2)
+                    .lessonNumber(3)
+                    .lessonName("Tinh bột và cellulose")
+                    .description("Cấu tạo và ứng dụng của polysaccharide")
+                    .build();
+            lessonRepository.save(chem12C2L3);
+
+            Lesson chem12C2L4 = Lesson.builder()
+                    .chapter(chem12Chap2)
+                    .lessonNumber(4)
+                    .lessonName("Ôn tập chương 2")
+                    .description("Hệ thống hóa kiến thức carbohydrate")
+                    .build();
+            lessonRepository.save(chem12C2L4);
+
+            Chapter chem12Chap3 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(3)
+                    .chapterName("Hợp chất chứa nitrogen")
+                    .description("Chương 3: Hợp chất chứa nitrogen")
+                    .build();
+            chapterRepository.save(chem12Chap3);
+
+            Lesson chem12C3L1 = Lesson.builder()
+                    .chapter(chem12Chap3)
+                    .lessonNumber(1)
+                    .lessonName("Amine")
+                    .description("Cấu tạo, tính chất và ứng dụng của amine")
+                    .build();
+            lessonRepository.save(chem12C3L1);
+
+            Lesson chem12C3L2 = Lesson.builder()
+                    .chapter(chem12Chap3)
+                    .lessonNumber(2)
+                    .lessonName("Amino acid và peptide")
+                    .description("Cấu tạo và tính chất của amino acid và peptide")
+                    .build();
+            lessonRepository.save(chem12C3L2);
+
+            Lesson chem12C3L3 = Lesson.builder()
+                    .chapter(chem12Chap3)
+                    .lessonNumber(3)
+                    .lessonName("Protein và enzyme")
+                    .description("Vai trò sinh học của protein và enzyme")
+                    .build();
+            lessonRepository.save(chem12C3L3);
+
+            Lesson chem12C3L4 = Lesson.builder()
+                    .chapter(chem12Chap3)
+                    .lessonNumber(4)
+                    .lessonName("Ôn tập chương 3")
+                    .description("Hệ thống hóa kiến thức hợp chất chứa nitrogen")
+                    .build();
+            lessonRepository.save(chem12C3L4);
+
+            Chapter chem12Chap4 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(4)
+                    .chapterName("Polymer")
+                    .description("Chương 4: Polymer")
+                    .build();
+            chapterRepository.save(chem12Chap4);
+
+            Lesson chem12C4L1 = Lesson.builder()
+                    .chapter(chem12Chap4)
+                    .lessonNumber(1)
+                    .lessonName("Đại cương về polymer")
+                    .description("Khái niệm, phân loại và tính chất của polymer")
+                    .build();
+            lessonRepository.save(chem12C4L1);
+
+            Lesson chem12C4L2 = Lesson.builder()
+                    .chapter(chem12Chap4)
+                    .lessonNumber(2)
+                    .lessonName("Vật liệu polymer")
+                    .description("Ứng dụng của polymer trong đời sống và sản xuất")
+                    .build();
+            lessonRepository.save(chem12C4L2);
+
+            Lesson chem12C4L3 = Lesson.builder()
+                    .chapter(chem12Chap4)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 4")
+                    .description("Hệ thống hóa kiến thức polymer")
+                    .build();
+            lessonRepository.save(chem12C4L3);
+            Chapter chem12Chap5 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(5)
+                    .chapterName("Pin điện và điện phân")
+                    .description("Chương 5: Pin điện và điện phân")
+                    .build();
+            chapterRepository.save(chem12Chap5);
+
+            Lesson chem12C5L1 = Lesson.builder()
+                    .chapter(chem12Chap5)
+                    .lessonNumber(1)
+                    .lessonName("Thế điện cực và nguồn điện hóa học")
+                    .description("Khái niệm thế điện cực và nguyên lí hoạt động của nguồn điện hóa học")
+                    .build();
+            lessonRepository.save(chem12C5L1);
+
+            Lesson chem12C5L2 = Lesson.builder()
+                    .chapter(chem12Chap5)
+                    .lessonNumber(2)
+                    .lessonName("Điện phân")
+                    .description("Nguyên lí và ứng dụng của quá trình điện phân")
+                    .build();
+            lessonRepository.save(chem12C5L2);
+
+            Lesson chem12C5L3 = Lesson.builder()
+                    .chapter(chem12Chap5)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 5")
+                    .description("Hệ thống hóa kiến thức pin điện và điện phân")
+                    .build();
+            lessonRepository.save(chem12C5L3);
+
+            Chapter chem12Chap6 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(6)
+                    .chapterName("Đại cương về kim loại")
+                    .description("Chương 6: Đại cương về kim loại")
+                    .build();
+            chapterRepository.save(chem12Chap6);
+
+            Lesson chem12C6L1 = Lesson.builder()
+                    .chapter(chem12Chap6)
+                    .lessonNumber(1)
+                    .lessonName("Cấu tạo và liên kết trong tinh thể kim loại")
+                    .description("Cấu trúc mạng tinh thể và liên kết kim loại")
+                    .build();
+            lessonRepository.save(chem12C6L1);
+
+            Lesson chem12C6L2 = Lesson.builder()
+                    .chapter(chem12Chap6)
+                    .lessonNumber(2)
+                    .lessonName("Tính chất vật lí và tính chất hóa học của kim loại")
+                    .description("Các tính chất đặc trưng của kim loại")
+                    .build();
+            lessonRepository.save(chem12C6L2);
+
+            Lesson chem12C6L3 = Lesson.builder()
+                    .chapter(chem12Chap6)
+                    .lessonNumber(3)
+                    .lessonName("Kim loại trong tự nhiên và phương pháp tách kim loại")
+                    .description("Trạng thái tự nhiên và phương pháp điều chế kim loại")
+                    .build();
+            lessonRepository.save(chem12C6L3);
+
+            Lesson chem12C6L4 = Lesson.builder()
+                    .chapter(chem12Chap6)
+                    .lessonNumber(4)
+                    .lessonName("Hợp kim")
+                    .description("Khái niệm, thành phần và ứng dụng của hợp kim")
+                    .build();
+            lessonRepository.save(chem12C6L4);
+
+            Lesson chem12C6L5 = Lesson.builder()
+                    .chapter(chem12Chap6)
+                    .lessonNumber(5)
+                    .lessonName("Sự ăn mòn kim loại")
+                    .description("Bản chất, phân loại và biện pháp chống ăn mòn kim loại")
+                    .build();
+            lessonRepository.save(chem12C6L5);
+
+            Lesson chem12C6L6 = Lesson.builder()
+                    .chapter(chem12Chap6)
+                    .lessonNumber(6)
+                    .lessonName("Ôn tập chương 6")
+                    .description("Hệ thống hóa kiến thức đại cương về kim loại")
+                    .build();
+            lessonRepository.save(chem12C6L6);
+
+            Chapter chem12Chap7 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(7)
+                    .chapterName("Nguyên tố nhóm IA và nhóm IIA")
+                    .description("Chương 7: Nguyên tố nhóm IA và nhóm IIA")
+                    .build();
+            chapterRepository.save(chem12Chap7);
+
+            Lesson chem12C7L1 = Lesson.builder()
+                    .chapter(chem12Chap7)
+                    .lessonNumber(1)
+                    .lessonName("Nguyên tố nhóm IA")
+                    .description("Vị trí, cấu tạo và tính chất của các nguyên tố nhóm IA")
+                    .build();
+            lessonRepository.save(chem12C7L1);
+
+            Lesson chem12C7L2 = Lesson.builder()
+                    .chapter(chem12Chap7)
+                    .lessonNumber(2)
+                    .lessonName("Nguyên tố nhóm IIA")
+                    .description("Vị trí, cấu tạo và tính chất của các nguyên tố nhóm IIA")
+                    .build();
+            lessonRepository.save(chem12C7L2);
+
+            Lesson chem12C7L3 = Lesson.builder()
+                    .chapter(chem12Chap7)
+                    .lessonNumber(3)
+                    .lessonName("Ôn tập chương 7")
+                    .description("Hệ thống hóa kiến thức nhóm IA và IIA")
+                    .build();
+            lessonRepository.save(chem12C7L3);
+
+            Chapter chem12Chap8 = Chapter.builder()
+                    .subject(chemistry)
+                    .gradeLevel(12)
+                    .chapterNumber(8)
+                    .chapterName("Sơ lược về dãy kim loại chuyển tiếp thứ nhất và phức chất")
+                    .description("Chương 8: Sơ lược về dãy kim loại chuyển tiếp thứ nhất và phức chất")
+                    .build();
+            chapterRepository.save(chem12Chap8);
+
+            Lesson chem12C8L1 = Lesson.builder()
+                    .chapter(chem12Chap8)
+                    .lessonNumber(1)
+                    .lessonName("Đại cương về kim loại chuyển tiếp dãy thứ nhất")
+                    .description("Đặc điểm cấu tạo và tính chất của kim loại chuyển tiếp")
+                    .build();
+            lessonRepository.save(chem12C8L1);
+
+            Lesson chem12C8L2 = Lesson.builder()
+                    .chapter(chem12Chap8)
+                    .lessonNumber(2)
+                    .lessonName("Sơ lược về phức chất")
+                    .description("Khái niệm, cấu tạo và phân loại phức chất")
+                    .build();
+            lessonRepository.save(chem12C8L2);
+
+            Lesson chem12C8L3 = Lesson.builder()
+                    .chapter(chem12Chap8)
+                    .lessonNumber(3)
+                    .lessonName("Một số tính chất và ứng dụng của phức chất")
+                    .description("Tính chất đặc trưng và ứng dụng của phức chất")
+                    .build();
+            lessonRepository.save(chem12C8L3);
+
+            Lesson chem12C8L4 = Lesson.builder()
+                    .chapter(chem12Chap8)
+                    .lessonNumber(4)
+                    .lessonName("Ôn tập chương 8")
+                    .description("Hệ thống hóa kiến thức kim loại chuyển tiếp và phức chất")
+                    .build();
+            lessonRepository.save(chem12C8L4);
         }
 
+        if (science!=null){
+
+        }
         if (english != null) {
             // Tiếng Anh 10 - Unit 1
             Chapter englishUnit1 = Chapter.builder()
