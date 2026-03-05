@@ -2,12 +2,14 @@ package com.fptu.eduBoostBackend.initializer;
 
 import com.fptu.eduBoostBackend.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
+@Order(0)
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -19,6 +21,7 @@ public class DataInitializer implements CommandLineRunner {
     private final MathGrade12Initializer mathGrade12Initializer;
     private final PhysicsEnglishInitializer physicsEnglishInitializer;
     private final ClassStudentInitializer classStudentInitializer;
+    private final ParentStudentInitializer parentStudentInitializer;
 
     @Override
     public void run(String... args) throws Exception {
@@ -33,5 +36,6 @@ public class DataInitializer implements CommandLineRunner {
         mathGrade12Initializer.init();
         physicsEnglishInitializer.init();
         classStudentInitializer.init();
+        parentStudentInitializer.init();
     }
 }
