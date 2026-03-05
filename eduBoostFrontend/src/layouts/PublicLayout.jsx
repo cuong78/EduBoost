@@ -4,9 +4,11 @@ import { Footer } from "../components/layout/Footer";
 import { useAuth } from "../hooks/useAuth";
 
 const PublicLayout = () => {
-  const { user } = useAuth();
+  const { user l ren} = useAuth();
 
+  // Cho phép truy cập trang home ngay cả khi đã đăng nhập (để test giao diện)
   // If user is logged in, redirect to their dashboard
+  /*
   if (user) {
     const roleName =
       user?.roles?.[0]?.roleName ??
@@ -29,6 +31,7 @@ const PublicLayout = () => {
         break;
     }
   }
+  */
 
   return (
     <>
