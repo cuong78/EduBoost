@@ -73,6 +73,7 @@ export default function MyStudents() {
                         const linkId = item.linkId ?? item.studentId;
                         const rel = item.relationship?.toLowerCase?.() ?? item.relationship;
                         const classInfo = item.class ?? s.class;
+                        const latestScore = item.latestScore;
                         return (
                             <div key={linkId ?? s.studentId} className="student-card glass">
                                 <div className="card-header">
@@ -92,6 +93,12 @@ export default function MyStudents() {
                                     <span className="relationship">{RELATIONSHIP_LABELS[rel] ?? rel}</span>
                                     {item.isPrimary && <span className="badge-primary">Chính</span>}
                                     {item.linkedAt && <span className="linked-at">Kết nối: {new Date(item.linkedAt).toLocaleDateString('vi-VN')}</span>}
+                                    {latestScore && (
+                                        <span className="latest-score">
+                                            Gần nhất: {latestScore.score}
+                                            {latestScore.maxScore ? `/${latestScore.maxScore}` : ''} ({latestScore.subjectName})
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="card-actions">
                                     <Link to={`/parent/students/${s.studentId}`} className="btn btn-primary btn-sm">
@@ -122,6 +129,7 @@ export default function MyStudents() {
                 .relationship { font-weight: 600; color: var(--color-accent-1); }
                 .badge-primary { font-size: 0.75rem; padding: 0.2rem 0.5rem; background: rgba(34,197,94,0.15); color: #15803d; border-radius: 9999px; }
                 .linked-at { font-size: 0.85rem; color: var(--color-text-secondary); }
+                .latest-score { font-size: 0.85rem; color: var(--color-accent-1); }
                 .card-actions { display: flex; gap: 0.5rem; }
                 .card-actions .btn.danger { background: rgba(239,68,68,0.1); color: #b91c1c; }
                 .card-actions .btn.danger:hover { background: rgba(239,68,68,0.2); }
