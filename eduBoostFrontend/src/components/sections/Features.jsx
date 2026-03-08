@@ -2,6 +2,9 @@ import { useState } from "react";
 import { BookOpen, Users, Brain, Target, Zap, Award } from "lucide-react";
 import useScrollReveal from "../../hooks/useScrollReveal";
 
+import forStudent from "../../assets/forStudentHome.png";
+import forTeacher from "../../assets/forTeacherHome.png";
+
 const Features = () => {
   const [activeTab, setActiveTab] = useState("learner");
   const headerRef = useScrollReveal();
@@ -47,13 +50,12 @@ const Features = () => {
     teacher: {
       title: "Dành cho Giáo viên",
       items: TEACHER_FEATURES,
-      image:
-        "https://placehold.co/600x400/604eff/ffffff?text=Teacher+Dashboard",
+      image: forTeacher,
     },
     learner: {
       title: "Dành cho Học viên",
       items: LEARNER_FEATURES,
-      image: "https://placehold.co/600x400/8679ff/ffffff?text=Student+Learning",
+      image: forStudent,
     },
   };
 
@@ -92,9 +94,6 @@ const Features = () => {
                 </div>
               ))}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: "2rem" }}>
-              Tìm hiểu thêm
-            </button>
           </div>
           <div className="feature-image">
             <img
