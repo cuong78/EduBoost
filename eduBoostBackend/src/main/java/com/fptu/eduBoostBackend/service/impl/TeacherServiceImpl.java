@@ -162,6 +162,7 @@ public class TeacherServiceImpl implements TeacherService {
     }
     @Transactional
     @Override
+    @Transactional
     public CreateStudentResponse createStudent(CreateStudentRequest request) {
         Teacher teacher = getCurrentTeacher();
         

@@ -21,6 +21,23 @@ import { useAuth } from "../../hooks/useAuth";
 
 const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
+// Keyword match theo nhóm khối
+const SUBJECT_KEYWORDS_BY_GRADE = {
+  middle: ["toán", "khoa học tự nhiên"], // Lớp 6-9
+  high: ["toán", "vật lý", "hóa học"],   // Lớp 10-12
+};
+
+const filterSubjectsByGrade = (subjects, grade) => {
+  const keywords =
+    grade >= 6 && grade <= 9
+      ? SUBJECT_KEYWORDS_BY_GRADE.middle
+      : SUBJECT_KEYWORDS_BY_GRADE.high;
+  return subjects.filter((s) => {
+    const name = (s.subjectName || s.name || "").toLowerCase();
+    return keywords.some((kw) => name.includes(kw));
+  });
+};
+
 const QUESTION_TYPES = [
   { value: "MULTIPLE_CHOICE", label: "Trắc nghiệm" },
   { value: "TRUE_FALSE", label: "Đúng/Sai" },
@@ -82,7 +99,8 @@ const QuestionBankManagement = () => {
       const data = await knowledgeService.getSubjects();
       const list = Array.isArray(data) ? data : (data?.data ?? []);
       setSubjects(list);
-      if (!subjectId && list.length > 0) setSubjectId(String(list[0].id));
+      const filtered = filterSubjectsByGrade(list, gradeLevel);
+      if (!subjectId && filtered.length > 0) setSubjectId(String(filtered[0].id));
     } catch (e) {
       setSubjects([]);
       showErrorToast("Không tải được danh sách môn học");
@@ -90,6 +108,9 @@ const QuestionBankManagement = () => {
       setLoadingSubjects(false);
     }
   };
+
+  // Danh sách môn sau khi lọc theo gradeLevel
+  const filteredSubjects = filterSubjectsByGrade(subjects, gradeLevel);
 
   const loadChapters = async (sid, grade) => {
     if (!sid) return;
@@ -180,6 +201,16 @@ const QuestionBankManagement = () => {
     loadSubjects();
     loadCognitiveLevels();
   }, []);
+
+  // Khi gradeLevel thay đổi → reset subjectId về môn đầu tiên trong nhóm mới
+  useEffect(() => {
+    const filtered = filterSubjectsByGrade(subjects, gradeLevel);
+    if (filtered.length > 0) {
+      setSubjectId(String(filtered[0].id));
+    } else {
+      setSubjectId("");
+    }
+  }, [gradeLevel]);
 
   useEffect(() => {
     if (subjectId) loadChapters(subjectId, gradeLevel);
@@ -324,21 +355,6 @@ const QuestionBankManagement = () => {
         </h3>
         <div className="filters-grid">
           <div className="field">
-            <label>Môn học</label>
-            <select
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              disabled={loadingSubjects}
-            >
-              <option value="">Chọn môn...</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.subjectCode} {s.description ? `- ${s.description}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
             <label>Khối</label>
             <select
               value={gradeLevel}
@@ -349,6 +365,25 @@ const QuestionBankManagement = () => {
                   Lớp {g}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Môn học</label>
+            <select
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              disabled={loadingSubjects}
+            >
+              <option value="">Chọn môn...</option>
+              {filteredSubjects.length > 0 ? (
+                filteredSubjects.map((s) => (
+                  <option key={s.id} value={String(s.id)}>
+                    {s.subjectName || s.name || ""}
+                  </option>
+                ))
+              ) : (
+                <option value="">-- Không có môn phù hợp --</option>
+              )}
             </select>
           </div>
           <div className="field">

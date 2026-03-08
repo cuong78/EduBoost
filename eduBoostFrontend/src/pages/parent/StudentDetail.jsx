@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Loader2, Unlink } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { parentService } from '../../services/parentService';
-import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
-import ConfirmModal from '../../components/ui/ConfirmModal';
+import { showErrorToast } from '../../utils/show-toast';
 
 export default function ParentStudentDetail() {
     const { studentId } = useParams();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showUnlinkModal, setShowUnlinkModal] = useState(false);
-    const [unlinking, setUnlinking] = useState(false);
+    const [scoresLoading, setScoresLoading] = useState(true);
+    const [scores, setScores] = useState([]);
+    const [scoresPage, setScoresPage] = useState(0);
+    const [scoresTotalPages, setScoresTotalPages] = useState(0);
 
     const loadData = async () => {
         if (!studentId) return;
@@ -26,8 +27,26 @@ export default function ParentStudentDetail() {
         }
     };
 
+    const loadScores = async (page = 0) => {
+        if (!studentId) return;
+        setScoresLoading(true);
+        try {
+            const res = await parentService.getStudentScores(studentId, { page, limit: 10 });
+            const pageData = res?.content ?? res?.data?.content ?? [];
+            setScores(pageData);
+            setScoresPage(res?.number ?? page);
+            setScoresTotalPages(res?.totalPages ?? 1);
+        } catch (err) {
+            showErrorToast(err?.response?.data?.message || 'Không tải được điểm số');
+            setScores([]);
+        } finally {
+            setScoresLoading(false);
+        }
+    };
+
     useEffect(() => {
         loadData();
+        loadScores(0);
     }, [studentId]);
 
     
@@ -92,6 +111,82 @@ export default function ParentStudentDetail() {
                 </div>
             )}
 
+            <div className="detail-card glass">
+                <h3>Điểm số &amp; kết quả kiểm tra</h3>
+                {scoresLoading ? (
+                    <div className="empty-state">
+                        <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                        <p>Đang tải điểm số...</p>
+                    </div>
+                ) : scores.length === 0 ? (
+                    <p>Chưa có dữ liệu điểm số cho học sinh này.</p>
+                ) : (
+                    <>
+                        <div className="scores-table-wrapper">
+                            <table className="scores-table">
+                                <thead>
+                                    <tr>
+                                        <th>Bài kiểm tra</th>
+                                        <th>Môn</th>
+                                        <th>Chương</th>
+                                        <th>Học kỳ</th>
+                                        <th>Năm học</th>
+                                        <th>Ngày làm bài</th>
+                                        <th>Điểm</th>
+                                        <th>Nguồn</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {scores.map((item) => (
+                                        <tr key={item.resultId}>
+                                            <td>{item.examTitle}</td>
+                                            <td>{item.subjectName}</td>
+                                            <td>{item.chapterName ?? '—'}</td>
+                                            <td>{item.semester ?? '—'}</td>
+                                            <td>{item.schoolYear ?? '—'}</td>
+                                            <td>{item.takenAt ? new Date(item.takenAt).toLocaleString('vi-VN') : '—'}</td>
+                                            <td>
+                                                {item.score}
+                                                {item.maxScore ? ` / ${item.maxScore}` : ''}{' '}
+                                                {item.percentage != null && (
+                                                    <span className="percentage">({item.percentage}%)</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <span className={`badge-source ${item.sourceType === 'ONLINE_EXAM' ? 'online' : 'manual'}`}>
+                                                    {item.sourceType === 'ONLINE_EXAM' ? 'Thi online' : 'GV nhập'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {scoresTotalPages > 1 && (
+                            <div className="scores-pagination">
+                                <button
+                                    className="btn btn-sm"
+                                    disabled={scoresPage <= 0}
+                                    onClick={() => loadScores(scoresPage - 1)}
+                                >
+                                    Trang trước
+                                </button>
+                                <span>
+                                    Trang {scoresPage + 1} / {scoresTotalPages}
+                                </span>
+                                <button
+                                    className="btn btn-sm"
+                                    disabled={scoresPage >= scoresTotalPages - 1}
+                                    onClick={() => loadScores(scoresPage + 1)}
+                                >
+                                    Trang sau
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
            
             <style>{`
                 .parent-student-detail-page { max-width: 720px; }
@@ -105,6 +200,17 @@ export default function ParentStudentDetail() {
                 .detail-card h3 { margin-bottom: 1rem; font-size: 1.1rem; }
                 .info-grid { display: grid; grid-template-columns: 120px 1fr; gap: 0.75rem 1.5rem; }
                 .info-grid dt { color: var(--color-text-secondary); font-weight: 500; }
+                .scores-table-wrapper { width: 100%; overflow-x: auto; }
+                .scores-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+                .scores-table th, .scores-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.2); text-align: left; }
+                .scores-table th { font-weight: 600; color: var(--color-text-secondary); background: rgba(15,23,42,0.02); }
+                .scores-table tr:hover { background: rgba(148,163,184,0.08); }
+                .percentage { color: var(--color-text-secondary); font-size: 0.8rem; }
+                .badge-source { display: inline-flex; align-items: center; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
+                .badge-source.manual { background: rgba(59,130,246,0.1); color: #1d4ed8; }
+                .badge-source.online { background: rgba(34,197,94,0.12); color: #15803d; }
+                .scores-pagination { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+                .empty-state { text-align: center; padding: 1rem 0; color: var(--color-text-secondary); }
             `}</style>
         </div>
     );

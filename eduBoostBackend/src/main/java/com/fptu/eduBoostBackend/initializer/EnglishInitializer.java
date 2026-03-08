@@ -17,8 +17,9 @@ public class EnglishInitializer {
     private final LessonResourceRepository lessonResourceRepository;
 
     public void init() {
-        initPhysics10();
-        initEnglish10();
+        // initializer no longer needed for removed subjects; leave empty
+        // initPhysics10();
+        // initEnglish10();
     }
 
     private void initPhysics10() {

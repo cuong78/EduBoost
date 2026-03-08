@@ -1,96 +1,116 @@
-import { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
-import { BookOpen, FileQuestion, PenTool, LayoutDashboard, LogOut, CheckSquare, FileText, GraduationCap, Upload, Database, FolderOpen, Menu, X } from 'lucide-react';
-import UserMenu from '../components/common/UserMenu';
-import { useAuth } from '../hooks/useAuth';
+import { useState } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
+import {
+  BookOpen,
+  FileQuestion,
+  PenTool,
+  LogOut,
+  FileText,
+  GraduationCap,
+  Upload,
+  Database,
+  FolderOpen,
+  Menu,
+  X,
+} from "lucide-react";
+import UserMenu from "../components/common/UserMenu";
+import { useAuth } from "../hooks/useAuth";
 
 const TeacherLayout = () => {
-    const location = useLocation();
-    const { user, logout } = useAuth();
-    const isActive = (path) => location.pathname === path;
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const isActive = (path) => location.pathname === path;
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
-    const closeSidebar = () => {
-        if (window.innerWidth < 1024) {
-            setIsSidebarOpen(false);
-        }
-    };
+  const closeSidebar = () => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  };
 
-    const handleLogout = async () => {
-        await logout();
-    };
+  const handleLogout = async () => {
+    await logout();
+  };
 
-    return (
-        <div className="teacher-layout">
-            {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-                <div className="sidebar-overlay" onClick={closeSidebar}></div>
-            )}
+  return (
+    <div className="teacher-layout">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="sidebar-overlay" onClick={closeSidebar}></div>
+      )}
 
-            <aside className={`sidebar glass ${isSidebarOpen ? 'open' : ''}`}>
-                <div className="sidebar-header">
-                    <Link to="/" className="logo">
-                        <img src={logo} alt="EduBoost" />
-                        <span>EduBoost</span>
-                    </Link>
-                </div>
+      <aside className={`sidebar glass ${isSidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-header">
+          {/* logo non-clickable for teacher role */}
+          <div className="logo">
+            <img src={logo} alt="EduBoost" />
+            <span>EduBoost</span>
+          </div>
+        </div>
 
-                <nav className="sidebar-nav">
-                    <Link to="/teacher/dashboard" className={`nav-item ${isActive('/teacher/dashboard') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <LayoutDashboard size={20} /> Tổng quan
-                    </Link>
-                    <Link to="/teacher/classes" className={`nav-item ${location.pathname.startsWith('/teacher/classes') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <GraduationCap size={20} /> Lớp học
-                    </Link>
-                    <Link to="/teacher/create-question" className={`nav-item ${isActive('/teacher/create-question') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <FileQuestion size={20} /> Tạo question
-                    </Link>
-                    <Link to="/teacher/question-bank" className={`nav-item ${isActive('/teacher/question-bank') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <Database size={20} /> Ngân hàng câu hỏi
-                    </Link>
-                    <Link to="/teacher/upload-resource" className={`nav-item ${isActive('/teacher/upload-resource') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <Upload size={20} /> Upload tài nguyên
-                    </Link>
-                    <Link to="/teacher/resources" className={`nav-item ${isActive('/teacher/resources') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <FolderOpen size={20} /> Quản lý tài nguyên
-                    </Link>
-                    <Link to="/teacher/create-exam" className={`nav-item ${isActive('/teacher/create-exam') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <FileText size={20} /> Tạo đề thi
-                    </Link>
-                    <Link to="/teacher/grading" className={`nav-item ${isActive('/teacher/grading') ? 'active' : ''}`} onClick={closeSidebar}>
-                        <CheckSquare size={20} /> Chấm điểm AI
-                    </Link>
-                </nav>
+        <nav className="sidebar-nav">
+          <Link
+            to="/teacher/classes"
+            className={`nav-item ${location.pathname.startsWith("/teacher/classes") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <GraduationCap size={20} /> Lớp học
+          </Link>
+          <Link
+            to="/teacher/create-question"
+            className={`nav-item ${isActive("/teacher/create-question") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <FileQuestion size={20} /> Tạo question
+          </Link>
+          <Link
+            to="/teacher/question-bank"
+            className={`nav-item ${isActive("/teacher/question-bank") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <Database size={20} /> Ngân hàng câu hỏi
+          </Link>
+          <Link
+            to="/teacher/resources"
+            className={`nav-item ${isActive("/teacher/resources") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <FolderOpen size={20} /> Quản lý tài nguyên
+          </Link>
+          <Link
+            to="/teacher/create-exam"
+            className={`nav-item ${isActive("/teacher/create-exam") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <FileText size={20} /> Tạo đề thi
+          </Link>
+        </nav>
 
-                <div className="sidebar-footer">
-                    <UserMenu userType="teacher" />
-                </div>
-            </aside>
+        <div className="sidebar-footer">
+          <UserMenu userType="teacher" />
+        </div>
+      </aside>
 
-            <main className="dashboard-content">
-                <header className="topbar glass">
-                    <div className="topbar-left">
-                        <button className="menu-toggle" onClick={toggleSidebar}>
-                            <Menu size={24} />
-                        </button>
-                        <h2>Dashboard Giáo Viên</h2>
-                    </div>
-                    <div className="topbar-actions">
-                        {/* Notification bells etc */}
-                        <button className="btn btn-sm btn-primary">Tạo mới</button>
-                    </div>
-                </header>
-                <div className="page-container">
-                    <Outlet />
-                </div>
-            </main>
+      <main className="dashboard-content">
+        <header className="topbar glass">
+          <div className="topbar-left">
+            <button className="menu-toggle" onClick={toggleSidebar}>
+              <Menu size={24} />
+            </button>
+          </div>
+          <div className="topbar-actions">{/* Notification bells etc */}</div>
+        </header>
+        <div className="page-container">
+          <Outlet />
+        </div>
+      </main>
 
-            <style>{`
+      <style>{`
                 .teacher-layout {
                     display: grid;
                     grid-template-columns: 1fr;
@@ -321,8 +341,8 @@ const TeacherLayout = () => {
                     font-size: 0.875rem;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default TeacherLayout;

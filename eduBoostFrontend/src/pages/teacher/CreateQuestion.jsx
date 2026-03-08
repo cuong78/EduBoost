@@ -22,6 +22,26 @@ import MathRenderer from "../../components/common/MathRenderer";
 
 const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
+// Tên môn (keyword match không phân biệt hoa thường) theo nhóm khối
+const SUBJECT_KEYWORDS_BY_GRADE = {
+  // Lớp 6-9: Toán và Khoa học tự nhiên
+  middle: ["toán", "khoa học tự nhiên"],
+  // Lớp 10-12: Toán, Vật lý, Hóa học
+  high: ["toán", "vật lý", "hóa học"],
+};
+
+/** Lọc danh sách môn theo khối lớp */
+const filterSubjectsByGrade = (subjects, grade) => {
+  const keywords =
+    grade >= 6 && grade <= 9
+      ? SUBJECT_KEYWORDS_BY_GRADE.middle
+      : SUBJECT_KEYWORDS_BY_GRADE.high;
+  return subjects.filter((s) => {
+    const name = (s.subjectName || s.name || "").toLowerCase();
+    return keywords.some((kw) => name.includes(kw));
+  });
+};
+
 const QUESTION_TYPES = [
   { value: "MULTIPLE_CHOICE", label: "Trắc nghiệm" },
   { value: "TRUE_FALSE", label: "Đúng/Sai" },
@@ -91,22 +111,16 @@ const CreateQuestion = () => {
   const [editingVariationIndex, setEditingVariationIndex] = useState(null);
   const [editingGroupIndex, setEditingGroupIndex] = useState(null);
 
-  // Tab 5: AI from URL
-  const [urlInput, setUrlInput] = useState("");
-  const [urlNumberOfQuestions, setUrlNumberOfQuestions] = useState(5);
-  const [urlGenerating, setUrlGenerating] = useState(false);
-  const [urlGeneratedQuestions, setUrlGeneratedQuestions] = useState([]);
-  const [showUrlPreview, setShowUrlPreview] = useState(false);
-  const [savingUrlQuestions, setSavingUrlQuestions] = useState(false);
-  const [editingUrlQuestionIndex, setEditingUrlQuestionIndex] = useState(null);
-
   const loadSubjects = async () => {
     setLoadingSubjects(true);
     try {
       const data = await knowledgeService.getSubjects();
       const list = Array.isArray(data) ? data : (data?.data ?? []);
       setSubjects(list);
-      if (!subjectId && list.length > 0) setSubjectId(String(list[0].id));
+      // Chọn mặc định môn đầu tiên sau khi lọc theo gradeLevel hiện tại
+      const filtered = filterSubjectsByGrade(list, gradeLevel);
+      if (!subjectId && filtered.length > 0)
+        setSubjectId(String(filtered[0].id));
     } catch (e) {
       setSubjects([]);
       showErrorToast("Không tải được danh sách môn học");
@@ -114,6 +128,9 @@ const CreateQuestion = () => {
       setLoadingSubjects(false);
     }
   };
+
+  // Tính toán danh sách môn đã lọc theo gradeLevel
+  const filteredSubjects = filterSubjectsByGrade(subjects, gradeLevel);
 
   const loadChapters = async (sid, grade) => {
     if (!sid) return;
@@ -164,6 +181,16 @@ const CreateQuestion = () => {
   useEffect(() => {
     loadSubjects();
   }, []);
+
+  // Khi gradeLevel thay đổi → reset subjectId về môn đầu tiên trong danh sách mới
+  useEffect(() => {
+    const filtered = filterSubjectsByGrade(subjects, gradeLevel);
+    if (filtered.length > 0) {
+      setSubjectId(String(filtered[0].id));
+    } else {
+      setSubjectId("");
+    }
+  }, [gradeLevel]);
 
   useEffect(() => {
     if (subjectId) loadChapters(subjectId, gradeLevel);
@@ -641,119 +668,6 @@ const CreateQuestion = () => {
     }
   };
 
-  // Tab 5: AI from URL
-  const handleGenerateFromUrl = async () => {
-    if (!urlInput.trim()) return showErrorToast("Vui lòng nhập URL");
-    if (!lessonId) return showErrorToast("Vui lòng chọn bài học");
-
-    // Basic URL validation
-    try {
-      new URL(urlInput);
-    } catch {
-      return showErrorToast("URL không hợp lệ");
-    }
-
-    setUrlGenerating(true);
-    try {
-      const response = await questionBankService.generateFromUrl({
-        url: urlInput.trim(),
-        lessonId: Number(lessonId),
-        numberOfQuestions: urlNumberOfQuestions,
-        aiProvider: "DEEPSEEK",
-      });
-
-      // Map AI response to local format
-      const mappedQuestions = response.generatedQuestions.map((q) => {
-        const cogLevel = cognitiveLevels.find((l) =>
-          l.level.toLowerCase().includes(q.cognitiveLevel?.toLowerCase() || ""),
-        );
-        return {
-          questionText: q.questionText || "",
-          correctAnswer: q.correctAnswer || "",
-          explanation: q.explanation || "",
-          wrongAnswers: q.wrongAnswers || [],
-          questionType: q.questionType || "MULTIPLE_CHOICE",
-          cognitiveLevelId:
-            cogLevel?.id ||
-            (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null),
-        };
-      });
-
-      setUrlGeneratedQuestions(mappedQuestions);
-      showSuccessToast(
-        `Đã tạo ${mappedQuestions.length} câu hỏi từ URL (${response.tokensUsed} tokens, ${response.generationTimeMs}ms)`,
-      );
-    } catch (e) {
-      console.error("AI URL generate error:", e);
-      showErrorToast(
-        "AI generate thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
-      );
-    } finally {
-      setUrlGenerating(false);
-    }
-  };
-
-  const handleEditUrlQuestion = (index) => {
-    setEditingUrlQuestionIndex(index);
-  };
-
-  const handleSaveUrlQuestion = (index, updated) => {
-    const newList = [...urlGeneratedQuestions];
-    newList[index] = { ...newList[index], ...updated };
-    setUrlGeneratedQuestions(newList);
-    setEditingUrlQuestionIndex(null);
-    showSuccessToast("Đã cập nhật câu hỏi");
-  };
-
-  const handleDeleteUrlQuestion = (index) => {
-    setUrlGeneratedQuestions(
-      urlGeneratedQuestions.filter((_, i) => i !== index),
-    );
-    showSuccessToast("Đã xóa câu hỏi");
-  };
-
-  const handleShowUrlPreview = () => {
-    if (!lessonId) return showErrorToast("Vui lòng chọn bài học");
-    if (urlGeneratedQuestions.length === 0)
-      return showErrorToast("Chưa có câu hỏi để xem trước");
-    setShowUrlPreview(true);
-  };
-
-  const handleSaveUrlQuestions = async () => {
-    if (!lessonId) return showErrorToast("Vui lòng chọn bài học");
-    if (urlGeneratedQuestions.length === 0)
-      return showErrorToast("Chưa có câu hỏi để lưu");
-    setSavingUrlQuestions(true);
-    try {
-      const questions = urlGeneratedQuestions.map((q) => ({
-        lessonId: Number(lessonId),
-        questionText: q.questionText || "",
-        correctAnswer: q.correctAnswer || "",
-        explanation: q.explanation || null,
-        questionType: q.questionType || "MULTIPLE_CHOICE",
-        cognitiveLevelId:
-          q.cognitiveLevelId ||
-          (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null),
-        sourceType: "AI_GENERATED",
-      }));
-      await questionBankService.createQuestionsBatch(questions);
-      showSuccessToast(
-        "Đã lưu " + urlGeneratedQuestions.length + " câu hỏi vào ngân hàng",
-      );
-      setUrlGeneratedQuestions([]);
-      setShowUrlPreview(false);
-      setUrlInput("");
-    } catch (e) {
-      showErrorToast(
-        "Lưu thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
-      );
-    } finally {
-      setSavingUrlQuestions(false);
-    }
-  };
-
   return (
     <div className="create-question-page">
       <div className="page-header">
@@ -791,12 +705,6 @@ const CreateQuestion = () => {
         >
           <Copy size={18} /> AI biến thể
         </button>
-        <button
-          className={`tab ${activeTab === "ai-url" ? "active" : ""}`}
-          onClick={() => setActiveTab("ai-url")}
-        >
-          <Sparkles size={18} /> AI từ URL
-        </button>
       </div>
 
       {/* Common: Knowledge structure picker */}
@@ -805,20 +713,6 @@ const CreateQuestion = () => {
           <BookOpen size={18} /> Chọn môn học, khối, chương, bài học
         </h3>
         <div className="row">
-          <div className="field">
-            <label>Môn học</label>
-            <select
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              disabled={loadingSubjects}
-            >
-              {subjects.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.subjectCode} {s.description ? `- ${s.description}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="field">
             <label>Khối</label>
             <select
@@ -830,6 +724,24 @@ const CreateQuestion = () => {
                   Khối {g}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Môn học</label>
+            <select
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              disabled={loadingSubjects}
+            >
+              {filteredSubjects.length > 0 ? (
+                filteredSubjects.map((s) => (
+                  <option key={s.id} value={String(s.id)}>
+                    {s.subjectName || s.name || ""}
+                  </option>
+                ))
+              ) : (
+                <option value="">-- Không có môn phù hợp --</option>
+              )}
             </select>
           </div>
         </div>
@@ -1326,6 +1238,26 @@ const CreateQuestion = () => {
                                 (t) => t.value === q.questionType,
                               )?.label || q.questionType}
                             </span>
+                            {q.cognitiveLevelId ? (
+                              <span className="cognitive-badge">
+                                {cognitiveLevels.find(
+                                  (l) => l.id === q.cognitiveLevelId,
+                                )?.level || ""}
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#f59e0b",
+                                  padding: "2px 8px",
+                                  background: "rgba(245,158,11,0.1)",
+                                  borderRadius: "4px",
+                                  border: "1px solid rgba(245,158,11,0.3)",
+                                }}
+                              >
+                                ⚠️ Chưa chọn mức độ
+                              </span>
+                            )}
                           </div>
                           <div className="question-text">
                             <MathRenderer content={q.questionText || "—"} />
@@ -2298,291 +2230,6 @@ const CreateQuestion = () => {
                     </div>
                   )}
                 </>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Tab 5: AI from URL */}
-      {activeTab === "ai-url" && (
-        <div className="tab-content glass">
-          <h3>
-            <Sparkles size={18} /> AI tạo câu hỏi từ URL
-          </h3>
-          <div className="row">
-            <div className="field" style={{ flex: 2 }}>
-              <label>Nhập URL bài viết/tài liệu</label>
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/article"
-              />
-              <small className="muted">
-                Hỗ trợ các trang web có nội dung text (bài viết, Wikipedia,
-                etc.)
-              </small>
-            </div>
-            <div className="field">
-              <label>Số câu hỏi</label>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                value={urlNumberOfQuestions}
-                onChange={(e) =>
-                  setUrlNumberOfQuestions(
-                    Math.min(20, Math.max(1, parseInt(e.target.value) || 1)),
-                  )
-                }
-              />
-            </div>
-          </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleGenerateFromUrl}
-            disabled={!urlInput.trim() || !lessonId || urlGenerating}
-          >
-            {urlGenerating ? (
-              "AI đang xử lý (có thể mất 30-60 giây)..."
-            ) : (
-              <>
-                <Sparkles size={16} /> AI tạo {urlNumberOfQuestions} câu hỏi từ
-                URL
-              </>
-            )}
-          </button>
-
-          {urlGeneratedQuestions.length > 0 && (
-            <>
-              {!showUrlPreview ? (
-                <div className="ai-questions">
-                  <h4>Kết quả AI ({urlGeneratedQuestions.length} câu)</h4>
-                  {urlGeneratedQuestions.map((q, idx) => (
-                    <div key={idx} className="question-card">
-                      {editingUrlQuestionIndex === idx ? (
-                        <div className="edit-mode">
-                          <div className="field">
-                            <label>Câu hỏi</label>
-                            <RichTextEditor
-                              value={q.questionText || ""}
-                              onChange={(value) => {
-                                const updated = [...urlGeneratedQuestions];
-                                updated[idx].questionText = value;
-                                setUrlGeneratedQuestions(updated);
-                              }}
-                            />
-                          </div>
-                          <div className="field">
-                            <label>Đáp án đúng</label>
-                            <RichTextEditor
-                              value={q.correctAnswer || ""}
-                              onChange={(value) => {
-                                const updated = [...urlGeneratedQuestions];
-                                updated[idx].correctAnswer = value;
-                                setUrlGeneratedQuestions(updated);
-                              }}
-                            />
-                          </div>
-                          <div className="field">
-                            <label>Giải thích</label>
-                            <RichTextEditor
-                              value={q.explanation || ""}
-                              onChange={(value) => {
-                                const updated = [...urlGeneratedQuestions];
-                                updated[idx].explanation = value;
-                                setUrlGeneratedQuestions(updated);
-                              }}
-                            />
-                          </div>
-                          <div className="row">
-                            <div className="field">
-                              <label>Dạng câu hỏi</label>
-                              <select
-                                value={q.questionType || "MULTIPLE_CHOICE"}
-                                onChange={(e) => {
-                                  const updated = [...urlGeneratedQuestions];
-                                  updated[idx].questionType = e.target.value;
-                                  setUrlGeneratedQuestions(updated);
-                                }}
-                              >
-                                {QUESTION_TYPES.map((t) => (
-                                  <option key={t.value} value={t.value}>
-                                    {t.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="field">
-                              <label>Mức độ nhận thức</label>
-                              <select
-                                value={q.cognitiveLevelId || ""}
-                                onChange={(e) => {
-                                  const updated = [...urlGeneratedQuestions];
-                                  updated[idx].cognitiveLevelId = e.target.value
-                                    ? Number(e.target.value)
-                                    : null;
-                                  setUrlGeneratedQuestions(updated);
-                                }}
-                              >
-                                <option value="">Chọn mức độ...</option>
-                                {cognitiveLevels.map((l) => (
-                                  <option key={l.id} value={l.id}>
-                                    {l.level}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                          <div className="actions">
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => handleSaveUrlQuestion(idx, q)}
-                            >
-                              Lưu
-                            </button>
-                            <button
-                              className="btn btn-sm btn-secondary"
-                              onClick={() => setEditingUrlQuestionIndex(null)}
-                            >
-                              Hủy
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="question-header">
-                            <span className="question-number">
-                              Câu {idx + 1}
-                            </span>
-                            <span className="question-type-badge">
-                              {QUESTION_TYPES.find(
-                                (t) => t.value === q.questionType,
-                              )?.label || q.questionType}
-                            </span>
-                          </div>
-                          <div className="question-text">
-                            <MathRenderer content={q.questionText || "—"} />
-                          </div>
-                          <div className="answer-text">
-                            <strong>Đáp án:</strong>{" "}
-                            <MathRenderer content={q.correctAnswer || "—"} />
-                          </div>
-                          {q.explanation && (
-                            <div className="explanation-text">
-                              <strong>Giải thích:</strong>{" "}
-                              <MathRenderer content={q.explanation} />
-                            </div>
-                          )}
-                          <div className="question-actions">
-                            <button
-                              className="icon-btn"
-                              onClick={() => handleEditUrlQuestion(idx)}
-                              title="Sửa"
-                            >
-                              <Edit2 size={16} /> Sửa
-                            </button>
-                            <button
-                              className="icon-btn danger"
-                              onClick={() => handleDeleteUrlQuestion(idx)}
-                              title="Xóa"
-                            >
-                              <Trash2 size={16} /> Xóa
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                  <div className="actions">
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleShowUrlPreview}
-                      disabled={!lessonId || urlGeneratedQuestions.length === 0}
-                    >
-                      <Eye size={16} /> Xác nhận
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="preview-container">
-                  <h4>
-                    <Eye size={18} /> Xem trước ({urlGeneratedQuestions.length}{" "}
-                    câu hỏi)
-                  </h4>
-                  <p className="muted" style={{ marginBottom: "1rem" }}>
-                    Kiểm tra lại các câu hỏi từ AI trước khi lưu vào ngân hàng
-                    câu hỏi.
-                  </p>
-                  <div className="preview-questions-list">
-                    {urlGeneratedQuestions.map((q, idx) => (
-                      <div
-                        key={idx}
-                        className="preview-card"
-                        style={{ marginBottom: "1rem" }}
-                      >
-                        <div className="question-header">
-                          <span className="question-number">Câu {idx + 1}</span>
-                          <span className="question-type-badge">
-                            {QUESTION_TYPES.find(
-                              (t) => t.value === q.questionType,
-                            )?.label || q.questionType}
-                          </span>
-                          {q.cognitiveLevelId && (
-                            <span className="cognitive-badge">
-                              {cognitiveLevels.find(
-                                (l) => l.id === q.cognitiveLevelId,
-                              )?.level || ""}
-                            </span>
-                          )}
-                        </div>
-                        <div className="preview-section">
-                          <label>Câu hỏi</label>
-                          <div className="preview-content">
-                            <MathRenderer content={q.questionText || "—"} />
-                          </div>
-                        </div>
-                        <div className="preview-section">
-                          <label>Đáp án đúng</label>
-                          <div className="preview-content answer-highlight">
-                            <MathRenderer content={q.correctAnswer || "—"} />
-                          </div>
-                        </div>
-                        {q.explanation && (
-                          <div className="preview-section">
-                            <label>Giải thích</label>
-                            <div className="preview-content explanation-style">
-                              <MathRenderer content={q.explanation} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="actions preview-actions">
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setShowUrlPreview(false)}
-                    >
-                      <Edit2 size={16} /> Quay lại chỉnh sửa
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleSaveUrlQuestions}
-                      disabled={savingUrlQuestions}
-                    >
-                      {savingUrlQuestions ? (
-                        "Đang lưu..."
-                      ) : (
-                        <>
-                          <Save size={16} /> Lưu tất cả (
-                          {urlGeneratedQuestions.length} câu)
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
               )}
             </>
           )}

@@ -24,6 +24,8 @@ export const API = {
     PARENT_STUDENTS: `${BASE_URL}/parent/students`,
     PARENT_STUDENT: (studentId) => `${BASE_URL}/parent/students/${studentId}`,
     PARENT_STUDENT_UNLINK: (studentId) => `${BASE_URL}/parent/students/${studentId}/unlink`,
+    PARENT_STUDENT_SCORES: (studentId) => `${BASE_URL}/parent/students/${studentId}/scores`,
+    PARENT_STUDENT_SCORE_DETAIL: (studentId, resultId) => `${BASE_URL}/parent/students/${studentId}/scores/${resultId}`,
     // Admin
     ADMIN_INVITATIONS_STATS: `${BASE_URL}/admin/invitations/stats`,
     ADMIN_INVITATIONS_EXPIRING: `${BASE_URL}/admin/invitations/expiring`,

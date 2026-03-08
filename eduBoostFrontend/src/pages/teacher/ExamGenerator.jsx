@@ -21,6 +21,22 @@ import { jsPDF } from "jspdf";
 
 const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
+const SUBJECT_KEYWORDS_BY_GRADE = {
+  middle: ["toán", "khoa học tự nhiên"],
+  high: ["toán", "vật lý", "hóa học"],
+};
+
+const filterSubjectsByGrade = (subjects, grade) => {
+  const keywords =
+    grade >= 6 && grade <= 9
+      ? SUBJECT_KEYWORDS_BY_GRADE.middle
+      : SUBJECT_KEYWORDS_BY_GRADE.high;
+  return subjects.filter((s) => {
+    const name = (s.subjectName || s.name || "").toLowerCase();
+    return keywords.some((kw) => name.includes(kw));
+  });
+};
+
 const DEFAULT_EXAM_TYPES = [
   { value: "15MIN", label: "Kiểm tra 15 phút" },
   { value: "45MIN", label: "Kiểm tra 1 tiết" },
@@ -118,8 +134,11 @@ const ExamGenerator = () => {
     const data = await knowledgeService.getSubjects();
     const list = Array.isArray(data) ? data : (data?.data ?? []);
     setSubjects(list);
-    if (!subjectId && list.length) setSubjectId(String(list[0].id));
+    const filtered = filterSubjectsByGrade(list, gradeLevel);
+    if (!subjectId && filtered.length) setSubjectId(String(filtered[0].id));
   };
+
+  const filteredSubjects = filterSubjectsByGrade(subjects, gradeLevel);
 
   const loadExamTypes = async () => {
     try {
@@ -182,6 +201,16 @@ const ExamGenerator = () => {
   }, []);
 
   useEffect(() => {
+    const filtered = filterSubjectsByGrade(subjects, gradeLevel);
+    if (filtered.length > 0) {
+      setSubjectId(String(filtered[0].id));
+    } else {
+      setSubjectId("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gradeLevel]);
+
+  useEffect(() => {
     loadChapters().catch(() => setChapters([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId, gradeLevel]);
@@ -222,11 +251,8 @@ const ExamGenerator = () => {
   };
 
   const generatePreview = async () => {
-    if (Number(totalQuestions) <= 0)
-      return showErrorToast("Tổng số câu phải > 0");
-    if (stats.sumLesson !== Number(totalQuestions)) {
-      return showErrorToast("Phân bổ theo bài học phải bằng tổng số câu");
-    }
+    if (stats.sumLesson <= 0)
+      return showErrorToast("Vui lòng phân bổ ít nhất 1 câu cho các bài học");
 
     const examTypeId = getSelectedExamTypeId();
     if (!examTypeId) {
@@ -251,8 +277,10 @@ const ExamGenerator = () => {
       durationMinutes: durationMinutesByTypeCode(examType),
       lessonIds: selectedLessonIds.map((x) => Number(x)),
       config: {
-        totalQuestions: Number(totalQuestions),
-        pointsPerQuestion: Number(pointsPerQuestion),
+        totalQuestions: stats.sumLesson,
+        pointsPerQuestion: stats.sumLesson > 0
+          ? parseFloat((10 / stats.sumLesson).toFixed(3))
+          : 1,
         lessonDistribution: lessonDistList,
       },
     };
@@ -494,6 +522,19 @@ const ExamGenerator = () => {
 
           <div className="row3">
             <div className="field">
+              <label>Khối</label>
+              <select
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(Number(e.target.value))}
+              >
+                {GRADE_OPTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    Khối {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
               <label>Loại đề</label>
               <select
                 value={examType}
@@ -526,47 +567,36 @@ const ExamGenerator = () => {
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
               >
-                {subjects.map((s) => (
-                  <option key={s.id} value={String(s.id)}>
-                    {s.subjectCode} {s.description ? `- ${s.description}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>Khối</label>
-              <select
-                value={gradeLevel}
-                onChange={(e) => setGradeLevel(Number(e.target.value))}
-              >
-                {GRADE_OPTIONS.map((g) => (
-                  <option key={g} value={g}>
-                    Khối {g}
-                  </option>
-                ))}
+                {filteredSubjects.length > 0 ? (
+                  filteredSubjects.map((s) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.subjectName || s.name || ""}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">-- Không có môn phù hợp --</option>
+                )}
               </select>
             </div>
           </div>
 
-          <div className="row2">
-            <div className="field">
-              <label>Chương</label>
-              <select
-                value={chapterId}
-                onChange={(e) => setChapterId(e.target.value)}
-                disabled={!chapters.length}
-              >
-                {chapters.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    Chương {c.chapterNumber}: {c.chapterName}
-                  </option>
-                ))}
-              </select>
-              {!chapters.length && (
-                <small className="muted">Chưa có chương</small>
-              )}
+          {chapters.length > 0 && (
+            <div className="row2">
+              <div className="field">
+                <label>Chương</label>
+                <select
+                  value={chapterId}
+                  onChange={(e) => setChapterId(e.target.value)}
+                >
+                  {chapters.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      Chương {c.chapterNumber}: {c.chapterName}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="divider" />
           <h3>Chọn bài học</h3>
@@ -610,36 +640,52 @@ const ExamGenerator = () => {
             <FileText size={20} /> Cấu hình đề
           </h2>
 
-          <div className="row3">
-            <div className="field">
-              <label>Tổng số câu</label>
-              <input
-                type="number"
-                min="1"
-                value={totalQuestions}
-                onChange={(e) => setTotalQuestions(Number(e.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label>Điểm / câu</label>
-              <input
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={pointsPerQuestion}
-                onChange={(e) => setPointsPerQuestion(Number(e.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label>Tổng điểm (ước tính)</label>
-              <input
-                value={(
-                  Number(totalQuestions) * Number(pointsPerQuestion)
-                ).toFixed(1)}
-                disabled
-              />
-            </div>
-          </div>
+          {/* Tổng điểm cố định 10 - điểm/câu tự tính */}
+          {(() => {
+            const pPerQ = stats.sumLesson > 0
+              ? parseFloat((10 / stats.sumLesson).toFixed(3))
+              : 0;
+            return (
+              <div className="row3">
+                <div className="field">
+                  <label>Tổng số câu</label>
+                  <input
+                    value={stats.sumLesson}
+                    disabled
+                    style={{
+                      background: "rgba(96,78,255,0.08)",
+                      fontWeight: 700,
+                      color: "var(--color-accent-1)",
+                      cursor: "not-allowed",
+                    }}
+                  />
+                  <small className="muted">Tự động tính từ phân bổ bài học bên dưới</small>
+                </div>
+                <div className="field">
+                  <label>Điểm / câu</label>
+                  <input
+                    value={pPerQ}
+                    disabled
+                    style={{ cursor: "not-allowed" }}
+                  />
+                  <small className="muted">= 10 ÷ tổng số câu</small>
+                </div>
+                <div className="field">
+                  <label>Tổng điểm</label>
+                  <input
+                    value="10"
+                    disabled
+                    style={{
+                      background: "rgba(16,185,129,0.08)",
+                      fontWeight: 700,
+                      color: "#10b981",
+                      cursor: "not-allowed",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="row2">
             <div className="box">
@@ -668,7 +714,7 @@ const ExamGenerator = () => {
                 );
               })}
               <div className="dist-footer muted">
-                Tổng: {stats.sumLesson}/{totalQuestions}
+                Tổng: <strong>{stats.sumLesson}</strong> câu
               </div>
             </div>
 
@@ -692,7 +738,12 @@ const ExamGenerator = () => {
                 </div>
               ))}
               <div className="dist-footer muted">
-                Tổng: {stats.sumLevel}/{totalQuestions}
+                Tổng: {stats.sumLevel} / {stats.sumLesson} câu
+                {stats.sumLevel !== stats.sumLesson && stats.sumLesson > 0 && (
+                  <span style={{ color: "#ef4444", marginLeft: "0.5rem" }}>
+                    (phải bằng tổng số câu)
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -708,7 +759,18 @@ const ExamGenerator = () => {
             <button
               className="btn btn-primary"
               onClick={generatePreview}
-              disabled={loadingPreview}
+              disabled={
+                loadingPreview ||
+                stats.sumLesson === 0 ||
+                stats.sumLevel !== stats.sumLesson
+              }
+              title={
+                stats.sumLesson === 0
+                  ? "Vui lòng phân bổ số câu cho bài học"
+                  : stats.sumLevel !== stats.sumLesson
+                    ? `Phân bổ mức độ (${stats.sumLevel}) chưa khớp tổng số câu (${stats.sumLesson})`
+                    : ""
+              }
             >
               {loadingPreview ? (
                 <>
@@ -720,6 +782,11 @@ const ExamGenerator = () => {
                 </>
               )}
             </button>
+            {!loadingPreview && stats.sumLesson > 0 && stats.sumLevel !== stats.sumLesson && (
+              <p style={{ color: "#ef4444", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
+                ⚠️ Phân bổ theo mức độ ({stats.sumLevel} câu) phải bằng tổng số câu ({stats.sumLesson} câu) để tạo đề.
+              </p>
+            )}
           </div>
 
           <div className="divider" />
