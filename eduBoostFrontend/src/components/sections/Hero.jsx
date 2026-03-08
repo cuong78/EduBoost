@@ -1,4 +1,5 @@
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import useScrollReveal from '../../hooks/useScrollReveal';
 
 const Hero = () => {
@@ -21,10 +22,9 @@ const Hero = () => {
             Nền tảng AI toàn diện dành cho giáo dục Việt Nam.
           </p>
           <div className="hero-actions">
-            <button className="btn btn-primary">
+            <Link to="/login" className="btn btn-primary">
               Trải nghiệm ngay <ArrowRight size={18} style={{ marginLeft: '8px' }} />
-            </button>
-            <button className="btn btn-glass">Xem Demo</button>
+            </Link>
           </div>
         </div>
 

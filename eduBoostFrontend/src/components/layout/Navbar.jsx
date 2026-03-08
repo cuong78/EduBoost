@@ -43,7 +43,6 @@ const Navbar = () => {
 
         <div className="nav-links">
           <Link to="/" className="nav-link">Trang chủ</Link>
-          <a href="#quiz" className="nav-link">Quiz AI</a>
           <div className="parent-menu-wrapper" ref={parentMenuRef}>
             <button 
               className="nav-link parent-menu-trigger"
@@ -102,7 +101,6 @@ const Navbar = () => {
           align-items: center;
           width: 100%;
           padding: 0 1rem;
-          position: relative; /* Anchor for absolute centering */
         }
 
         .logo {
@@ -115,6 +113,7 @@ const Navbar = () => {
           align-items: center;
           gap: 10px;
           z-index: 2; /* Ensure logo is clickable above absolute center */
+          flex-shrink: 0;
         }
 
         .logo img {
@@ -125,10 +124,8 @@ const Navbar = () => {
         .nav-links {
           display: flex;
           align-items: center;
-          gap: 2rem;
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
+          justify-content: space-around;
+          flex: 1;
           white-space: nowrap;
         }
 

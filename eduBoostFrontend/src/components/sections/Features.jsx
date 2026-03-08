@@ -1,35 +1,60 @@
-import { useState } from 'react';
-import { BookOpen, Users, Brain, Target, Zap, Award } from 'lucide-react';
-import useScrollReveal from '../../hooks/useScrollReveal';
+import { useState } from "react";
+import { BookOpen, Users, Brain, Target, Zap, Award } from "lucide-react";
+import useScrollReveal from "../../hooks/useScrollReveal";
 
 const Features = () => {
-  const [activeTab, setActiveTab] = useState('learner');
+  const [activeTab, setActiveTab] = useState("learner");
   const headerRef = useScrollReveal();
   const contentRef = useScrollReveal();
 
   const LEARNER_FEATURES = [
-    { icon: <Brain size={24} />, title: "Lộ trình cá nhân hóa", desc: "AI phân tích điểm mạnh/yếu để đề xuất bài học phù hợp." },
-    { icon: <Zap size={24} />, title: "Học tập tương tác", desc: "Nền tảng học tập với AI hỗ trợ và chấm điểm tự động." },
-    { icon: <Award size={24} />, title: "Chứng chỉ uy tín", desc: "Hoàn thành khóa học và nhận chứng nhận năng lực." }
+    {
+      icon: <Brain size={24} />,
+      title: "Lộ trình cá nhân hóa",
+      desc: "AI phân tích điểm mạnh/yếu để đề xuất bài học phù hợp.",
+    },
+    {
+      icon: <Zap size={24} />,
+      title: "Học tập tương tác",
+      desc: "Nền tảng học tập với AI hỗ trợ và chấm điểm tự động.",
+    },
+    {
+      icon: <Award size={24} />,
+      title: "Chứng chỉ uy tín",
+      desc: "Hoàn thành khóa học và nhận chứng nhận năng lực.",
+    },
   ];
 
   const TEACHER_FEATURES = [
-    { icon: <Users size={24} />, title: "Quản lý lớp học", desc: "Theo dõi tiến độ học tập của từng học sinh dễ dàng." },
-    { icon: <Target size={24} />, title: "Ngân hàng đề thi", desc: "Tạo đề thi tự động từ kho dữ liệu phong phú." },
-    { icon: <Brain size={24} />, title: "Chấm điểm AI", desc: "Hệ thống AI hỗ trợ chấm điểm tự luận nhanh và chính xác." }
+    {
+      icon: <Users size={24} />,
+      title: "Quản lý lớp học",
+      desc: "Theo dõi tiến độ học tập của từng học sinh dễ dàng.",
+    },
+    {
+      icon: <Target size={24} />,
+      title: "Ngân hàng đề thi",
+      desc: "Tạo đề thi tự động từ kho dữ liệu phong phú.",
+    },
+    {
+      icon: <Brain size={24} />,
+      title: "Chấm điểm AI",
+      desc: "Hệ thống AI hỗ trợ chấm điểm tự luận nhanh và chính xác.",
+    },
   ];
 
   const content = {
     teacher: {
       title: "Dành cho Giáo viên",
       items: TEACHER_FEATURES,
-      image: "https://placehold.co/600x400/604eff/ffffff?text=Teacher+Dashboard"
+      image:
+        "https://placehold.co/600x400/604eff/ffffff?text=Teacher+Dashboard",
     },
     learner: {
       title: "Dành cho Học viên",
       items: LEARNER_FEATURES,
-      image: "https://placehold.co/600x400/8679ff/ffffff?text=Student+Learning"
-    }
+      image: "https://placehold.co/600x400/8679ff/ffffff?text=Student+Learning",
+    },
   };
 
   return (
@@ -37,28 +62,29 @@ const Features = () => {
       <div className="container">
         <div className="tabs reveal" ref={headerRef}>
           <button
-            className={`tab-btn ${activeTab === 'teacher' ? 'active' : ''}`}
-            onClick={() => setActiveTab('teacher')}
+            className={`tab-btn ${activeTab === "teacher" ? "active" : ""}`}
+            onClick={() => setActiveTab("teacher")}
           >
             Dành cho Giáo viên
           </button>
           <button
-            className={`tab-btn ${activeTab === 'learner' ? 'active' : ''}`}
-            onClick={() => setActiveTab('learner')}
+            className={`tab-btn ${activeTab === "learner" ? "active" : ""}`}
+            onClick={() => setActiveTab("learner")}
           >
             Dành cho Học viên
           </button>
         </div>
 
-        <div className="feature-content glass reveal reveal-delay-200" ref={contentRef}>
+        <div
+          className="feature-content glass reveal reveal-delay-200"
+          ref={contentRef}
+        >
           <div className="feature-text">
             <h2>{content[activeTab].title}</h2>
             <div className="feature-grid">
               {content[activeTab].items.map((item, index) => (
                 <div key={index} className="feature-item">
-                  <div className="icon-wrapper">
-                    {item.icon}
-                  </div>
+                  <div className="icon-wrapper">{item.icon}</div>
                   <div>
                     <h3>{item.title}</h3>
                     <p>{item.desc}</p>
@@ -66,10 +92,15 @@ const Features = () => {
                 </div>
               ))}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: '2rem' }}>Tìm hiểu thêm</button>
+            <button className="btn btn-primary" style={{ marginTop: "2rem" }}>
+              Tìm hiểu thêm
+            </button>
           </div>
           <div className="feature-image">
-            <img src={content[activeTab].image} alt={content[activeTab].title} />
+            <img
+              src={content[activeTab].image}
+              alt={content[activeTab].title}
+            />
           </div>
         </div>
       </div>
