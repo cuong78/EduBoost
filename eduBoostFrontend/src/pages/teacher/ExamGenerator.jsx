@@ -251,11 +251,8 @@ const ExamGenerator = () => {
   };
 
   const generatePreview = async () => {
-    if (Number(totalQuestions) <= 0)
-      return showErrorToast("Tổng số câu phải > 0");
-    if (stats.sumLesson !== Number(totalQuestions)) {
-      return showErrorToast("Phân bổ theo bài học phải bằng tổng số câu");
-    }
+    if (stats.sumLesson <= 0)
+      return showErrorToast("Vui lòng phân bổ ít nhất 1 câu cho các bài học");
 
     const examTypeId = getSelectedExamTypeId();
     if (!examTypeId) {
@@ -280,8 +277,10 @@ const ExamGenerator = () => {
       durationMinutes: durationMinutesByTypeCode(examType),
       lessonIds: selectedLessonIds.map((x) => Number(x)),
       config: {
-        totalQuestions: Number(totalQuestions),
-        pointsPerQuestion: Number(pointsPerQuestion),
+        totalQuestions: stats.sumLesson,
+        pointsPerQuestion: stats.sumLesson > 0
+          ? parseFloat((10 / stats.sumLesson).toFixed(3))
+          : 1,
         lessonDistribution: lessonDistList,
       },
     };
@@ -641,36 +640,52 @@ const ExamGenerator = () => {
             <FileText size={20} /> Cấu hình đề
           </h2>
 
-          <div className="row3">
-            <div className="field">
-              <label>Tổng số câu</label>
-              <input
-                type="number"
-                min="1"
-                value={totalQuestions}
-                onChange={(e) => setTotalQuestions(Number(e.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label>Điểm / câu</label>
-              <input
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={pointsPerQuestion}
-                onChange={(e) => setPointsPerQuestion(Number(e.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label>Tổng điểm (ước tính)</label>
-              <input
-                value={(
-                  Number(totalQuestions) * Number(pointsPerQuestion)
-                ).toFixed(1)}
-                disabled
-              />
-            </div>
-          </div>
+          {/* Tổng điểm cố định 10 - điểm/câu tự tính */}
+          {(() => {
+            const pPerQ = stats.sumLesson > 0
+              ? parseFloat((10 / stats.sumLesson).toFixed(3))
+              : 0;
+            return (
+              <div className="row3">
+                <div className="field">
+                  <label>Tổng số câu</label>
+                  <input
+                    value={stats.sumLesson}
+                    disabled
+                    style={{
+                      background: "rgba(96,78,255,0.08)",
+                      fontWeight: 700,
+                      color: "var(--color-accent-1)",
+                      cursor: "not-allowed",
+                    }}
+                  />
+                  <small className="muted">Tự động tính từ phân bổ bài học bên dưới</small>
+                </div>
+                <div className="field">
+                  <label>Điểm / câu</label>
+                  <input
+                    value={pPerQ}
+                    disabled
+                    style={{ cursor: "not-allowed" }}
+                  />
+                  <small className="muted">= 10 ÷ tổng số câu</small>
+                </div>
+                <div className="field">
+                  <label>Tổng điểm</label>
+                  <input
+                    value="10"
+                    disabled
+                    style={{
+                      background: "rgba(16,185,129,0.08)",
+                      fontWeight: 700,
+                      color: "#10b981",
+                      cursor: "not-allowed",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="row2">
             <div className="box">
@@ -699,7 +714,7 @@ const ExamGenerator = () => {
                 );
               })}
               <div className="dist-footer muted">
-                Tổng: {stats.sumLesson}/{totalQuestions}
+                Tổng: <strong>{stats.sumLesson}</strong> câu
               </div>
             </div>
 
@@ -723,7 +738,12 @@ const ExamGenerator = () => {
                 </div>
               ))}
               <div className="dist-footer muted">
-                Tổng: {stats.sumLevel}/{totalQuestions}
+                Tổng: {stats.sumLevel} / {stats.sumLesson} câu
+                {stats.sumLevel !== stats.sumLesson && stats.sumLesson > 0 && (
+                  <span style={{ color: "#ef4444", marginLeft: "0.5rem" }}>
+                    (phải bằng tổng số câu)
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -739,7 +759,18 @@ const ExamGenerator = () => {
             <button
               className="btn btn-primary"
               onClick={generatePreview}
-              disabled={loadingPreview}
+              disabled={
+                loadingPreview ||
+                stats.sumLesson === 0 ||
+                stats.sumLevel !== stats.sumLesson
+              }
+              title={
+                stats.sumLesson === 0
+                  ? "Vui lòng phân bổ số câu cho bài học"
+                  : stats.sumLevel !== stats.sumLesson
+                    ? `Phân bổ mức độ (${stats.sumLevel}) chưa khớp tổng số câu (${stats.sumLesson})`
+                    : ""
+              }
             >
               {loadingPreview ? (
                 <>
@@ -751,6 +782,11 @@ const ExamGenerator = () => {
                 </>
               )}
             </button>
+            {!loadingPreview && stats.sumLesson > 0 && stats.sumLevel !== stats.sumLesson && (
+              <p style={{ color: "#ef4444", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
+                ⚠️ Phân bổ theo mức độ ({stats.sumLevel} câu) phải bằng tổng số câu ({stats.sumLesson} câu) để tạo đề.
+              </p>
+            )}
           </div>
 
           <div className="divider" />

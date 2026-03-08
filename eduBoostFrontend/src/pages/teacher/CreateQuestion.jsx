@@ -1238,6 +1238,26 @@ const CreateQuestion = () => {
                                 (t) => t.value === q.questionType,
                               )?.label || q.questionType}
                             </span>
+                            {q.cognitiveLevelId ? (
+                              <span className="cognitive-badge">
+                                {cognitiveLevels.find(
+                                  (l) => l.id === q.cognitiveLevelId,
+                                )?.level || ""}
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#f59e0b",
+                                  padding: "2px 8px",
+                                  background: "rgba(245,158,11,0.1)",
+                                  borderRadius: "4px",
+                                  border: "1px solid rgba(245,158,11,0.3)",
+                                }}
+                              >
+                                ⚠️ Chưa chọn mức độ
+                              </span>
+                            )}
                           </div>
                           <div className="question-text">
                             <MathRenderer content={q.questionText || "—"} />

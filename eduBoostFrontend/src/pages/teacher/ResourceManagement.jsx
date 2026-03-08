@@ -66,7 +66,7 @@ const ResourceManagement = () => {
 
   // Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadType, setUploadType] = useState("PDF");
+  const [uploadType] = useState("DOCX"); // Chỉ hỗ trợ Word
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadUrl, setUploadUrl] = useState("");
   const [uploadText, setUploadText] = useState("");
@@ -87,7 +87,8 @@ const ResourceManagement = () => {
       const list = Array.isArray(data) ? data : (data?.data ?? []);
       setSubjects(list);
       const filtered = filterSubjectsByGrade(list, gradeLevel);
-      if (!subjectId && filtered.length > 0) setSubjectId(String(filtered[0].id));
+      if (!subjectId && filtered.length > 0)
+        setSubjectId(String(filtered[0].id));
     } catch (e) {
       setSubjects([]);
       showErrorToast("Không tải được danh sách môn học");
@@ -187,47 +188,24 @@ const ResourceManagement = () => {
       showErrorToast("Vui lòng chọn bài học");
       return;
     }
+    if (!uploadFile) {
+      showErrorToast("Vui lòng chọn file Word (.docx hoặc .doc)");
+      return;
+    }
+    const fileName = uploadFile.name.toLowerCase();
+    if (!fileName.endsWith(".docx") && !fileName.endsWith(".doc")) {
+      showErrorToast("Chỉ chấp nhận file Word (.docx hoặc .doc)");
+      return;
+    }
 
     setUploading(true);
     try {
-      if (uploadType === "URL") {
-        if (!uploadUrl.trim()) {
-          showErrorToast("Vui lòng nhập URL");
-          setUploading(false);
-          return;
-        }
-        await knowledgeService.createResource({
-          lessonId: Number(lessonId),
-          resourceType: "URL",
-          fileUrl: uploadUrl.trim(),
-          resourceName: uploadName || "URL Resource",
-        });
-      } else if (uploadType === "TEXT") {
-        if (!uploadText.trim()) {
-          showErrorToast("Vui lòng nhập nội dung văn bản");
-          setUploading(false);
-          return;
-        }
-        await knowledgeService.createResource({
-          lessonId: Number(lessonId),
-          resourceType: "TEXT",
-          extractedContent: uploadText.trim(),
-          resourceName: uploadName || "Text Content",
-        });
-      } else {
-        if (!uploadFile) {
-          showErrorToast("Vui lòng chọn file");
-          setUploading(false);
-          return;
-        }
-        await knowledgeService.uploadResourceFile({
-          lessonId: Number(lessonId),
-          resourceType: uploadType,
-          resourceName: uploadName || uploadFile.name,
-          file: uploadFile,
-        });
-      }
-
+      await knowledgeService.uploadResourceFile({
+        lessonId: Number(lessonId),
+        resourceType: "DOCX",
+        resourceName: uploadName || uploadFile.name,
+        file: uploadFile,
+      });
       showSuccessToast("Upload tài nguyên thành công");
       setShowUploadModal(false);
       resetUploadForm();
@@ -243,7 +221,6 @@ const ResourceManagement = () => {
   };
 
   const resetUploadForm = () => {
-    setUploadType("PDF");
     setUploadFile(null);
     setUploadUrl("");
     setUploadText("");
@@ -468,19 +445,31 @@ const ResourceManagement = () => {
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Upload tài nguyên mới</h3>
-            <div className="field">
-              <label>Loại tài nguyên</label>
-              <select
-                value={uploadType}
-                onChange={(e) => setUploadType(e.target.value)}
-              >
-                {RESOURCE_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+
+            {/* Thông báo chỉ dùng Word */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                padding: "0.875rem 1rem",
+                background: "rgba(59,130,246,0.08)",
+                border: "1px solid rgba(59,130,246,0.25)",
+                borderRadius: "10px",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <File size={20} style={{ color: "#3b82f6", flexShrink: 0 }} />
+              <div>
+                <p style={{ margin: 0, fontWeight: 600, color: "#3b82f6", fontSize: "0.9rem" }}>
+                  Chỉ hỗ trợ file Microsoft Word
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                  Vui lòng upload file .docx hoặc .doc. Hệ thống sẽ tự động trích xuất nội dung để hỗ trợ AI.
+                </p>
+              </div>
             </div>
+
             <div className="field">
               <label>Tên tài nguyên (tùy chọn)</label>
               <input
@@ -490,50 +479,21 @@ const ResourceManagement = () => {
                 placeholder="Nhập tên hiển thị..."
               />
             </div>
-
-            {uploadType === "URL" ? (
-              <div className="field">
-                <label>URL</label>
-                <input
-                  type="url"
-                  value={uploadUrl}
-                  onChange={(e) => setUploadUrl(e.target.value)}
-                  placeholder="https://example.com/..."
-                />
-              </div>
-            ) : uploadType === "TEXT" ? (
-              <div className="field">
-                <label>Nội dung văn bản</label>
-                <textarea
-                  rows={8}
-                  value={uploadText}
-                  onChange={(e) => setUploadText(e.target.value)}
-                  placeholder="Nhập nội dung văn bản..."
-                />
-              </div>
-            ) : (
-              <div className="field">
-                <label>Chọn file</label>
-                <input
-                  type="file"
-                  onChange={(e) => setUploadFile(e.target.files[0])}
-                  accept={
-                    uploadType === "PDF"
-                      ? ".pdf"
-                      : uploadType === "DOCX"
-                        ? ".docx,.doc"
-                        : uploadType === "VIDEO"
-                          ? "video/*"
-                          : uploadType === "IMAGE"
-                            ? "image/*"
-                            : "*"
-                  }
-                />
-                {uploadFile && (
-                  <small className="muted">Đã chọn: {uploadFile.name}</small>
-                )}
-              </div>
-            )}
+            <div className="field">
+              <label>Chọn file Word</label>
+              <input
+                type="file"
+                onChange={(e) => setUploadFile(e.target.files[0])}
+                accept=".docx,.doc"
+              />
+              {uploadFile ? (
+                <small style={{ color: "#10b981", marginTop: "0.25rem", display: "block" }}>
+                  ✓ Đã chọn: {uploadFile.name}
+                </small>
+              ) : (
+                <small className="muted">Chỉ chấp nhận file .docx hoặc .doc</small>
+              )}
+            </div>
 
             <div className="modal-actions">
               <button
@@ -549,7 +509,7 @@ const ResourceManagement = () => {
               <button
                 className="btn btn-primary"
                 onClick={handleUpload}
-                disabled={uploading}
+                disabled={uploading || !uploadFile}
               >
                 {uploading ? "Đang upload..." : "Upload"}
               </button>
