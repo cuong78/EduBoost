@@ -45,7 +45,7 @@ public interface ExamService {
     ExamResponse changeExamStatus(Long examId, ChangeExamStatusRequest request);
     
     // Export
-    byte[] exportExam(Long examId, String format);
+    byte[] exportExam(Long examId, boolean showAnswer);
     
     byte[] exportAnswerKey(Long examId, String format);
     

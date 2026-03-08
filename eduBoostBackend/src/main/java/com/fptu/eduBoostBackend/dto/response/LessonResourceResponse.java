@@ -20,7 +20,6 @@ public class LessonResourceResponse {
     private String lessonName;
     private String resourceName;
     private LessonResourceType resourceType;
-    private String fileUrl;
     private String downloadUrl;
     private Long fileSize;
     private String mimeType;

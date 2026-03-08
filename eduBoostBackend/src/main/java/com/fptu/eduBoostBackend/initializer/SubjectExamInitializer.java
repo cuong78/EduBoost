@@ -27,20 +27,6 @@ public class SubjectExamInitializer {
                 .description("Môn Vật lý - Nghiên cứu các hiện tượng tự nhiên").build());
         subjectRepository.save(Subject.builder().subjectCode("HOA").subjectName("Hóa học")
                 .description("Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học").build());
-        subjectRepository.save(Subject.builder().subjectCode("ANH").subjectName("Tiếng Anh")
-                .description("Môn Tiếng Anh - Ngôn ngữ quốc tế").build());
-        subjectRepository.save(Subject.builder().subjectCode("VAN").subjectName("Ngữ văn")
-                .description("Môn Ngữ văn - Văn học và tiếng Việt").build());
-        subjectRepository.save(Subject.builder().subjectCode("SINH").subjectName("Sinh học")
-                .description("Môn Sinh học - Nghiên cứu về sự sống").build());
-        subjectRepository.save(Subject.builder().subjectCode("SU").subjectName("Lịch sử")
-                .description("Môn Lịch sử - Tìm hiểu quá khứ").build());
-        subjectRepository.save(Subject.builder().subjectCode("DIA").subjectName("Địa lý")
-                .description("Môn Địa lý - Nghiên cứu về Trái đất").build());
-        subjectRepository.save(Subject.builder().subjectCode("GDCD").subjectName("Giáo dục công dân")
-                .description("Môn Giáo dục công dân - Đạo đức và pháp luật").build());
-        subjectRepository.save(Subject.builder().subjectCode("TIN").subjectName("Tin học")
-                .description("Môn Tin học - Công nghệ thông tin").build());
         subjectRepository.save(Subject.builder().subjectCode("SCI").subjectName("Khoa học tự nhiên")
                 .description("Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên").build());
     }

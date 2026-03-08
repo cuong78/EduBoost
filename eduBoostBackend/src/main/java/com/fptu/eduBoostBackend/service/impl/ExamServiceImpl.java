@@ -1,5 +1,6 @@
 package com.fptu.eduBoostBackend.service.impl;
-
+import com.itextpdf.io.font.FontProgram;
+import com.itextpdf.io.font.FontProgramFactory;
 import com.fptu.eduBoostBackend.dto.request.*;
 import com.fptu.eduBoostBackend.dto.response.*;
 import com.fptu.eduBoostBackend.entities.*;
@@ -24,12 +25,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.core.io.ClassPathResource;
 
+import java.io.InputStream;
+import java.nio.file.Files;
+import com.itextpdf.kernel.pdf.*;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.*;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.borders.Border;
+
+import org.jsoup.Jsoup;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -741,20 +758,7 @@ public class ExamServiceImpl implements ExamService {
         return mapToExamResponse(exam);
     }
 
-    @Override
-    public byte[] exportExam(Long examId, String format) {
-        Exam exam = examRepository.findByIdWithDetails(examId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
-        List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
-        
-        // Generate exam document
-        // This would use a library like Apache POI or iText
-        log.info("Exporting exam {} in format: {}", exam.getExamCode(), format);
-        
-        // Placeholder - return empty byte array
-        return new byte[0];
-    }
+
 
     @Override
     public byte[] exportAnswerKey(Long examId, String format) {
@@ -1082,4 +1086,149 @@ public class ExamServiceImpl implements ExamService {
         
         return builder.build();
     }
+    @Override
+    public byte[] exportExam(Long examId, boolean showAnswer) {
+
+        try {
+
+            Exam exam = examRepository.findById(examId)
+                    .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+            // Use safer query
+            List<ExamQuestion> questions =
+                    examQuestionRepository.findByExamIdOrdered(examId);
+
+            log.info("Export exam {} - question count: {}", examId, questions.size());
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+
+            // Load Vietnamese font
+            ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
+
+            FontProgram fontProgram;
+            try (InputStream fontStream = fontResource.getInputStream()) {
+                fontProgram = FontProgramFactory.createFont(fontStream.readAllBytes());
+            }
+
+            PdfFont font = PdfFontFactory.createFont(fontProgram, PdfEncodings.IDENTITY_H);
+            document.setFont(font);
+
+            // =========================
+            // EXAM HEADER
+            // =========================
+
+            document.add(new Paragraph(cleanText(exam.getExamTitle()))
+                    .setBold()
+                    .setFontSize(18)
+                    .setTextAlignment(TextAlignment.CENTER));
+
+            document.add(new Paragraph("Môn: " + exam.getSubject().getDescription())
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setFontSize(12));
+
+            document.add(new Paragraph("Thời gian: " + getExamDuration(exam))
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setFontSize(12));
+
+            document.add(new Paragraph("\n"));
+
+            document.add(new Paragraph("------------------------------------------------------------")
+                    .setTextAlignment(TextAlignment.CENTER));
+
+            document.add(new Paragraph("\n"));
+
+            // =========================
+            // QUESTIONS
+            // =========================
+
+            int questionNumber = 1;
+
+            for (ExamQuestion q : questions) {
+
+                log.info("Exporting question {}: {}", q.getOrderNumber(), q.getQuestionText());
+
+                // Question text
+                document.add(new Paragraph(
+                        "Câu " + questionNumber + ": " + cleanText(q.getQuestionText())
+                ).setBold().setFontSize(12));
+
+                document.add(new Paragraph("\n"));
+
+                // Collect answers
+                List<String> answers = new ArrayList<>();
+
+                answers.add(q.getCorrectAnswer());
+
+                if (q.getWrongAnswer1() != null) answers.add(q.getWrongAnswer1());
+                if (q.getWrongAnswer2() != null) answers.add(q.getWrongAnswer2());
+                if (q.getWrongAnswer3() != null) answers.add(q.getWrongAnswer3());
+
+                Collections.shuffle(answers);
+
+                char label = 'A';
+
+                for (String ans : answers) {
+
+                    Paragraph answerParagraph = new Paragraph(
+                            label + ". " + cleanText(ans)
+                    ).setFontSize(11);
+
+                    if (showAnswer && ans.equals(q.getCorrectAnswer())) {
+                        answerParagraph.setBold();
+                    }
+
+                    document.add(answerParagraph);
+
+                    label++;
+                }
+
+                document.add(new Paragraph("\n"));
+
+                questionNumber++;
+            }
+
+            document.close();
+
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            log.error("Failed to export exam", e);
+            throw new RuntimeException("Failed to export exam", e);
+        }
+    }
+    private Cell createInfoCell(String text) {
+        return new Cell()
+                .add(new Paragraph(text))
+                .setBorder(Border.NO_BORDER)
+                .setFontSize(11);
+    }
+    private Cell createAnswerCell(String text) {
+        return new Cell()
+                .add(new Paragraph(text))
+                .setBorder(Border.NO_BORDER)
+                .setPaddingLeft(10)
+                .setFontSize(11);
+    }
+    private String cleanText(String html) {
+        if (html == null) return "";
+        return Jsoup.parse(html).text();
+    }
+    private String getExamDuration(Exam exam) {
+        if (exam.getExamType() == null) return "N/A";
+
+        String typeCode = exam.getExamType().getTypeCode();
+
+        return switch (typeCode) {
+            case "15MIN" -> "15 phút";
+            case "45MIN" -> "45 phút";
+            case "MIDTERM" -> "60 phút";
+            case "FINAL" -> "90 phút";
+            default -> "N/A";
+        };
+    }
+
 }

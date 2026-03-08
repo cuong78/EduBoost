@@ -71,7 +71,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         // 3. Check if resource has extracted content
         String content = resource.getExtractedContent();
         if (content == null || content.trim().isEmpty()) {
-            throw new BadRequestException("Resource does not have extracted content. Please upload a PDF/DOCX file.");
+            throw new BadRequestException("Resource does not have extracted content. Please upload a DOCX file.");
         }
 
         // 4. Fetch cognitive levels

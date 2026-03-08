@@ -34,8 +34,6 @@ public class LessonResource {
     @Column(name = "file_path", length = 500)
     private String filePath;
 
-    @Column(name = "file_url", length = 500)
-    private String fileUrl;
 
     @Column(name = "file_size")
     private Long fileSize;

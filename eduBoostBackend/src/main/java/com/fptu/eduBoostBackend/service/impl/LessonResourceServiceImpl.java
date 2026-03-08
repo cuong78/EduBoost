@@ -28,8 +28,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.fptu.eduBoostBackend.entities.enums.LessonResourceType.*;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -40,19 +38,17 @@ public class LessonResourceServiceImpl implements LessonResourceService {
     private final FileStorageService fileStorageService;
     private final DocumentProcessingService documentProcessingService;
 
-    // File size limit: 100MB
     private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
 
     @Override
     @Transactional(readOnly = true)
     public List<LessonResourceResponse> getResourcesByLesson(Long lessonId) {
-        log.info("Fetching resources for lesson: {}", lessonId);
 
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + lessonId));
 
-        List<LessonResource> resources = lessonResourceRepository.findByLesson(lesson);
-        return resources.stream()
+        return lessonResourceRepository.findByLesson(lesson)
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -60,118 +56,83 @@ public class LessonResourceServiceImpl implements LessonResourceService {
     @Override
     @Transactional(readOnly = true)
     public LessonResourceResponse getResourceById(Long id) {
-        log.info("Fetching resource with id: {}", id);
+
         LessonResource resource = lessonResourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
+
         return mapToResponse(resource);
     }
 
     @Override
     @Transactional
     public LessonResourceResponse uploadResource(MultipartFile file, LessonResourceRequest request) {
-        log.info("Uploading resource for lesson: {}", request.getLessonId());
+
+        log.info("Uploading DOCX resource for lesson: {}", request.getLessonId());
 
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));
 
-        // Get current user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User uploadedBy = (User) authentication.getPrincipal();
 
-        // Validate based on resource type
-        validateResourceRequest(request, file);
+        if (request.getResourceType() != LessonResourceType.DOCX) {
+            throw new BadRequestException("Only DOCX resources are supported");
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("DOCX file is required");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BadRequestException("File size exceeds 100MB");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".docx")) {
+            throw new BadRequestException("Uploaded file must be a DOCX document");
+        }
 
         LessonResource resource = new LessonResource();
         resource.setLesson(lesson);
-        resource.setResourceName(request.getResourceName());
-        resource.setResourceType(request.getResourceType());
         resource.setUploadedBy(uploadedBy);
+        resource.setResourceType(LessonResourceType.DOCX);
 
-        String extractedContent = null;
-
-        switch (request.getResourceType()) {
-            case PDF:
-            case DOCX:
-                // Validate file
-                if (file == null || file.isEmpty()) {
-                    throw new BadRequestException("File is required for PDF/DOCX resources");
-                }
-                if (file.getSize() > MAX_FILE_SIZE) {
-                    throw new BadRequestException("File size exceeds maximum limit of 100MB");
-                }
-
-                // Upload to MinIO
-                log.info("Uploading {} file to MinIO: {}", request.getResourceType(), file.getOriginalFilename());
-                String objectKey = fileStorageService.storeFile(file);
-                resource.setFilePath(objectKey);
-                resource.setFileSize(file.getSize());
-                resource.setMimeType(file.getContentType());
-
-                // Extract content using Apache Tika for AI processing
-                try {
-                    log.info("Extracting content from document using Apache Tika...");
-                    DocumentExtractionResult extraction = documentProcessingService.extractContent(file);
-                    resource.setExtractedContent(extraction.getContent());
-                    
-                    log.info("Document extraction successful - Words: {}, Pages: {}, Tokens: {}", 
-                            extraction.getWordCount(), extraction.getPageCount(), extraction.getEstimatedTokens());
-                } catch (IOException e) {
-                    log.warn("Failed to extract content from file: {}", e.getMessage());
-                }
-                break;
-
-            case URL:
-                if (request.getFileUrl() == null || request.getFileUrl().trim().isEmpty()) {
-                    throw new BadRequestException("URL is required for URL resources");
-                }
-                resource.setFileUrl(request.getFileUrl());
-                break;
-
-            case TEXT:
-                if (request.getTextContent() == null || request.getTextContent().trim().isEmpty()) {
-                    throw new BadRequestException("Text content is required for TEXT resources");
-                }
-                resource.setExtractedContent(request.getTextContent());
-                break;
-
-            case VIDEO:
-            case IMAGE:
-                if (file == null || file.isEmpty()) {
-                    throw new BadRequestException("File is required for VIDEO/IMAGE resources");
-                }
-                if (file.getSize() > MAX_FILE_SIZE) {
-                    throw new BadRequestException("File size exceeds maximum limit of 100MB");
-                }
-
-                log.info("Uploading {} to MinIO: {}", request.getResourceType(), file.getOriginalFilename());
-                String mediaKey = fileStorageService.storeFile(file);
-                resource.setFilePath(mediaKey);
-                resource.setFileSize(file.getSize());
-                resource.setMimeType(file.getContentType());
-                break;
+        if (request.getResourceName() != null && !request.getResourceName().trim().isEmpty()) {
+            resource.setResourceName(request.getResourceName());
+        } else {
+            resource.setResourceName(StringUtils.cleanPath(filename));
         }
 
-        // Set default resource name if not provided
-        if (resource.getResourceName() == null || resource.getResourceName().trim().isEmpty()) {
-            if (file != null) {
-                resource.setResourceName(StringUtils.cleanPath(file.getOriginalFilename()));
-            } else if (request.getResourceType() == LessonResourceType.TEXT) {
-                resource.setResourceName("Text Content");
-            } else if (request.getResourceType() == LessonResourceType.URL) {
-                resource.setResourceName("External URL");
-            }
+        String objectKey = fileStorageService.storeFile(file);
+
+        resource.setFilePath(objectKey);
+        resource.setFileSize(file.getSize());
+        resource.setMimeType(file.getContentType());
+
+        try {
+
+            DocumentExtractionResult extraction = documentProcessingService.extractContent(file);
+
+            resource.setExtractedContent(extraction.getContent());
+
+            log.info("Extraction success - words: {}, pages: {}",
+                    extraction.getWordCount(),
+                    extraction.getPageCount());
+
+        } catch (IOException e) {
+            log.warn("Failed to extract DOCX content: {}", e.getMessage());
         }
 
-        LessonResource savedResource = lessonResourceRepository.save(resource);
-        log.info("Resource uploaded to MinIO successfully - id: {}, objectKey: {}", 
-                savedResource.getId(), savedResource.getFilePath());
+        LessonResource saved = lessonResourceRepository.save(resource);
 
-        return mapToResponse(savedResource);
+        log.info("DOCX uploaded successfully - id: {}", saved.getId());
+
+        return mapToResponse(saved);
     }
+
     @Override
     @Transactional(readOnly = true)
     public Resource downloadResource(Long id) {
-        log.info("Downloading resource with id: {}", id);
 
         LessonResource resource = lessonResourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
@@ -186,48 +147,22 @@ public class LessonResourceServiceImpl implements LessonResourceService {
     @Override
     @Transactional
     public void deleteResource(Long id) {
-        log.info("Deleting resource with id: {}", id);
 
         LessonResource resource = lessonResourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
 
-        // Delete physical file if exists
         if (resource.getFilePath() != null) {
             fileStorageService.deleteFile(resource.getFilePath());
         }
 
         lessonResourceRepository.delete(resource);
-        log.info("Resource deleted successfully with id: {}", id);
-    }
-
-
-    private void validateResourceRequest(LessonResourceRequest request, MultipartFile file) {
-        switch (request.getResourceType()) {
-            case PDF:
-            case DOCX:
-            case VIDEO:
-            case IMAGE:
-                if (file == null || file.isEmpty()) {
-                    throw new BadRequestException("File is required for " +
-                            request.getResourceType() + " resources");
-                }
-                break;
-            case URL:
-                if (request.getFileUrl() == null || request.getFileUrl().trim().isEmpty()) {
-                    throw new BadRequestException("URL is required for URL resources");
-                }
-                break;
-            case TEXT:
-                if (request.getTextContent() == null || request.getTextContent().trim().isEmpty()) {
-                    throw new BadRequestException("Text content is required for TEXT resources");
-                }
-                break;
-        }
     }
 
     private LessonResourceResponse mapToResponse(LessonResource resource) {
-        String uploadedByName = resource.getUploadedBy() != null ?
-                resource.getUploadedBy().getFullName() : null;
+
+        String uploadedByName = resource.getUploadedBy() != null
+                ? resource.getUploadedBy().getFullName()
+                : null;
 
         return LessonResourceResponse.builder()
                 .id(resource.getId())
@@ -235,13 +170,11 @@ public class LessonResourceServiceImpl implements LessonResourceService {
                 .lessonName(resource.getLesson().getLessonName())
                 .resourceName(resource.getResourceName())
                 .resourceType(resource.getResourceType())
-                .fileUrl(resource.getFileUrl())
-                .downloadUrl(resource.getFilePath() != null ?
-                        "/api/resources/" + resource.getId() + "/download" : null)
+                .downloadUrl("/api/resources/" + resource.getId() + "/download")
                 .fileSize(resource.getFileSize())
                 .mimeType(resource.getMimeType())
-                .hasExtractedContent(resource.getExtractedContent() != null &&
-                        !resource.getExtractedContent().trim().isEmpty())
+                .hasExtractedContent(resource.getExtractedContent() != null
+                        && !resource.getExtractedContent().trim().isEmpty())
                 .uploadedAt(resource.getUploadedAt())
                 .uploadedByName(uploadedByName)
                 .build();

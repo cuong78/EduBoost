@@ -221,22 +221,30 @@ public class ExamController {
     // ==================== Export ====================
 
     @GetMapping("/{id}/export")
-    @Operation(summary = "Export exam",
-            description = "Exports the exam to PDF or DOCX format")
+    @Operation(
+            summary = "Export exam",
+            description = "Exports the exam to PDF format"
+    )
     public ResponseEntity<byte[]> exportExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id,
-            @Parameter(description = "Export format (pdf, docx)") @RequestParam(defaultValue = "pdf") String format) {
-        log.info("Exporting exam {} to format: {}", id, format);
-        byte[] content = examService.exportExam(id, format);
-        
-        String contentType = format.equalsIgnoreCase("pdf") 
-                ? MediaType.APPLICATION_PDF_VALUE 
-                : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        String filename = "exam_" + id + "." + format.toLowerCase();
-        
+            @Parameter(description = "Exam ID", required = true)
+            @PathVariable Long id,
+
+            @Parameter(description = "Show correct answers")
+            @RequestParam(defaultValue = "false") boolean showAnswer
+    ) {
+
+        log.info("Exporting exam {} (showAnswer={})", id, showAnswer);
+
+        byte[] content = examService.exportExam(id, showAnswer);
+
+        String filename = showAnswer
+                ? "exam_" + id + "_with_answers.pdf"
+                : "exam_" + id + ".pdf";
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
                 .body(content);
     }
 

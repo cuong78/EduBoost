@@ -124,7 +124,7 @@ public class EnglishInitializer {
         Lesson u1l1 = lessonRepository.save(Lesson.builder().chapter(unit1).lessonNumber(1)
                 .lessonName("Getting Started").description("Introduction to family life topic").build());
         lessonResourceRepository.save(LessonResource.builder().lesson(u1l1).resourceName("Vocabulary - Family Life")
-                .resourceType(LessonResourceType.TEXT)
+                .resourceType(LessonResourceType.DOCX)
                 .extractedContent("Family members: father, mother, brother, sister... Household chores: cook, clean, wash...").build());
         lessonRepository.save(Lesson.builder().chapter(unit1).lessonNumber(2)
                 .lessonName("Language - Grammar").description("Present Simple vs Present Continuous").build());
