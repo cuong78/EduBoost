@@ -21,37 +21,109 @@ public class MathGrade10Initializer {
         if (math == null) return;
 
         // Chương 1: Mệnh đề - Tập hợp
-        Chapter chap1 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(1)
-                .chapterName("Mệnh đề - Tập hợp").description("Chương 1: Mệnh đề và Tập hợp").build());
-        Lesson c1l1 = lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(1)
-                .lessonName("Mệnh đề").description("Khái niệm mệnh đề, mệnh đề phủ định, mệnh đề kéo theo").build());
-        lessonResourceRepository.save(LessonResource.builder().lesson(c1l1).resourceName("Bài giảng Mệnh đề")
-                .resourceType(LessonResourceType.PDF).fileUrl("https://example.com/menh-de.pdf")
-                .extractedContent("Mệnh đề là một câu khẳng định đúng hoặc sai...").build());
-        Lesson c1l2 = lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(2)
-                .lessonName("Tập hợp và các phép toán trên tập hợp")
-                .description("Khái niệm tập hợp, tập con, hợp, giao, hiệu của hai tập hợp").build());
-        lessonResourceRepository.save(LessonResource.builder().lesson(c1l2).resourceName("Lý thuyết Tập hợp")
-                .resourceType(LessonResourceType.DOCX).fileUrl("https://example.com/tap-hop.docx")
-                .extractedContent("Tập hợp là một khái niệm cơ bản trong toán học...").build());
-        lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(3)
-                .lessonName("Các phép toán trên tập hợp").description("Hợp, giao, hiệu, phần bù của tập hợp").build());
+// Chương 1: Mệnh đề - Tập hợp
+        Chapter chap1 = chapterRepository.save(
+                Chapter.builder()
+                        .subject(math)
+                        .gradeLevel(10)
+                        .chapterNumber(1)
+                        .chapterName("Mệnh đề - Tập hợp")
+                        .description("Chương 1: Mệnh đề và Tập hợp")
+                        .build()
+        );
 
-        // Chương 2: Bất phương trình và hệ bất phương trình bậc nhất hai ẩn
-        Chapter chap2 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(2)
-                .chapterName("Bất phương trình và hệ bất phương trình bậc nhất hai ẩn")
-                .description("Chương 2: Bất phương trình và hệ bất phương trình bậc nhất hai ẩn").build());
-        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(1)
-                .lessonName("Bất phương trình bậc nhất hai ẩn")
-                .description("Khái niệm bất phương trình bậc nhất hai ẩn và cách biểu diễn tập nghiệm").build());
-        Lesson c2l2 = lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(2)
-                .lessonName("Hệ bất phương trình bậc nhất hai ẩn")
-                .description("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải").build());
-        lessonResourceRepository.save(LessonResource.builder().lesson(c2l2)
-                .resourceName("Video bài giảng Hệ bất phương trình bậc nhất hai ẩn")
-                .resourceType(LessonResourceType.URL).fileUrl("https://youtube.com/watch?v=example")
-                .extractedContent("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải").build());
+        Lesson c1l1 = lessonRepository.save(
+                Lesson.builder()
+                        .chapter(chap1)
+                        .lessonNumber(1)
+                        .lessonName("Mệnh đề")
+                        .description("Khái niệm mệnh đề, mệnh đề phủ định, mệnh đề kéo theo")
+                        .build()
+        );
 
+        lessonResourceRepository.save(
+                LessonResource.builder()
+                        .lesson(c1l1)
+                        .resourceName("Bài giảng Mệnh đề")
+                        .resourceType(LessonResourceType.DOCX)
+                        .filePath("sample/menh-de.docx")
+                        .fileSize(24576L)
+                        .mimeType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                        .extractedContent("Mệnh đề là một câu khẳng định đúng hoặc sai...")
+                        .build()
+        );
+
+        Lesson c1l2 = lessonRepository.save(
+                Lesson.builder()
+                        .chapter(chap1)
+                        .lessonNumber(2)
+                        .lessonName("Tập hợp và các phép toán trên tập hợp")
+                        .description("Khái niệm tập hợp, tập con, hợp, giao, hiệu của hai tập hợp")
+                        .build()
+        );
+
+        lessonResourceRepository.save(
+                LessonResource.builder()
+                        .lesson(c1l2)
+                        .resourceName("Lý thuyết Tập hợp")
+                        .resourceType(LessonResourceType.DOCX)
+                        .filePath("sample/tap-hop.docx")
+                        .fileSize(31200L)
+                        .mimeType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                        .extractedContent("Tập hợp là một khái niệm cơ bản trong toán học...")
+                        .build()
+        );
+
+        lessonRepository.save(
+                Lesson.builder()
+                        .chapter(chap1)
+                        .lessonNumber(3)
+                        .lessonName("Các phép toán trên tập hợp")
+                        .description("Hợp, giao, hiệu, phần bù của tập hợp")
+                        .build()
+        );
+
+
+// Chương 2: Bất phương trình và hệ bất phương trình bậc nhất hai ẩn
+        Chapter chap2 = chapterRepository.save(
+                Chapter.builder()
+                        .subject(math)
+                        .gradeLevel(10)
+                        .chapterNumber(2)
+                        .chapterName("Bất phương trình và hệ bất phương trình bậc nhất hai ẩn")
+                        .description("Chương 2: Bất phương trình và hệ bất phương trình bậc nhất hai ẩn")
+                        .build()
+        );
+
+        lessonRepository.save(
+                Lesson.builder()
+                        .chapter(chap2)
+                        .lessonNumber(1)
+                        .lessonName("Bất phương trình bậc nhất hai ẩn")
+                        .description("Khái niệm bất phương trình bậc nhất hai ẩn và cách biểu diễn tập nghiệm")
+                        .build()
+        );
+
+        Lesson c2l2 = lessonRepository.save(
+                Lesson.builder()
+                        .chapter(chap2)
+                        .lessonNumber(2)
+                        .lessonName("Hệ bất phương trình bậc nhất hai ẩn")
+                        .description("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải")
+                        .build()
+        );
+
+        lessonResourceRepository.save(
+                LessonResource.builder()
+                        .lesson(c2l2)
+                        .resourceName("Bài giảng Hệ bất phương trình")
+                        .resourceType(LessonResourceType.DOCX)
+                        .filePath("sample/he-bat-phuong-trinh.docx")
+                        .fileSize(40120L)
+                        .mimeType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                        .extractedContent("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải")
+                        .build()
+        );
         // Chương 3: Hệ thức lượng trong tam giác
         Chapter chap3 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(3)
                 .chapterName("Hệ thức lượng trong tam giác").description("Chương 3: Hệ thức lượng trong tam giác").build());

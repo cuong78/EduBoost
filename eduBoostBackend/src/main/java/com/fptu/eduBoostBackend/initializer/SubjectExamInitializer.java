@@ -21,23 +21,14 @@ public class SubjectExamInitializer {
     }
 
     private void initializeSubjects() {
-        saveSubjectIfNotExists("TOAN", "Toán học", "Môn Toán học - Bao gồm Đại số, Hình học, Giải tích");
-        saveSubjectIfNotExists("LY", "Vật lý", "Môn Vật lý - Nghiên cứu các hiện tượng tự nhiên");
-        saveSubjectIfNotExists("HOA", "Hóa học", "Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học");
-        // removed English, Sinh, Sử, Địa, GDCD, Tin per request
-        // Ngữ văn removed per request
-        // remaining science / math subjects below
-        saveSubjectIfNotExists("SCI", "Khoa học tự nhiên", "Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên");
-    }
-
-    private void saveSubjectIfNotExists(String code, String name, String desc) {
-        if (!subjectRepository.existsBySubjectCode(code)) {
-            subjectRepository.save(Subject.builder()
-                    .subjectCode(code)
-                    .subjectName(name)
-                    .description(desc)
-                    .build());
-        }
+        subjectRepository.save(Subject.builder().subjectCode("TOAN").subjectName("Toán học")
+                .description("Môn Toán học - Bao gồm Đại số, Hình học, Giải tích").build());
+        subjectRepository.save(Subject.builder().subjectCode("LY").subjectName("Vật lý")
+                .description("Môn Vật lý - Nghiên cứu các hiện tượng tự nhiên").build());
+        subjectRepository.save(Subject.builder().subjectCode("HOA").subjectName("Hóa học")
+                .description("Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học").build());
+        subjectRepository.save(Subject.builder().subjectCode("SCI").subjectName("Khoa học tự nhiên")
+                .description("Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên").build());
     }
 
     private void initializeCognitiveLevels() {

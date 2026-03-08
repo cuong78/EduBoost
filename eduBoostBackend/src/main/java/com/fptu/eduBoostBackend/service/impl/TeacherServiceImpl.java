@@ -160,7 +160,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .map(this::mapToStudentResponse)
                 .collect(Collectors.toList());
     }
-
+    @Transactional
     @Override
     @Transactional
     public CreateStudentResponse createStudent(CreateStudentRequest request) {
