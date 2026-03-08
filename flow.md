@@ -1,4 +1,5 @@
 ## 🎯 SƠ ĐỒ LUỒNG HỆ THỐNG
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       HỆ THỐNG TẠO ĐỀ THI AI                        │
@@ -32,7 +33,7 @@
            ├─► CÁCH 1: Nhập thủ công
            │   └─► Form tạo câu hỏi + đáp án đúng
            │
-           ├─► CÁCH 2: Import từ excel/pdf 
+           ├─► CÁCH 2: Import từ excel/pdf
            │   └─► Template có sẵn
            │
            ├─► CÁCH 3: AI tự sinh từ tài nguyên,
@@ -44,7 +45,7 @@
            └─► CÁCH 4: AI sinh dựa trên câu có sẵn
                ├─► Chọn câu hỏi mẫu
                ├─► AI tạo biến thể (variation)
-               └─► Lưu vào ngân hàng  
+               └─► Lưu vào ngân hàng
            │
            ▼
 ┌──────────────────────────────────────────────────────────┐
@@ -135,7 +136,6 @@
            │
            ├─► Giao đề cho lớp
            ├─► Học sinh làm bài online
-           ├─► Chấm điểm tự động
            ├─► Thống kê & báo cáo
            └─► Phân tích chất lượng câu hỏi
 
@@ -183,7 +183,7 @@ GET    /api/question-bank           // Danh sách câu hỏi
        &cognitiveLevelId=2
        &sourceType=AI_GENERATED
 
-(trường nào null thì sẽ get hết) 
+(trường nào null thì sẽ get hết)
 
 POST   /api/question-bank           // Tạo câu hỏi thủ công
 {
@@ -437,3 +437,4 @@ GET    /api/exams/my-exams          // Đề thi của tôi tạo
 
 
 
+```

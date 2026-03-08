@@ -4,6 +4,7 @@ import useScrollReveal from "../../hooks/useScrollReveal";
 
 import forStudent from "../../assets/forStudentHome.png";
 import forTeacher from "../../assets/forTeacherHome.png";
+import forParent from "../../assets/forParentHome.png";
 
 const Features = () => {
   const [activeTab, setActiveTab] = useState("learner");
@@ -21,11 +22,6 @@ const Features = () => {
       title: "Học tập tương tác",
       desc: "Nền tảng học tập với AI hỗ trợ và chấm điểm tự động.",
     },
-    {
-      icon: <Award size={24} />,
-      title: "Chứng chỉ uy tín",
-      desc: "Hoàn thành khóa học và nhận chứng nhận năng lực.",
-    },
   ];
 
   const TEACHER_FEATURES = [
@@ -39,10 +35,18 @@ const Features = () => {
       title: "Ngân hàng đề thi",
       desc: "Tạo đề thi tự động từ kho dữ liệu phong phú.",
     },
+  ];
+
+  const PARENT_FEATURES = [
     {
-      icon: <Brain size={24} />,
-      title: "Chấm điểm AI",
-      desc: "Hệ thống AI hỗ trợ chấm điểm tự luận nhanh và chính xác.",
+      icon: <BookOpen size={24} />,
+      title: "Nhận thông báo điểm số học viên",
+      desc: "Xem điểm kiểm tra ngay khi giáo viên cập nhật.",
+    },
+    {
+      icon: <Users size={24} />,
+      title: "Quản lý tiến trình học",
+      desc: "Theo dõi lịch học và tiến độ từng khóa của con.",
     },
   ];
 
@@ -56,6 +60,11 @@ const Features = () => {
       title: "Dành cho Học viên",
       items: LEARNER_FEATURES,
       image: forStudent,
+    },
+    parent: {
+      title: "Dành cho Phụ huynh",
+      items: PARENT_FEATURES,
+      image: forParent,
     },
   };
 
@@ -74,6 +83,12 @@ const Features = () => {
             onClick={() => setActiveTab("learner")}
           >
             Dành cho Học viên
+          </button>
+          <button
+            className={`tab-btn ${activeTab === "parent" ? "active" : ""}`}
+            onClick={() => setActiveTab("parent")}
+          >
+            Dành cho Phụ huynh
           </button>
         </div>
 

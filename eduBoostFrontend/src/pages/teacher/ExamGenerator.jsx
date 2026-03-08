@@ -21,6 +21,22 @@ import { jsPDF } from "jspdf";
 
 const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
+const SUBJECT_KEYWORDS_BY_GRADE = {
+  middle: ["toán", "khoa học tự nhiên"],
+  high: ["toán", "vật lý", "hóa học"],
+};
+
+const filterSubjectsByGrade = (subjects, grade) => {
+  const keywords =
+    grade >= 6 && grade <= 9
+      ? SUBJECT_KEYWORDS_BY_GRADE.middle
+      : SUBJECT_KEYWORDS_BY_GRADE.high;
+  return subjects.filter((s) => {
+    const name = (s.subjectName || s.name || "").toLowerCase();
+    return keywords.some((kw) => name.includes(kw));
+  });
+};
+
 const DEFAULT_EXAM_TYPES = [
   { value: "15MIN", label: "Kiểm tra 15 phút" },
   { value: "45MIN", label: "Kiểm tra 1 tiết" },
@@ -118,8 +134,11 @@ const ExamGenerator = () => {
     const data = await knowledgeService.getSubjects();
     const list = Array.isArray(data) ? data : (data?.data ?? []);
     setSubjects(list);
-    if (!subjectId && list.length) setSubjectId(String(list[0].id));
+    const filtered = filterSubjectsByGrade(list, gradeLevel);
+    if (!subjectId && filtered.length) setSubjectId(String(filtered[0].id));
   };
+
+  const filteredSubjects = filterSubjectsByGrade(subjects, gradeLevel);
 
   const loadExamTypes = async () => {
     try {
@@ -180,6 +199,16 @@ const ExamGenerator = () => {
     loadExamTypes().catch(() => setExamTypes([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const filtered = filterSubjectsByGrade(subjects, gradeLevel);
+    if (filtered.length > 0) {
+      setSubjectId(String(filtered[0].id));
+    } else {
+      setSubjectId("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gradeLevel]);
 
   useEffect(() => {
     loadChapters().catch(() => setChapters([]));
@@ -494,6 +523,19 @@ const ExamGenerator = () => {
 
           <div className="row3">
             <div className="field">
+              <label>Khối</label>
+              <select
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(Number(e.target.value))}
+              >
+                {GRADE_OPTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    Khối {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
               <label>Loại đề</label>
               <select
                 value={examType}
@@ -526,47 +568,36 @@ const ExamGenerator = () => {
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
               >
-                {subjects.map((s) => (
-                  <option key={s.id} value={String(s.id)}>
-                    {s.subjectCode} {s.description ? `- ${s.description}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>Khối</label>
-              <select
-                value={gradeLevel}
-                onChange={(e) => setGradeLevel(Number(e.target.value))}
-              >
-                {GRADE_OPTIONS.map((g) => (
-                  <option key={g} value={g}>
-                    Khối {g}
-                  </option>
-                ))}
+                {filteredSubjects.length > 0 ? (
+                  filteredSubjects.map((s) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.subjectName || s.name || ""}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">-- Không có môn phù hợp --</option>
+                )}
               </select>
             </div>
           </div>
 
-          <div className="row2">
-            <div className="field">
-              <label>Chương</label>
-              <select
-                value={chapterId}
-                onChange={(e) => setChapterId(e.target.value)}
-                disabled={!chapters.length}
-              >
-                {chapters.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    Chương {c.chapterNumber}: {c.chapterName}
-                  </option>
-                ))}
-              </select>
-              {!chapters.length && (
-                <small className="muted">Chưa có chương</small>
-              )}
+          {chapters.length > 0 && (
+            <div className="row2">
+              <div className="field">
+                <label>Chương</label>
+                <select
+                  value={chapterId}
+                  onChange={(e) => setChapterId(e.target.value)}
+                >
+                  {chapters.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      Chương {c.chapterNumber}: {c.chapterName}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="divider" />
           <h3>Chọn bài học</h3>

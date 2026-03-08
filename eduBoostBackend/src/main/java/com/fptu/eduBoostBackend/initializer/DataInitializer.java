@@ -31,7 +31,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ChemistryGrade11Initializer chemistryGrade11Initializer;
     private final ChemistryGrade12Initializer chemistryGrade12Initializer;
 
-    private final EnglishInitializer EnglishInitializer;
+    // EnglishInitializer removed as subject no longer initialized
     private final ClassStudentInitializer classStudentInitializer;
 
     @Override
@@ -58,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
         chemistryGrade10Initializer.init();
         chemistryGrade11Initializer.init();
         chemistryGrade12Initializer.init();
-        EnglishInitializer.init();
+        // English initialization removed
         classStudentInitializer.init();
     }
 }

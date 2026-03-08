@@ -21,28 +21,23 @@ public class SubjectExamInitializer {
     }
 
     private void initializeSubjects() {
-        subjectRepository.save(Subject.builder().subjectCode("TOAN").subjectName("Toán học")
-                .description("Môn Toán học - Bao gồm Đại số, Hình học, Giải tích").build());
-        subjectRepository.save(Subject.builder().subjectCode("LY").subjectName("Vật lý")
-                .description("Môn Vật lý - Nghiên cứu các hiện tượng tự nhiên").build());
-        subjectRepository.save(Subject.builder().subjectCode("HOA").subjectName("Hóa học")
-                .description("Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học").build());
-        subjectRepository.save(Subject.builder().subjectCode("ANH").subjectName("Tiếng Anh")
-                .description("Môn Tiếng Anh - Ngôn ngữ quốc tế").build());
-        subjectRepository.save(Subject.builder().subjectCode("VAN").subjectName("Ngữ văn")
-                .description("Môn Ngữ văn - Văn học và tiếng Việt").build());
-        subjectRepository.save(Subject.builder().subjectCode("SINH").subjectName("Sinh học")
-                .description("Môn Sinh học - Nghiên cứu về sự sống").build());
-        subjectRepository.save(Subject.builder().subjectCode("SU").subjectName("Lịch sử")
-                .description("Môn Lịch sử - Tìm hiểu quá khứ").build());
-        subjectRepository.save(Subject.builder().subjectCode("DIA").subjectName("Địa lý")
-                .description("Môn Địa lý - Nghiên cứu về Trái đất").build());
-        subjectRepository.save(Subject.builder().subjectCode("GDCD").subjectName("Giáo dục công dân")
-                .description("Môn Giáo dục công dân - Đạo đức và pháp luật").build());
-        subjectRepository.save(Subject.builder().subjectCode("TIN").subjectName("Tin học")
-                .description("Môn Tin học - Công nghệ thông tin").build());
-        subjectRepository.save(Subject.builder().subjectCode("SCI").subjectName("Khoa học tự nhiên")
-                .description("Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên").build());
+        saveSubjectIfNotExists("TOAN", "Toán học", "Môn Toán học - Bao gồm Đại số, Hình học, Giải tích");
+        saveSubjectIfNotExists("LY", "Vật lý", "Môn Vật lý - Nghiên cứu các hiện tượng tự nhiên");
+        saveSubjectIfNotExists("HOA", "Hóa học", "Môn Hóa học - Nghiên cứu về chất và phản ứng hóa học");
+        // removed English, Sinh, Sử, Địa, GDCD, Tin per request
+        // Ngữ văn removed per request
+        // remaining science / math subjects below
+        saveSubjectIfNotExists("SCI", "Khoa học tự nhiên", "Môn Khoa học tự nhiên - Nghiên cứu về Khoa học tự nhiên");
+    }
+
+    private void saveSubjectIfNotExists(String code, String name, String desc) {
+        if (!subjectRepository.existsBySubjectCode(code)) {
+            subjectRepository.save(Subject.builder()
+                    .subjectCode(code)
+                    .subjectName(name)
+                    .description(desc)
+                    .build());
+        }
     }
 
     private void initializeCognitiveLevels() {

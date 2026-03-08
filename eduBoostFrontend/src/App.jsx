@@ -38,7 +38,7 @@ import TakeExam from "./pages/student/TakeExam";
 // Teacher Pages
 
 import CreateQuestion from "./pages/teacher/CreateQuestion";
-import UploadResource from "./pages/teacher/UploadResource";
+// UploadResource page removed per request
 import ExamGenerator from "./pages/teacher/ExamGenerator";
 import QuestionBankManagement from "./pages/teacher/QuestionBankManagement";
 import ResourceManagement from "./pages/teacher/ResourceManagement";
@@ -53,8 +53,7 @@ import LinkStudent from "./pages/parent/LinkStudent";
 import MyStudents from "./pages/parent/MyStudents";
 import ParentStudentDetail from "./pages/parent/StudentDetail";
 import InvitationStats from "./pages/admin/InvitationStats";
-import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-import AIGrading from "./pages/teacher/AIGrading";
+// TeacherDashboard page removed per requirement
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
@@ -151,8 +150,8 @@ function App() {
           {/* Teacher Dashboard Routes */}
           <Route element={<RequireRole allow={["TEACHER"]} />}>
             <Route path="/teacher" element={<TeacherLayout />}>
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route index element={<Navigate to="classes" replace />} />
+              {/* dashboard route removed */}
               <Route path="classes" element={<ClassList />} />
               <Route
                 path="classes/:classId/students"
@@ -173,7 +172,6 @@ function App() {
                 element={<DashboardPlaceholder title="Manage Users" />}
               />
               <Route path="create-question" element={<CreateQuestion />} />
-              <Route path="upload-resource" element={<UploadResource />} />
               <Route
                 path="question-bank"
                 element={<QuestionBankManagement />}
@@ -181,7 +179,6 @@ function App() {
               <Route path="resources" element={<ResourceManagement />} />
               <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
-              <Route path="grading" element={<AIGrading />} />
               <Route path="profile" element={<UserProfile />} />
             </Route>
           </Route>

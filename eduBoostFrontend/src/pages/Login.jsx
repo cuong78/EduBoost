@@ -68,7 +68,7 @@ const Login = () => {
         } else if (hasRole("PARENT") || hasRole("ROLE_PARENT")) {
           redirectUrl = "/parent";
         } else if (hasRole("TEACHER") || hasRole("ROLE_TEACHER")) {
-          redirectUrl = "/teacher/dashboard";
+          redirectUrl = "/teacher/classes"; // dashboard removed, redirect to classes page
         } else if (hasRole("ADMIN") || hasRole("ROLE_ADMIN")) {
           redirectUrl = "/admin/dashboard";
         }

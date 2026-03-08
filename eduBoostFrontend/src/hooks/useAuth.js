@@ -77,6 +77,7 @@ export function useAuth() {
             };
 
             setUser(userInfo);
+            setIsAuthenticated(true);
             showSuccessToast("Đăng nhập thành công!");
 
             onSuccess?.();
@@ -185,6 +186,7 @@ export function useAuth() {
                     permissions: profileData.permissions || []
                 };
                 setUser(userInfo);
+                setIsAuthenticated(true);
                 showSuccessToast("Đăng nhập thành công!");
                 
                 const getRoleName = (roles) => {
