@@ -52,10 +52,6 @@ public class ExamResponse {
     private String createdByName;
     private LocalDateTime createdAt;
     
-    private Long approvedById;
-    private String approvedByName;
-    private LocalDateTime approvedAt;
-    
     private LocalDateTime publishedAt;
     private LocalDateTime updatedAt;
     

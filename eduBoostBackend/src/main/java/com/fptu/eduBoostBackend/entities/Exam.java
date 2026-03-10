@@ -63,10 +63,6 @@ public class Exam {
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approved_by")
-    private User approvedBy;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     private ExamStatus status = ExamStatus.DRAFT;
@@ -78,9 +74,6 @@ public class Exam {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Column(name = "approved_at")
-    private LocalDateTime approvedAt;
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt;

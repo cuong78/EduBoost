@@ -13,6 +13,7 @@ import {
   FolderOpen,
   Menu,
   X,
+  LayoutGrid,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 import { useAuth } from "../hooks/useAuth";
@@ -81,6 +82,13 @@ const TeacherLayout = () => {
             onClick={closeSidebar}
           >
             <FolderOpen size={20} /> Quản lý tài nguyên
+          </Link>
+          <Link
+            to="/teacher/matrix-templates"
+            className={`nav-item ${isActive("/teacher/matrix-templates") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <LayoutGrid size={20} /> Quản lý ma trận
           </Link>
           <Link
             to="/teacher/create-exam"

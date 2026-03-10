@@ -45,4 +45,7 @@ public class MatrixTemplateRequest {
     @NotEmpty(message = "At least one detail is required")
     @Valid
     private List<MatrixTemplateDetailRequest> details;
+
+    @Valid
+    private List<MatrixTemplateLessonDetailRequest> lessonDetails;
 }

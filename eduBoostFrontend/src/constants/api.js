@@ -84,4 +84,5 @@ export const API = {
     EXAM_CLONE: (id) => `${BASE_URL}/exams/${id}/clone`,
     EXAM_STATISTICS: (id) => `${BASE_URL}/exams/${id}/statistics`,
     MY_EXAMS: `${BASE_URL}/exams/my-exams`,
+    EXAMS_PUBLISHED: `${BASE_URL}/exams/published`,
 };

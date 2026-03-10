@@ -49,6 +49,7 @@ import CreateStudent from "./pages/teacher/CreateStudent";
 import StudentDetail from "./pages/teacher/StudentDetail";
 import StudentInvitations from "./pages/teacher/StudentInvitations";
 import EditStudent from "./pages/teacher/EditStudent";
+import MatrixManagement from "./pages/teacher/MatrixManagement";
 import LinkStudent from "./pages/parent/LinkStudent";
 import MyStudents from "./pages/parent/MyStudents";
 import ParentStudentDetail from "./pages/parent/StudentDetail";
@@ -179,6 +180,7 @@ function App() {
               <Route path="resources" element={<ResourceManagement />} />
               <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
+              <Route path="matrix-templates" element={<MatrixManagement />} />
               <Route path="profile" element={<UserProfile />} />
             </Route>
           </Route>

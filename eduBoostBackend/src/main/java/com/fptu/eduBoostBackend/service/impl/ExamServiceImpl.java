@@ -64,6 +64,8 @@ public class ExamServiceImpl implements ExamService {
     private final QuestionBankRepository questionBankRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final ExamMatrixTemplateRepository matrixTemplateRepository;
+    private final ExamMatrixTemplateDetailRepository matrixTemplateDetailRepository;
+    private final ExamMatrixLessonDetailRepository matrixLessonDetailRepository;
     private final UserRepository userRepository;
     private final LessonResourceRepository resourceRepository;
     private final AIQuestionGeneratorService aiQuestionGeneratorService;
@@ -168,8 +170,8 @@ public class ExamServiceImpl implements ExamService {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
         
-        if (exam.getStatus() != ExamStatus.DRAFT) {
-            throw new IllegalStateException("Can only update exams in DRAFT status");
+        if (exam.getStatus() == ExamStatus.PUBLISHED) {
+            throw new IllegalStateException("Cannot update a PUBLISHED exam. Unpublish it first.");
         }
         
         exam.setExamTitle(request.getExamTitle());
@@ -192,8 +194,8 @@ public class ExamServiceImpl implements ExamService {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
         
-        if (exam.getStatus() != ExamStatus.DRAFT) {
-            throw new IllegalStateException("Can only delete exams in DRAFT status");
+        if (exam.getStatus() == ExamStatus.PUBLISHED) {
+            throw new IllegalStateException("Cannot delete a PUBLISHED exam. Unpublish it first.");
         }
         
         examQuestionRepository.deleteByExamId(id);
@@ -206,69 +208,170 @@ public class ExamServiceImpl implements ExamService {
     public AutoSelectQuestionsResponse autoSelectQuestions(Long examId) {
         Exam exam = examRepository.findByIdWithDetails(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
+
         if (exam.getStatus() != ExamStatus.DRAFT) {
             throw new IllegalStateException("Can only auto-select questions for exams in DRAFT status");
         }
-        
+
         int fromBank = 0;
         int aiGenerated = 0;
         List<ExamQuestion> addedQuestions = new ArrayList<>();
         int orderNumber = Optional.ofNullable(examQuestionRepository.findMaxOrderNumber(examId)).orElse(0);
-        
-        // Get questions from bank based on exam type
-        // For simplicity, get questions from related lessons
-        List<QuestionBank> availableQuestions = questionBankRepository.findByLessonChapterIdOrdered(
-                exam.getChapter() != null ? exam.getChapter().getId() : null);
-        
-        int needed = exam.getTotalQuestions() - examQuestionRepository.countByExamId(examId);
-        BigDecimal pointsPerQuestion = exam.getTotalPoints().divide(BigDecimal.valueOf(exam.getTotalQuestions()), 1, RoundingMode.HALF_UP);
-        
-        for (QuestionBank q : availableQuestions) {
-            if (needed <= 0) break;
-            
-            // Check if already added
-            if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) {
-                continue;
+
+        // ─── MATRIX-BASED exam: read distribution from matrixTemplate ────────
+        if (exam.getMatrixTemplate() != null) {
+            ExamMatrixTemplate matrix = exam.getMatrixTemplate();
+
+            // Load Phần 1: cognitive level distribution
+            List<ExamMatrixTemplateDetail> details =
+                    matrixTemplateDetailRepository.findByTemplateIdWithCognitiveLevel(matrix.getId());
+
+            if (details.isEmpty()) {
+                throw new IllegalStateException("Ma trận chưa có phân bổ câu hỏi (Phần 1). Vui lòng chỉnh sửa ma trận.");
             }
-            
-            orderNumber++;
-            ExamQuestion eq = createExamQuestionFromBank(exam, q, orderNumber, pointsPerQuestion);
-            addedQuestions.add(examQuestionRepository.save(eq));
-            fromBank++;
-            needed--;
-        }
-        
-        // If still need more questions, AI generate them
-        if (needed > 0 && exam.getChapter() != null) {
-            List<Lesson> lessons = lessonRepository.findByChapterId(exam.getChapter().getId());
-            if (!lessons.isEmpty()) {
-                for (Lesson lesson : lessons) {
-                    if (needed <= 0) break;
-                    
-                    List<LessonResource> resources = resourceRepository.findByLessonId(lesson.getId());
-                    if (!resources.isEmpty()) {
-                        try {
-                            // Generate questions using AI
-                            int toGenerate = Math.min(needed, 5);
-                            // This would call AI service - simplified for now
-                            log.info("Would generate {} AI questions for lesson {}", toGenerate, lesson.getLessonName());
-                            // aiGenerated += toGenerate;
-                            // needed -= toGenerate;
-                        } catch (Exception e) {
-                            log.error("Failed to generate AI questions: {}", e.getMessage());
+
+            // Sync totalQuestions + totalPoints onto exam from matrix
+            int matrixTotal = details.stream().mapToInt(ExamMatrixTemplateDetail::getNumberOfQuestions).sum();
+            BigDecimal matrixPoints = details.stream()
+                    .map(d -> d.getPointsPerQuestion().multiply(BigDecimal.valueOf(d.getNumberOfQuestions())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            exam.setTotalQuestions(matrixTotal);
+            exam.setTotalPoints(matrixPoints);
+            examRepository.save(exam);
+
+            // Load Phần 2: lesson × cognitiveLevel distribution (optional)
+            List<ExamMatrixLessonDetail> lessonDetails =
+                    matrixLessonDetailRepository.findByTemplateIdWithDetails(matrix.getId());
+
+            if (!lessonDetails.isEmpty()) {
+                // ─── Phần 2 exists: allocate by lesson × cognitiveLevel ────
+                // Group lessonDetails by cognitiveLevel then by lesson
+                Map<Long, List<ExamMatrixLessonDetail>> byCL = new LinkedHashMap<>();
+                for (ExamMatrixLessonDetail ld : lessonDetails) {
+                    byCL.computeIfAbsent(ld.getCognitiveLevel().getId(), k -> new ArrayList<>()).add(ld);
+                }
+
+                for (ExamMatrixTemplateDetail detail : details) {
+                    Long clId = detail.getCognitiveLevel().getId();
+                    BigDecimal pPerQ = detail.getPointsPerQuestion();
+                    List<ExamMatrixLessonDetail> cellsForCL = byCL.getOrDefault(clId, Collections.emptyList());
+
+                    for (ExamMatrixLessonDetail cell : cellsForCL) {
+                        int needed = cell.getNumberOfQuestions();
+                        if (needed <= 0) continue;
+                        Long lessonId = cell.getLesson().getId();
+
+                        List<QuestionBank> candidates =
+                                questionBankRepository.findByLessonIdAndCognitiveLevelId(lessonId, clId);
+
+                        int added = 0;
+                        for (QuestionBank q : candidates) {
+                            if (added >= needed) break;
+                            if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
+                            orderNumber++;
+                            addedQuestions.add(examQuestionRepository.save(
+                                    createExamQuestionFromBank(exam, q, orderNumber, pPerQ)));
+                            fromBank++;
+                            added++;
+                        }
+                        // AI fallback for remaining in this cell
+                        int stillNeeded = needed - added;
+                        if (stillNeeded > 0) {
+                            List<ExamQuestion> aiQs = generateAIQuestionsForExam(exam, lessonId, clId, stillNeeded, orderNumber, pPerQ);
+                            orderNumber += aiQs.size();
+                            addedQuestions.addAll(aiQs);
+                            aiGenerated += aiQs.size();
+                        }
+                    }
+                }
+            } else {
+                // ─── Only Phần 1: allocate by cognitiveLevel across whole subject/grade ──
+                for (ExamMatrixTemplateDetail detail : details) {
+                    Long clId = detail.getCognitiveLevel().getId();
+                    int needed = detail.getNumberOfQuestions();
+                    BigDecimal pPerQ = detail.getPointsPerQuestion();
+
+                    // Get questions for this subject + grade + cognitiveLevel from bank
+                    List<QuestionBank> candidates = questionBankRepository.findWithFilters(null, clId, null)
+                            .stream()
+                            .filter(q -> q.getLesson() != null
+                                    && q.getLesson().getChapter() != null
+                                    && exam.getSubject() != null
+                                    && q.getLesson().getChapter().getSubject() != null
+                                    && q.getLesson().getChapter().getSubject().getId().equals(exam.getSubject().getId())
+                                    && q.getLesson().getChapter().getGradeLevel() != null
+                                    && q.getLesson().getChapter().getGradeLevel().equals(exam.getGradeLevel()))
+                            .collect(Collectors.toList());
+
+                    int added = 0;
+                    for (QuestionBank q : candidates) {
+                        if (added >= needed) break;
+                        if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
+                        orderNumber++;
+                        addedQuestions.add(examQuestionRepository.save(
+                                createExamQuestionFromBank(exam, q, orderNumber, pPerQ)));
+                        fromBank++;
+                        added++;
+                    }
+                    // AI fallback: use first lesson of subject if available
+                    int stillNeeded = needed - added;
+                    if (stillNeeded > 0) {
+                        // Try to find any lesson for this subject+grade to generate AI
+                        Long someLesson = candidates.isEmpty() ? null
+                                : candidates.get(0).getLesson().getId();
+                        if (someLesson != null) {
+                            List<ExamQuestion> aiQs = generateAIQuestionsForExam(exam, someLesson, clId, stillNeeded, orderNumber, pPerQ);
+                            orderNumber += aiQs.size();
+                            addedQuestions.addAll(aiQs);
+                            aiGenerated += aiQs.size();
                         }
                     }
                 }
             }
+
+            // Final sync of question count
+            exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
+            examRepository.save(exam);
+
+        } else {
+            // ─── NON-MATRIX (15MIN) exam: original logic ────────────────────
+            List<QuestionBank> availableQuestions = questionBankRepository.findByLessonChapterIdOrdered(
+                    exam.getChapter() != null ? exam.getChapter().getId() : null);
+
+            int needed = exam.getTotalQuestions() - examQuestionRepository.countByExamId(examId);
+            if (exam.getTotalQuestions() <= 0) {
+                throw new IllegalStateException("Exam totalQuestions is 0. Please configure the exam first.");
+            }
+            BigDecimal pointsPerQuestion = exam.getTotalPoints()
+                    .divide(BigDecimal.valueOf(exam.getTotalQuestions()), 2, RoundingMode.HALF_UP);
+
+            for (QuestionBank q : availableQuestions) {
+                if (needed <= 0) break;
+                if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
+                orderNumber++;
+                ExamQuestion eq = createExamQuestionFromBank(exam, q, orderNumber, pointsPerQuestion);
+                addedQuestions.add(examQuestionRepository.save(eq));
+                fromBank++;
+                needed--;
+            }
+
+            if (needed > 0 && exam.getChapter() != null) {
+                List<Lesson> lessons = lessonRepository.findByChapterId(exam.getChapter().getId());
+                for (Lesson lesson : lessons) {
+                    if (needed <= 0) break;
+                    List<LessonResource> resources = resourceRepository.findByLessonId(lesson.getId());
+                    if (!resources.isEmpty()) {
+                        log.info("Would generate {} AI questions for lesson {}", Math.min(needed, 5), lesson.getLessonName());
+                    }
+                }
+            }
+
+            exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
+            examRepository.save(exam);
         }
-        
-        // Update exam question count
-        exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
-        examRepository.save(exam);
-        
+
         List<ExamQuestion> allQuestions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
-        
+
         return AutoSelectQuestionsResponse.builder()
                 .totalQuestionsAdded(fromBank + aiGenerated)
                 .fromExistingBank(fromBank)
@@ -290,7 +393,11 @@ public class ExamServiceImpl implements ExamService {
         int aiGenerated = 0;
         List<ExamQuestion> addedQuestions = new ArrayList<>();
         int orderNumber = Optional.ofNullable(examQuestionRepository.findMaxOrderNumber(examId)).orElse(0);
-        BigDecimal pointsPerQuestion = exam.getTotalPoints().divide(BigDecimal.valueOf(exam.getTotalQuestions()), 1, RoundingMode.HALF_UP);
+        
+        if (exam.getTotalQuestions() <= 0) {
+            throw new IllegalStateException("Exam totalQuestions is 0. Please configure the exam first.");
+        }
+        BigDecimal pointsPerQuestion = exam.getTotalPoints().divide(BigDecimal.valueOf(exam.getTotalQuestions()), 2, RoundingMode.HALF_UP);
         
         // Resolve cognitive level distribution by code to ID
         Map<Long, Integer> cognitiveLevelDist = resolveCognitiveLevelDistribution(request);
@@ -650,91 +757,6 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
-    public ApproveExamResponse approveExam(Long examId) {
-        Exam exam = examRepository.findByIdWithDetails(examId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
-        if (exam.getStatus() != ExamStatus.DRAFT && exam.getStatus() != ExamStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Can only approve exams in DRAFT or PENDING_REVIEW status");
-        }
-        
-        User currentUser = getCurrentUser();
-        
-        // Get all questions
-        List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
-        
-        int aiGenerated = 0;
-        int teacherEdited = 0;
-        int newQuestionsSaved = 0;
-        
-        // Save new/edited questions to question bank
-        for (ExamQuestion eq : questions) {
-            if (eq.getSourceFlag() == ExamQuestionSourceFlag.AI_GENERATED) {
-                // Save to question bank if not already there
-                if (eq.getQuestion() == null) {
-                    // Get lesson from exam's chapter (use first lesson as fallback)
-                    Lesson lesson = null;
-                    if (exam.getChapter() != null) {
-                        List<Lesson> chapterLessons = lessonRepository.findByChapterId(exam.getChapter().getId());
-                        if (!chapterLessons.isEmpty()) {
-                            lesson = chapterLessons.get(0);
-                        }
-                    }
-                    
-                    // Get default cognitive level (first one available)
-                    CognitiveLevel defaultCognitiveLevel = cognitiveLevelRepository.findAll().stream()
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("No cognitive levels found in system"));
-                    
-                    if (lesson == null) {
-                        throw new IllegalStateException("Cannot save AI-generated question: exam has no chapter or lessons");
-                    }
-                    
-                    QuestionBank newQuestion = QuestionBank.builder()
-                            .lesson(lesson)
-                            .questionText(eq.getQuestionText())
-                            .correctAnswer(eq.getCorrectAnswer())
-                            .explanation(eq.getExplanation())
-                            .cognitiveLevel(defaultCognitiveLevel)
-                            .sourceType(QuestionSourceType.AI_GENERATED)
-                            .createdBy(currentUser)
-                            .build();
-                    questionBankRepository.save(newQuestion);
-                    newQuestionsSaved++;
-                }
-                aiGenerated++;
-            } else if (eq.getSourceFlag() == ExamQuestionSourceFlag.TEACHER_EDITED) {
-                // Create new version in question bank
-                teacherEdited++;
-                newQuestionsSaved++;
-            } else if (eq.getQuestion() != null) {
-                // Increment usage count
-                QuestionBank q = eq.getQuestion();
-                q.setUsageCount(q.getUsageCount() + 1);
-                questionBankRepository.save(q);
-            }
-        }
-        
-        // Update exam status
-        exam.setStatus(ExamStatus.APPROVED);
-        exam.setApprovedBy(currentUser);
-        exam.setApprovedAt(LocalDateTime.now());
-        examRepository.save(exam);
-        
-        log.info("Approved exam: {} by user: {}", exam.getExamCode(), currentUser.getUsername());
-        
-        return ApproveExamResponse.builder()
-                .examId(examId)
-                .status(ExamStatus.APPROVED)
-                .newQuestionsSaved(newQuestionsSaved)
-                .breakdown(ApproveExamResponse.ApproveBreakdown.builder()
-                        .aiGenerated(aiGenerated)
-                        .teacherEdited(teacherEdited)
-                        .build())
-                .build();
-    }
-
-    @Override
     public ExamResponse changeExamStatus(Long examId, ChangeExamStatusRequest request) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -752,27 +774,12 @@ public class ExamServiceImpl implements ExamService {
         
         exam = examRepository.save(exam);
         
-        log.info("Changed exam {} status from {} to {} by user: {}", 
+        log.info("Changed exam {} status from {} to {} by user: {}",
                 exam.getExamCode(), exam.getStatus(), request.getNewStatus(), currentUser.getUsername());
         
         return mapToExamResponse(exam);
     }
 
-
-
-    @Override
-    public byte[] exportAnswerKey(Long examId, String format) {
-        Exam exam = examRepository.findByIdWithDetails(examId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
-        List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
-        
-        // Generate answer key document
-        log.info("Exporting answer key for exam {} in format: {}", exam.getExamCode(), format);
-        
-        // Placeholder - return empty byte array
-        return new byte[0];
-    }
 
     @Override
     public ExamResponse cloneExam(Long examId) {
@@ -878,6 +885,12 @@ public class ExamServiceImpl implements ExamService {
     public List<ExamResponse> getMyExams() {
         User currentUser = getCurrentUser();
         List<Exam> exams = examRepository.findByCreatedById(currentUser.getUserId());
+        return exams.stream().map(this::mapToExamResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ExamResponse> getPublishedExams(Long subjectId, Integer gradeLevel, Long examTypeId) {
+        List<Exam> exams = examRepository.findPublishedByFilters(subjectId, gradeLevel, examTypeId);
         return exams.stream().map(this::mapToExamResponse).collect(Collectors.toList());
     }
 
@@ -996,16 +1009,13 @@ public class ExamServiceImpl implements ExamService {
     }
     
     private void validateStatusTransition(ExamStatus current, ExamStatus newStatus) {
-        // Define valid transitions
-        Map<ExamStatus, Set<ExamStatus>> validTransitions = Map.of(
-                ExamStatus.DRAFT, Set.of(ExamStatus.PENDING_REVIEW, ExamStatus.APPROVED),
-                ExamStatus.PENDING_REVIEW, Set.of(ExamStatus.DRAFT, ExamStatus.APPROVED),
-                ExamStatus.APPROVED, Set.of(ExamStatus.PUBLISHED, ExamStatus.ARCHIVED),
-                ExamStatus.PUBLISHED, Set.of(ExamStatus.ARCHIVED),
-                ExamStatus.ARCHIVED, Set.of()
-        );
-        
-        if (!validTransitions.getOrDefault(current, Set.of()).contains(newStatus)) {
+        // New simplified transitions: DRAFT/USED -> PUBLISHED, PUBLISHED -> DRAFT (unpublish)
+        boolean valid = switch (current) {
+            case DRAFT -> newStatus == ExamStatus.PUBLISHED;
+            case USED -> newStatus == ExamStatus.PUBLISHED;
+            case PUBLISHED -> newStatus == ExamStatus.DRAFT || newStatus == ExamStatus.USED;
+        };
+        if (!valid) {
             throw new IllegalStateException(
                     String.format("Invalid status transition from %s to %s", current, newStatus));
         }
@@ -1037,9 +1047,6 @@ public class ExamServiceImpl implements ExamService {
                 .createdById(exam.getCreatedBy().getUserId())
                 .createdByName(exam.getCreatedBy().getFullName())
                 .createdAt(exam.getCreatedAt())
-                .approvedById(exam.getApprovedBy() != null ? exam.getApprovedBy().getUserId() : null)
-                .approvedByName(exam.getApprovedBy() != null ? exam.getApprovedBy().getFullName() : null)
-                .approvedAt(exam.getApprovedAt())
                 .publishedAt(exam.getPublishedAt())
                 .updatedAt(exam.getUpdatedAt())
                 .build();
@@ -1087,112 +1094,75 @@ public class ExamServiceImpl implements ExamService {
         return builder.build();
     }
     @Override
-    public byte[] exportExam(Long examId, boolean showAnswer) {
-
+    public byte[] exportExam(Long examId, String format) {
         try {
-
             Exam exam = examRepository.findById(examId)
                     .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-            // Use safer query
-            List<ExamQuestion> questions =
-                    examQuestionRepository.findByExamIdOrdered(examId);
+            // Auto-set status to USED when exporting from DRAFT
+            if (exam.getStatus() == ExamStatus.DRAFT) {
+                exam.setStatus(ExamStatus.USED);
+                examRepository.save(exam);
+                log.info("Exam {} status changed to USED after export", exam.getExamCode());
+            }
 
+            boolean showAnswer = "answer-key".equalsIgnoreCase(format);
+
+            List<ExamQuestion> questions = examQuestionRepository.findByExamIdOrdered(examId);
             log.info("Export exam {} - question count: {}", examId, questions.size());
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
             PdfWriter writer = new PdfWriter(baos);
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
 
-            // Load Vietnamese font
             ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
-
             FontProgram fontProgram;
             try (InputStream fontStream = fontResource.getInputStream()) {
                 fontProgram = FontProgramFactory.createFont(fontStream.readAllBytes());
             }
-
             PdfFont font = PdfFontFactory.createFont(fontProgram, PdfEncodings.IDENTITY_H);
             document.setFont(font);
 
-            // =========================
-            // EXAM HEADER
-            // =========================
-
             document.add(new Paragraph(cleanText(exam.getExamTitle()))
-                    .setBold()
-                    .setFontSize(18)
-                    .setTextAlignment(TextAlignment.CENTER));
-
+                    .setBold().setFontSize(18).setTextAlignment(TextAlignment.CENTER));
             document.add(new Paragraph("Môn: " + exam.getSubject().getDescription())
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(12));
-
+                    .setTextAlignment(TextAlignment.CENTER).setFontSize(12));
             document.add(new Paragraph("Thời gian: " + getExamDuration(exam))
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(12));
-
+                    .setTextAlignment(TextAlignment.CENTER).setFontSize(12));
             document.add(new Paragraph("\n"));
-
             document.add(new Paragraph("------------------------------------------------------------")
                     .setTextAlignment(TextAlignment.CENTER));
-
             document.add(new Paragraph("\n"));
 
-            // =========================
-            // QUESTIONS
-            // =========================
-
             int questionNumber = 1;
-
             for (ExamQuestion q : questions) {
-
-                log.info("Exporting question {}: {}", q.getOrderNumber(), q.getQuestionText());
-
-                // Question text
                 document.add(new Paragraph(
                         "Câu " + questionNumber + ": " + cleanText(q.getQuestionText())
                 ).setBold().setFontSize(12));
-
                 document.add(new Paragraph("\n"));
 
-                // Collect answers
                 List<String> answers = new ArrayList<>();
-
                 answers.add(q.getCorrectAnswer());
-
                 if (q.getWrongAnswer1() != null) answers.add(q.getWrongAnswer1());
                 if (q.getWrongAnswer2() != null) answers.add(q.getWrongAnswer2());
                 if (q.getWrongAnswer3() != null) answers.add(q.getWrongAnswer3());
-
                 Collections.shuffle(answers);
 
                 char label = 'A';
-
                 for (String ans : answers) {
-
-                    Paragraph answerParagraph = new Paragraph(
-                            label + ". " + cleanText(ans)
-                    ).setFontSize(11);
-
+                    Paragraph answerParagraph = new Paragraph(label + ". " + cleanText(ans)).setFontSize(11);
                     if (showAnswer && ans.equals(q.getCorrectAnswer())) {
                         answerParagraph.setBold();
                     }
-
                     document.add(answerParagraph);
-
                     label++;
                 }
-
                 document.add(new Paragraph("\n"));
-
                 questionNumber++;
             }
 
             document.close();
-
             return baos.toByteArray();
 
         } catch (Exception e) {

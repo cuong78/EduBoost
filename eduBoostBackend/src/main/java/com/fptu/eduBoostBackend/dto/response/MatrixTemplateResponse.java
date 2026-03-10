@@ -37,4 +37,5 @@ public class MatrixTemplateResponse {
     private LocalDateTime createdAt;
     
     private List<MatrixTemplateDetailResponse> details;
+    private List<MatrixTemplateLessonDetailResponse> lessonDetails;
 }

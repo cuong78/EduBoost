@@ -33,66 +33,65 @@ public class ExamController {
 
     private final ExamService examService;
 
-    // ==================== CRUD Operations ====================
+    // ==================== CRUD ====================
 
     @GetMapping
     @Operation(summary = "Get exams with filters",
-            description = "Returns a paginated list of exams filtered by subject, grade, exam type, status, and creator")
+            description = "Get exams of the current teacher (DRAFT, USED, PUBLISHED). Paginated, filterable by subject/grade/type/status.")
     public ResponseEntity<Page<ExamResponse>> getExams(
-            @Parameter(description = "Subject ID") @RequestParam(required = false) Long subjectId,
-            @Parameter(description = "Grade level") @RequestParam(required = false) Integer gradeLevel,
-            @Parameter(description = "Exam type ID") @RequestParam(required = false) Long examTypeId,
-            @Parameter(description = "Exam status") @RequestParam(required = false) ExamStatus status,
-            @Parameter(description = "Creator ID") @RequestParam(required = false) Long createdById,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Integer gradeLevel,
+            @RequestParam(required = false) Long examTypeId,
+            @RequestParam(required = false) ExamStatus status,
+            @RequestParam(required = false) Long createdById,
             @PageableDefault(size = 20) Pageable pageable) {
-        log.info("Fetching exams with filters - subjectId: {}, gradeLevel: {}, examTypeId: {}, status: {}", 
-                subjectId, gradeLevel, examTypeId, status);
         Page<ExamResponse> exams = examService.getExams(subjectId, gradeLevel, examTypeId, status, createdById, pageable);
         return ResponseEntity.ok(exams);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get exam by ID",
-            description = "Returns detailed information of a specific exam including all questions")
-    public ResponseEntity<ExamResponse> getExamById(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id) {
-        log.info("Fetching exam with id: {}", id);
-        ExamResponse exam = examService.getExamById(id);
-        return ResponseEntity.ok(exam);
+            description = "Returns full exam detail including all questions. Owner sees any status; others only see PUBLISHED.")
+    public ResponseEntity<ExamResponse> getExamById(@PathVariable Long id) {
+        return ResponseEntity.ok(examService.getExamById(id));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @Operation(summary = "Create new exam",
-            description = "Creates a new exam with the specified configuration")
-    public ResponseEntity<ExamResponse> createExam(
-            @Valid @RequestBody ExamRequest request) {
+    @Operation(summary = "Create new exam", description = "Creates a new exam in DRAFT status.")
+    public ResponseEntity<ExamResponse> createExam(@Valid @RequestBody ExamRequest request) {
         log.info("Creating exam: {}", request.getExamTitle());
-        ExamResponse exam = examService.createExam(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(exam);
+        return ResponseEntity.status(HttpStatus.CREATED).body(examService.createExam(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Update exam",
-            description = "Updates an existing exam. Only DRAFT exams can be updated.")
-    public ResponseEntity<ExamResponse> updateExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id,
-            @Valid @RequestBody ExamRequest request) {
-        log.info("Updating exam with id: {}", id);
-        ExamResponse exam = examService.updateExam(id, request);
-        return ResponseEntity.ok(exam);
+            description = "Update exam metadata. Allowed for DRAFT and USED. PUBLISHED exam must be unpublished first.")
+    public ResponseEntity<ExamResponse> updateExam(@PathVariable Long id, @Valid @RequestBody ExamRequest request) {
+        return ResponseEntity.ok(examService.updateExam(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Delete exam",
-            description = "Deletes an exam. Only DRAFT exams can be deleted.")
-    public ResponseEntity<Void> deleteExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id) {
-        log.info("Deleting exam with id: {}", id);
+            description = "Delete exam. Allowed for DRAFT and USED. PUBLISHED exam must be unpublished first.")
+    public ResponseEntity<Void> deleteExam(@PathVariable Long id) {
         examService.deleteExam(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== Published (Public View) ====================
+
+    @GetMapping("/published")
+    @Operation(summary = "Get all published exams",
+            description = "Returns PUBLISHED exams visible to everyone. Supports filtering by subject, grade, and exam type. " +
+                          "Viewers can also access the associated matrix template details.")
+    public ResponseEntity<List<ExamResponse>> getPublishedExams(
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Integer gradeLevel,
+            @RequestParam(required = false) Long examTypeId) {
+        return ResponseEntity.ok(examService.getPublishedExams(subjectId, gradeLevel, examTypeId));
     }
 
     // ==================== Question Management ====================
@@ -100,171 +99,110 @@ public class ExamController {
     @PostMapping("/{examId}/auto-select")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Auto-select questions for exam",
-            description = "Automatically selects questions from the question bank based on exam configuration or matrix template")
-    public ResponseEntity<AutoSelectQuestionsResponse> autoSelectQuestions(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId) {
-        log.info("Auto-selecting questions for exam: {}", examId);
-        AutoSelectQuestionsResponse response = examService.autoSelectQuestions(examId);
-        return ResponseEntity.ok(response);
+            description = "Automatically selects questions from the question bank based on chapter. Falls back to AI generation if bank is insufficient.")
+    public ResponseEntity<AutoSelectQuestionsResponse> autoSelectQuestions(@PathVariable Long examId) {
+        return ResponseEntity.ok(examService.autoSelectQuestions(examId));
     }
 
     @PostMapping("/{examId}/auto-select-with-config")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Auto-select questions with cognitive level distribution",
-            description = "Automatically selects questions from the question bank based on lesson and cognitive level distribution. If questions are missing for a cognitive level, AI will generate them.")
+            description = "Selects questions per lesson and cognitive level (Bloom's taxonomy). AI generates questions when bank is insufficient.")
     public ResponseEntity<AutoSelectQuestionsResponse> autoSelectQuestionsWithConfig(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
+            @PathVariable Long examId,
             @Valid @RequestBody AutoSelectQuestionsRequest request) {
-        log.info("Auto-selecting questions with config for exam: {}", examId);
-        AutoSelectQuestionsResponse response = examService.autoSelectQuestionsWithConfig(examId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(examService.autoSelectQuestionsWithConfig(examId, request));
     }
 
     @PostMapping("/{examId}/questions")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @Operation(summary = "Add question to exam",
-            description = "Manually adds a question to the exam from question bank or creates a new one")
+    @Operation(summary = "Add question to exam", description = "Manually add a question from the bank to the exam.")
     public ResponseEntity<ExamQuestionResponse> addQuestionToExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
+            @PathVariable Long examId,
             @Valid @RequestBody AddQuestionToExamRequest request) {
-        log.info("Adding question to exam: {}", examId);
-        ExamQuestionResponse response = examService.addQuestionToExam(examId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(examService.addQuestionToExam(examId, request));
     }
 
     @PostMapping("/{examId}/questions/ai-generate")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "AI generate questions for exam",
-            description = "Uses AI to generate new questions for the exam based on lesson content")
+            description = "Uses AI to generate questions for a specific lesson and cognitive level.")
     public ResponseEntity<List<ExamQuestionResponse>> aiGenerateQuestionsForExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
+            @PathVariable Long examId,
             @Valid @RequestBody ExamAIGenerateRequest request) {
-        log.info("AI generating {} questions for exam: {}", request.getNumberOfQuestions(), examId);
-        List<ExamQuestionResponse> questions = examService.aiGenerateQuestionsForExam(examId, request);
-        return ResponseEntity.ok(questions);
+        return ResponseEntity.ok(examService.aiGenerateQuestionsForExam(examId, request));
     }
 
     @PutMapping("/{examId}/questions/{examQuestionId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Edit exam question",
-            description = "Edits a question in the exam. The source flag will be updated to TEACHER_EDITED.")
+            description = "Edit a question within a DRAFT exam. Source flag automatically changes to TEACHER_EDITED.")
     public ResponseEntity<ExamQuestionResponse> editExamQuestion(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
-            @Parameter(description = "Exam question ID", required = true) @PathVariable Long examQuestionId,
+            @PathVariable Long examId,
+            @PathVariable Long examQuestionId,
             @Valid @RequestBody EditExamQuestionRequest request) {
-        log.info("Editing question {} in exam: {}", examQuestionId, examId);
-        ExamQuestionResponse response = examService.editExamQuestion(examId, examQuestionId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(examService.editExamQuestion(examId, examQuestionId, request));
     }
 
     @PostMapping("/{examId}/questions/{examQuestionId}/regenerate-wrong-answers")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Regenerate wrong answers",
-            description = "Uses AI to regenerate wrong answer options for a question")
+            description = "Uses AI to regenerate the 3 distractor answer options for a question.")
     public ResponseEntity<ExamQuestionResponse> regenerateWrongAnswers(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
-            @Parameter(description = "Exam question ID", required = true) @PathVariable Long examQuestionId) {
-        log.info("Regenerating wrong answers for question {} in exam: {}", examQuestionId, examId);
-        ExamQuestionResponse response = examService.regenerateWrongAnswers(examId, examQuestionId);
-        return ResponseEntity.ok(response);
+            @PathVariable Long examId,
+            @PathVariable Long examQuestionId) {
+        return ResponseEntity.ok(examService.regenerateWrongAnswers(examId, examQuestionId));
     }
 
     @DeleteMapping("/{examId}/questions/{examQuestionId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @Operation(summary = "Delete exam question",
-            description = "Removes a question from the exam")
+    @Operation(summary = "Delete exam question", description = "Remove a question from a DRAFT exam.")
     public ResponseEntity<Void> deleteExamQuestion(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
-            @Parameter(description = "Exam question ID", required = true) @PathVariable Long examQuestionId) {
-        log.info("Deleting question {} from exam: {}", examQuestionId, examId);
+            @PathVariable Long examId,
+            @PathVariable Long examQuestionId) {
         examService.deleteExamQuestion(examId, examQuestionId);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{examId}/questions/reorder")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @Operation(summary = "Reorder exam questions",
-            description = "Reorders questions in the exam")
+    @Operation(summary = "Reorder exam questions", description = "Reorder questions within a DRAFT exam.")
     public ResponseEntity<Void> reorderQuestions(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
+            @PathVariable Long examId,
             @Valid @RequestBody ReorderQuestionsRequest request) {
-        log.info("Reordering questions in exam: {}", examId);
         examService.reorderQuestions(examId, request);
         return ResponseEntity.ok().build();
     }
 
     // ==================== Status Management ====================
 
-    @PostMapping("/{examId}/approve")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @Operation(summary = "Approve exam",
-            description = "Approves the exam and saves new/edited questions to the question bank")
-    public ResponseEntity<ApproveExamResponse> approveExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId) {
-        log.info("Approving exam: {}", examId);
-        ApproveExamResponse response = examService.approveExam(examId);
-        return ResponseEntity.ok(response);
-    }
-
     @PutMapping("/{examId}/status")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Change exam status",
-            description = "Changes the status of an exam (DRAFT -> PENDING_REVIEW/APPROVED -> PUBLISHED -> ARCHIVED)")
+            description = "Valid transitions: DRAFT→PUBLISHED, USED→PUBLISHED, PUBLISHED→DRAFT, PUBLISHED→USED. " +
+                          "Once PUBLISHED, exam is visible to all other teachers (read-only).")
     public ResponseEntity<ExamResponse> changeExamStatus(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long examId,
+            @PathVariable Long examId,
             @Valid @RequestBody ChangeExamStatusRequest request) {
-        log.info("Changing status of exam {} to: {}", examId, request.getNewStatus());
-        ExamResponse exam = examService.changeExamStatus(examId, request);
-        return ResponseEntity.ok(exam);
+        return ResponseEntity.ok(examService.changeExamStatus(examId, request));
     }
 
-    // ==================== Export ====================
+    // ==================== Export (auto-sets USED) ====================
 
     @GetMapping("/{id}/export")
-    @Operation(
-            summary = "Export exam",
-            description = "Exports the exam to PDF format"
-    )
+    @Operation(summary = "Export exam to PDF",
+            description = "Exports the exam questions to PDF. " +
+                          "If the exam is currently DRAFT, its status is automatically set to USED after export.")
     public ResponseEntity<byte[]> exportExam(
-            @Parameter(description = "Exam ID", required = true)
             @PathVariable Long id,
-
-            @Parameter(description = "Show correct answers")
-            @RequestParam(defaultValue = "false") boolean showAnswer
-    ) {
-
-        log.info("Exporting exam {} (showAnswer={})", id, showAnswer);
-
-        byte[] content = examService.exportExam(id, showAnswer);
-
-        String filename = showAnswer
-                ? "exam_" + id + "_with_answers.pdf"
-                : "exam_" + id + ".pdf";
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(content);
-    }
-
-    @GetMapping("/{id}/export-answer-key")
-    @Operation(summary = "Export answer key",
-            description = "Exports the answer key to PDF or DOCX format")
-    public ResponseEntity<byte[]> exportAnswerKey(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id,
-            @Parameter(description = "Export format (pdf, docx)") @RequestParam(defaultValue = "pdf") String format) {
-        log.info("Exporting answer key for exam {} to format: {}", id, format);
-        byte[] content = examService.exportAnswerKey(id, format);
-        
-        String contentType = format.equalsIgnoreCase("pdf") 
-                ? MediaType.APPLICATION_PDF_VALUE 
-                : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        String filename = "answer_key_" + id + "." + format.toLowerCase();
-        
+            @Parameter(description = "Export format: 'pdf' (exam paper) or 'answer-key' (with correct answers highlighted)")
+            @RequestParam(defaultValue = "pdf") String format) {
+        log.info("Exporting exam {} format: {}", id, format);
+        byte[] content = examService.exportExam(id, format);
+        String filename = "exam_" + id + ".pdf";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType(contentType))
+                .contentType(MediaType.APPLICATION_PDF)
                 .body(content);
     }
 
@@ -273,24 +211,18 @@ public class ExamController {
     @PostMapping("/{id}/clone")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Clone exam",
-            description = "Creates a copy of an exam including all questions")
-    public ResponseEntity<ExamResponse> cloneExam(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id) {
-        log.info("Cloning exam: {}", id);
-        ExamResponse exam = examService.cloneExam(id);
-        return ResponseEntity.status(HttpStatus.CREATED).body(exam);
+            description = "Creates a copy of an exam (including all questions) with status DRAFT.")
+    public ResponseEntity<ExamResponse> cloneExam(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(examService.cloneExam(id));
     }
 
     // ==================== Statistics ====================
 
     @GetMapping("/{id}/statistics")
     @Operation(summary = "Get exam statistics",
-            description = "Returns statistics about the exam including question distribution by cognitive level and lesson")
-    public ResponseEntity<ExamStatisticsResponse> getExamStatistics(
-            @Parameter(description = "Exam ID", required = true) @PathVariable Long id) {
-        log.info("Getting statistics for exam: {}", id);
-        ExamStatisticsResponse statistics = examService.getExamStatistics(id);
-        return ResponseEntity.ok(statistics);
+            description = "Returns question distribution by cognitive level, lesson, and source (bank/AI/edited).")
+    public ResponseEntity<ExamStatisticsResponse> getExamStatistics(@PathVariable Long id) {
+        return ResponseEntity.ok(examService.getExamStatistics(id));
     }
 
     // ==================== My Exams ====================
@@ -298,10 +230,8 @@ public class ExamController {
     @GetMapping("/my-exams")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get my exams",
-            description = "Returns all exams created by the current user")
+            description = "Returns all exams (DRAFT, USED, PUBLISHED) created by the current user.")
     public ResponseEntity<List<ExamResponse>> getMyExams() {
-        log.info("Fetching exams for current user");
-        List<ExamResponse> exams = examService.getMyExams();
-        return ResponseEntity.ok(exams);
+        return ResponseEntity.ok(examService.getMyExams());
     }
 }

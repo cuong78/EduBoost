@@ -173,7 +173,8 @@ export const examService = {
                 aiGenerated: 2,
                 questions: []
             })
-            : apiClient.post(API.EXAM_AUTO_SELECT(examId)).then((res) => res.data),
+            // Use 5-minute timeout: AI question generation can take up to ~60s per batch
+            : apiClient.post(API.EXAM_AUTO_SELECT(examId), {}, { timeout: 300000 }).then((res) => res.data),
     
     /**
      * Auto-select questions with cognitive level distribution
@@ -289,7 +290,8 @@ export const examService = {
     
     /**
      * Change exam status
-     * @param {Object} data - { newStatus: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'ARCHIVED', note (optional) }
+     * Valid transitions: DRAFT→PUBLISHED, USED→PUBLISHED, PUBLISHED→DRAFT, PUBLISHED→USED
+     * @param {Object} data - { newStatus: 'DRAFT' | 'USED' | 'PUBLISHED', note (optional) }
      */
     changeExamStatus: (examId, data) =>
         useMock()
@@ -373,4 +375,9 @@ export const examService = {
         useMock()
             ? mockResolve(mockExams)
             : apiClient.get(API.MY_EXAMS).then((res) => res.data),
+
+    getPublishedExams: (params = {}) =>
+        useMock()
+            ? mockResolve([])
+            : apiClient.get(API.EXAMS_PUBLISHED, { params }).then((res) => res.data),
 };

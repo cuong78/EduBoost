@@ -39,15 +39,11 @@ public interface ExamService {
     
     void reorderQuestions(Long examId, ReorderQuestionsRequest request);
     
-    // Status management
-    ApproveExamResponse approveExam(Long examId);
-    
+    // Status management — DRAFT / USED / PUBLISHED only
     ExamResponse changeExamStatus(Long examId, ChangeExamStatusRequest request);
     
-    // Export
-    byte[] exportExam(Long examId, boolean showAnswer);
-    
-    byte[] exportAnswerKey(Long examId, String format);
+    // Export (auto-sets status to USED if current status is DRAFT)
+    byte[] exportExam(Long examId, String format);
     
     // Clone
     ExamResponse cloneExam(Long examId);
@@ -56,4 +52,6 @@ public interface ExamService {
     ExamStatisticsResponse getExamStatistics(Long examId);
     
     List<ExamResponse> getMyExams();
+    
+    List<ExamResponse> getPublishedExams(Long subjectId, Integer gradeLevel, Long examTypeId);
 }

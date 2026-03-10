@@ -25,10 +25,8 @@ import ConfirmModal from "../../components/ui/ConfirmModal";
 
 const EXAM_STATUS = {
   DRAFT: { label: "Nháp", color: "#6b7280", bg: "#f3f4f6" },
-  PENDING_REVIEW: { label: "Chờ duyệt", color: "#f59e0b", bg: "#fef3c7" },
-  APPROVED: { label: "Đã duyệt", color: "#10b981", bg: "#d1fae5" },
+  USED: { label: "Đã dùng", color: "#f59e0b", bg: "#fef3c7" },
   PUBLISHED: { label: "Đã xuất bản", color: "#3b82f6", bg: "#dbeafe" },
-  ARCHIVED: { label: "Lưu trữ", color: "#9ca3af", bg: "#e5e7eb" },
 };
 
 const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
@@ -143,15 +141,24 @@ const ExamManagement = () => {
     }
   };
 
-  const handleApproveExam = async (exam) => {
+  const handlePublishExam = async (exam) => {
     try {
-      const result = await examService.approveExam(exam.id);
-      showSuccessToast(
-        `Đã duyệt đề thi. ${result.savedToBank || 0} câu hỏi mới được lưu vào ngân hàng.`,
-      );
+      await examService.changeExamStatus(exam.id, { newStatus: "PUBLISHED" });
+      showSuccessToast("Đã xuất bản đề thi");
       loadExams();
-    } catch (err) {
-      showErrorToast("Không thể duyệt đề thi");
+    } catch {
+      showErrorToast("Không thể xuất bản đề thi");
+    }
+  };
+
+  const handleUnpublishExam = async (exam) => {
+    try {
+      const revertTo = exam.status === "PUBLISHED" && exam.wasUsed ? "USED" : "DRAFT";
+      await examService.changeExamStatus(exam.id, { newStatus: revertTo });
+      showSuccessToast("Đã bỏ xuất bản");
+      loadExams();
+    } catch {
+      showErrorToast("Không thể bỏ xuất bản");
     }
   };
 
@@ -218,61 +225,37 @@ const ExamManagement = () => {
   };
 
   const renderActions = (exam) => {
+    const isOwner = true; // assume current user is owner (from auth context if needed)
     return (
       <div className="action-buttons">
-        <button
-          className="btn-icon"
-          title="Xem chi tiết"
-          onClick={() => handleViewExam(exam)}
-        >
-          <Eye size={16} />
-        </button>
-        <button
-          className="btn-icon"
-          title="Thống kê"
-          onClick={() => handleViewStatistics(exam)}
-        >
-          <BarChart size={16} />
-        </button>
-        <button
-          className="btn-icon"
-          title="Sao chép"
-          onClick={() => handleCloneExam(exam)}
-        >
-          <Copy size={16} />
-        </button>
-        <button
-          className="btn-icon"
-          title="Tải xuống"
-          onClick={() => handleExportExam(exam)}
-        >
-          <Download size={16} />
-        </button>
-        {exam.status === "DRAFT" && (
-          <>
-            <button
-              className="btn-icon success"
-              title="Duyệt đề"
-              onClick={() => handleApproveExam(exam)}
-            >
-              <CheckCircle size={16} />
-            </button>
-            <button
-              className="btn-icon danger"
-              title="Xóa"
-              onClick={() => handleDeleteExam(exam)}
-            >
-              <Trash2 size={16} />
-            </button>
-          </>
-        )}
-        {exam.status === "APPROVED" && (
+        <button className="btn-icon" title="Xem chi tiết" onClick={() => handleViewExam(exam)}><Eye size={16} /></button>
+        <button className="btn-icon" title="Thống kê" onClick={() => handleViewStatistics(exam)}><BarChart size={16} /></button>
+        <button className="btn-icon" title="Sao chép" onClick={() => handleCloneExam(exam)}><Copy size={16} /></button>
+        <button className="btn-icon" title="Tải xuống" onClick={() => handleExportExam(exam)}><Download size={16} /></button>
+        {/* Publish: available from DRAFT or USED */}
+        {(exam.status === "DRAFT" || exam.status === "USED") && (
           <button
             className="btn-icon primary"
             title="Xuất bản"
-            onClick={() => handleChangeStatus(exam, "PUBLISHED")}
+            onClick={() => handlePublishExam(exam)}
           >
             <FileText size={16} />
+          </button>
+        )}
+        {/* Unpublish */}
+        {exam.status === "PUBLISHED" && (
+          <button
+            className="btn-icon"
+            title="Bỏ xuất bản"
+            onClick={() => handleUnpublishExam(exam)}
+          >
+            <Clock size={16} />
+          </button>
+        )}
+        {/* Delete: only allowed for DRAFT */}
+        {exam.status === "DRAFT" && (
+          <button className="btn-icon danger" title="Xóa" onClick={() => handleDeleteExam(exam)}>
+            <Trash2 size={16} />
           </button>
         )}
       </div>
@@ -673,12 +656,20 @@ const ExamManagement = () => {
               >
                 <Download size={16} /> Tải xuống
               </button>
-              {selectedExam.status === "DRAFT" && (
+              {(selectedExam.status === "DRAFT" || selectedExam.status === "USED") && (
                 <button
                   className="btn btn-primary"
-                  onClick={() => handleApproveExam(selectedExam)}
+                  onClick={() => handlePublishExam(selectedExam)}
                 >
-                  <CheckCircle size={16} /> Duyệt đề
+                  <FileText size={16} /> Xuất bản
+                </button>
+              )}
+              {selectedExam.status === "PUBLISHED" && (
+                <button
+                  className="btn btn-outline"
+                  onClick={() => handleUnpublishExam(selectedExam)}
+                >
+                  <Clock size={16} /> Bỏ xuất bản
                 </button>
               )}
             </div>

@@ -40,7 +40,6 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
            "LEFT JOIN FETCH e.chapter " +
            "LEFT JOIN FETCH e.matrixTemplate " +
            "LEFT JOIN FETCH e.createdBy " +
-           "LEFT JOIN FETCH e.approvedBy " +
            "WHERE e.id = :id")
     Optional<Exam> findByIdWithDetails(@Param("id") Long id);
     
@@ -58,4 +57,20 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     
     @Query("SELECT COUNT(e) FROM Exam e WHERE e.subject.id = :subjectId AND e.gradeLevel = :gradeLevel")
     long countBySubjectAndGrade(@Param("subjectId") Long subjectId, @Param("gradeLevel") Integer gradeLevel);
+
+    @Query("SELECT e FROM Exam e " +
+           "LEFT JOIN FETCH e.examType " +
+           "LEFT JOIN FETCH e.subject " +
+           "LEFT JOIN FETCH e.chapter " +
+           "LEFT JOIN FETCH e.matrixTemplate " +
+           "LEFT JOIN FETCH e.createdBy " +
+           "WHERE e.status = com.fptu.eduBoostBackend.entities.enums.ExamStatus.PUBLISHED " +
+           "AND (:subjectId IS NULL OR e.subject.id = :subjectId) " +
+           "AND (:gradeLevel IS NULL OR e.gradeLevel = :gradeLevel) " +
+           "AND (:examTypeId IS NULL OR e.examType.id = :examTypeId) " +
+           "ORDER BY e.publishedAt DESC")
+    List<Exam> findPublishedByFilters(
+            @Param("subjectId") Long subjectId,
+            @Param("gradeLevel") Integer gradeLevel,
+            @Param("examTypeId") Long examTypeId);
 }

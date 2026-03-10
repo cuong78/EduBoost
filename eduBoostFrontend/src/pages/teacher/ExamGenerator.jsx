@@ -11,6 +11,9 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
+  LayoutGrid,
+  ExternalLink,
+  Check,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
 import { examService } from "../../services/examService";
@@ -86,6 +89,16 @@ const ExamGenerator = () => {
   const [lessons, setLessons] = useState([]);
   const [selectedLessonIds, setSelectedLessonIds] = useState([]);
 
+  // Matrix template selection (for 45MIN / MIDTERM / FINAL)
+  const [matrixTemplates, setMatrixTemplates] = useState([]);
+  const [matrixTemplateId, setMatrixTemplateId] = useState("");
+  const [loadingMatrices, setLoadingMatrices] = useState(false);
+  const [selectedMatrix, setSelectedMatrix] = useState(null);
+  const [loadingMsg, setLoadingMsg] = useState("");
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [publishingExam, setPublishingExam] = useState(false);
+
   // Config
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [pointsPerQuestion, setPointsPerQuestion] = useState(1);
@@ -149,6 +162,13 @@ const ExamGenerator = () => {
       setExamTypes([]);
     }
   };
+
+  // Detect if current exam type requires matrix (memoized to avoid race condition)
+  const isMatrixType = useMemo(() => {
+    const found = examTypes.find((t) => String(t.typeCode) === String(examType));
+    // If examTypes not loaded yet, use typeCode fallback
+    return found ? !!found.requiresMatrix : (examType !== "15MIN" && examType !== "");
+  }, [examType, examTypes]);
 
   const getSelectedExamTypeId = () => {
     const found = examTypes.find(
@@ -215,6 +235,37 @@ const ExamGenerator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId, gradeLevel]);
 
+  // Load matrix templates when exam type OR subject changes
+  useEffect(() => {
+    if (!isMatrixType) {
+      setMatrixTemplates([]);
+      setMatrixTemplateId("");
+      setSelectedMatrix(null);
+      return;
+    }
+    if (!subjectId) return;
+    setLoadingMatrices(true);
+    const examTypeId = getSelectedExamTypeId();
+    // NOTE: we intentionally do NOT filter by gradeLevel here so teachers can
+    // select matrices created for any grade of the same subject+examType.
+    examService
+      .getMatrixTemplates({ examTypeId, subjectId: Number(subjectId) })
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data?.data || [];
+        setMatrixTemplates(list);
+        if (list.length) {
+          setMatrixTemplateId(String(list[0].id));
+          setSelectedMatrix(list[0]);
+        } else {
+          setMatrixTemplateId("");
+          setSelectedMatrix(null);
+        }
+      })
+      .catch(() => setMatrixTemplates([]))
+      .finally(() => setLoadingMatrices(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMatrixType, subjectId]);
+
   useEffect(() => {
     loadLessons().catch(() => setLessons([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -244,13 +295,92 @@ const ExamGenerator = () => {
   const goStep2 = () => {
     if (!examTitle.trim()) return showErrorToast("Vui lòng nhập tên đề thi");
     if (!subjectId) return showErrorToast("Vui lòng chọn môn học");
-    if (!chapterId) return showErrorToast("Vui lòng chọn chương");
-    if (selectedLessonIds.length === 0)
-      return showErrorToast("Vui lòng chọn ít nhất 1 bài học");
+    // For matrix-based types, require a matrix template selection
+    if (isMatrixType) {
+      if (!matrixTemplateId)
+        return showErrorToast(
+          "Vui lòng chọn ma trận đề thi, hoặc vào trang Quản lý ma trận để tạo mới"
+        );
+    } else {
+      // 15MIN: require chapter and lesson
+      if (!chapterId) return showErrorToast("Vui lòng chọn chương");
+      if (selectedLessonIds.length === 0)
+        return showErrorToast("Vui lòng chọn ít nhất 1 bài học");
+    }
     setStep(2);
   };
 
   const generatePreview = async () => {
+    if (isMatrixType) {
+      // Matrix-based: create exam with matrixTemplateId, then auto-select
+      const examTypeId = getSelectedExamTypeId();
+      if (!examTypeId) return showErrorToast("Không tìm thấy loại đề thi");
+      if (!matrixTemplateId) return showErrorToast("Vui lòng chọn ma trận đề thi");
+
+      const payload = {
+        examTitle: examTitle.trim(),
+        examTypeId,
+        subjectId: Number(subjectId),
+        gradeLevel: Number(gradeLevel),
+        durationMinutes: durationMinutesByTypeCode(examType),
+        matrixTemplateId: Number(matrixTemplateId),
+        semester: 1,
+        schoolYear: new Date().getFullYear() + "-" + (new Date().getFullYear() + 1),
+      };
+
+      setLoadingPreview(true);
+      setLoadingMsg("Đang tạo đề thi...");
+      try {
+        const created = await examService.createExam(payload);
+        setCurrentExam(created);
+
+        // Show animated messages during AI generation (can take 30-120s)
+        setLoadingMsg("Đang chọn câu hỏi từ ngân hàng...");
+        const msgTimer = setInterval(() => {
+          setLoadingMsg((prev) => {
+            const msgs = [
+              "Đang chọn câu hỏi từ ngân hàng...",
+              "AI đang sinh câu hỏi mới... (có thể mất 30-60 giây)",
+              "Đang xử lý phân bố theo mưức độ nhận thức...",
+              "AI đang tạo câu hỏi chất lượng cao... Vui lòng đợi",
+            ];
+            const idx = msgs.indexOf(prev);
+            return msgs[(idx + 1) % msgs.length];
+          });
+        }, 4000);
+
+        try {
+          await examService.autoSelectQuestions(created.id);
+        } finally {
+          clearInterval(msgTimer);
+        }
+
+        setLoadingMsg("Đang tải preview...");
+        await refreshExam(created.id);
+        setStep(3);
+      } catch (e) {
+        console.error(e);
+        // Check if timeout
+        const isTimeout = e.code === "ECONNABORTED" || e.message?.includes("timeout");
+        if (isTimeout) {
+          showErrorToast(
+            "Đặt thời gian chờ quá. AI có thể đang sinh câu trong nền — hãy vào Quản lý đề thi kiểm tra sau."
+          );
+          // Navigate to exam management after timeout since exam was created
+          if (currentExam?.id) await refreshExam(currentExam.id);
+        } else {
+          showErrorToast(
+            e?.response?.data?.message || "Không thể tạo đề thi từ ma trận. Kiểm tra lại API."
+          );
+        }
+      } finally {
+        setLoadingPreview(false);
+        setLoadingMsg("");
+      }
+      return;
+    }
+
+    // 15MIN: original config-based flow
     if (stats.sumLesson <= 0)
       return showErrorToast("Vui lòng phân bổ ít nhất 1 câu cho các bài học");
 
@@ -316,113 +446,70 @@ const ExamGenerator = () => {
     }
   };
 
-  const handleSaveDraft = () => {
-    if (!currentExam?.id) return showErrorToast("Chưa có đề thi để lưu");
-    showSuccessToast("Đã tạo & lưu draft đề thi");
-  };
-
-  const handleExport = async () => {
-    if (!currentExam?.id) return showErrorToast("Chưa có đề thi để export");
-    if (!currentExam?.questions?.length)
-      return showErrorToast("Đề thi chưa có câu hỏi");
-
+  // Publish exam: set status PUBLISHED
+  const handlePublish = async () => {
+    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
+    setPublishingExam(true);
     try {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 15;
-      let y = 20;
-
-      // Header
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
-      doc.text(currentExam.examTitle || "ĐỀ KIỂM TRA", pageWidth / 2, y, {
-        align: "center",
-      });
-      y += 10;
-
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      doc.text(`Mã đề: ${currentExam.examCode || ""}`, pageWidth / 2, y, {
-        align: "center",
-      });
-      y += 6;
-      doc.text(
-        `Môn: ${currentExam.subjectName || ""} - Lớp ${currentExam.gradeLevel || ""}`,
-        pageWidth / 2,
-        y,
-        { align: "center" },
-      );
-      y += 6;
-      doc.text(
-        `Thời gian: ${currentExam.durationMinutes || 45} phút`,
-        pageWidth / 2,
-        y,
-        { align: "center" },
-      );
-      y += 15;
-
-      // Questions
-      doc.setFontSize(11);
-      const questions = currentExam.questions || [];
-
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        const questionNum = i + 1;
-
-        // Check page break
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-
-        // Question text - strip HTML and LaTeX for PDF
-        const cleanText = (q.questionText || "")
-          .replace(/<[^>]*>/g, "")
-          .replace(/\$[^$]*\$/g, "[formula]");
-        doc.setFont(undefined, "bold");
-        const questionLines = doc.splitTextToSize(
-          `Câu ${questionNum}: ${cleanText}`,
-          pageWidth - margin * 2,
-        );
-        doc.text(questionLines, margin, y);
-        y += questionLines.length * 5 + 3;
-
-        // Answers
-        doc.setFont(undefined, "normal");
-        const answers = shuffleAnswers(
-          q.correctAnswer,
-          q.wrongAnswer1,
-          q.wrongAnswer2,
-          q.wrongAnswer3,
-          questionNum,
-        );
-        const labels = ["A", "B", "C", "D"];
-
-        answers.forEach((ans, idx) => {
-          if (ans) {
-            const cleanAns = (ans || "")
-              .replace(/<[^>]*>/g, "")
-              .replace(/\$[^$]*\$/g, "[formula]");
-            const ansLines = doc.splitTextToSize(
-              `${labels[idx]}. ${cleanAns}`,
-              pageWidth - margin * 2 - 10,
-            );
-            doc.text(ansLines, margin + 5, y);
-            y += ansLines.length * 5 + 2;
-          }
-        });
-
-        y += 5;
-      }
-
-      // Save
-      doc.save(`${currentExam.examCode || `exam_${currentExam.id}`}.pdf`);
-      showSuccessToast("Đã tải xuống đề thi");
+      await examService.changeExamStatus(currentExam.id, { newStatus: "PUBLISHED" });
+      showSuccessToast("Đã công bố đề thi thành công! Giờ đây mọi người có thể xem được đề này.");
+      // Refresh exam to get updated status
+      await refreshExam(currentExam.id);
     } catch (e) {
-      console.error(e);
-      showErrorToast("Không thể export đề thi");
+      showErrorToast(e?.response?.data?.message || "Không thể công bố đề thi");
+    } finally {
+      setPublishingExam(false);
     }
   };
+
+  // Download blob from backend export endpoint
+  const downloadBlob = (data, filename) => {
+    const url = window.URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Export PDF without answers (đề thi thường)
+  const handleExportPdf = async () => {
+    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
+    setShowExportMenu(false);
+    setExportingPdf(true);
+    try {
+      const blob = await examService.exportExam(currentExam.id, "pdf");
+      downloadBlob(blob, `${currentExam.examCode || "de-thi"}.pdf`);
+      showSuccessToast("Đã xuất PDF đề thi thành công! Trạng thái đề thi được cập nhật USED.");
+      // After export, status changes to USED — refresh
+      await refreshExam(currentExam.id);
+    } catch (e) {
+      showErrorToast(e?.response?.data?.message || "Xuất PDF thất bại");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // Export PDF with answers (đáp án)
+  const handleExportAnswerKey = async () => {
+    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
+    setShowExportMenu(false);
+    setExportingPdf(true);
+    try {
+      const blob = await examService.exportExam(currentExam.id, "answer-key");
+      downloadBlob(blob, `${currentExam.examCode || "de-thi"}-dap-an.pdf`);
+      showSuccessToast("Đã xuất đáp án PDF thành công!");
+      await refreshExam(currentExam.id);
+    } catch (e) {
+      showErrorToast(e?.response?.data?.message || "Xuất đáp án thất bại");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+
 
   const startEdit = (q) => {
     setEditingId(q.id);
@@ -580,50 +667,112 @@ const ExamGenerator = () => {
             </div>
           </div>
 
-          {chapters.length > 0 && (
-            <div className="row2">
-              <div className="field">
-                <label>Chương</label>
-                <select
-                  value={chapterId}
-                  onChange={(e) => setChapterId(e.target.value)}
+          {/* ── Matrix-based exam type ── */}
+          {isMatrixType ? (
+            <div style={{ marginTop: "1.25rem" }}>
+              <div className="divider" />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                <h3 style={{ margin: 0 }}><LayoutGrid size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />Chọn ma trận đề thi</h3>
+                <a
+                  href="/teacher/matrix-templates"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: "0.85rem", color: "var(--color-accent-1)", display: "flex", alignItems: "center", gap: 4 }}
                 >
-                  {chapters.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      Chương {c.chapterNumber}: {c.chapterName}
-                    </option>
-                  ))}
-                </select>
+                  <ExternalLink size={14} /> Quản lý ma trận
+                </a>
               </div>
-            </div>
-          )}
 
-          <div className="divider" />
-          <h3>Chọn bài học</h3>
-          {!lessons.length ? (
-            <p className="muted">Chưa có bài học</p>
-          ) : (
-            <div className="lesson-grid">
-              {lessons.map((l) => {
-                const id = String(l.id);
-                const checked = selectedLessonIds.includes(id);
-                return (
-                  <label
-                    key={id}
-                    className={`lesson-pill ${checked ? "on" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleLesson(id)}
-                    />
-                    <span>
-                      Bài {l.lessonNumber}: {l.lessonName}
-                    </span>
-                  </label>
-                );
-              })}
+              {loadingMatrices ? (
+                <p className="muted"><RefreshCw size={14} className="spin" /> Đang tải ma trận...</p>
+              ) : matrixTemplates.length === 0 ? (
+                <div className="matrix-empty-notice">
+                  <LayoutGrid size={36} style={{ opacity: 0.35 }} />
+                  <p>Chưa có ma trận nào phù hợp với môn học và khối này.</p>
+                  <a href="/teacher/matrix-templates" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <LayoutGrid size={15} /> Tạo ma trận mới
+                  </a>
+                </div>
+              ) : (
+                <div className="matrix-select-grid">
+                  {matrixTemplates.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`matrix-card ${String(matrixTemplateId) === String(t.id) ? "selected" : ""}`}
+                      onClick={() => { setMatrixTemplateId(String(t.id)); setSelectedMatrix(t); }}
+                    >
+                      <div className="mc-check">{String(matrixTemplateId) === String(t.id) && <Check size={14} />}</div>
+                      <div className="mc-name">{t.templateName}</div>
+                      <div className="mc-meta">
+                        Khối {t.gradeLevel} • {t.totalQuestions} câu • {t.totalPoints} điểm
+                        {t.isDefault && <span className="badge-default">Mặc định</span>}
+                      </div>
+                      {t.details?.length > 0 && (
+                        <div className="mc-levels">
+                          {t.details.map((d) => (
+                            <span key={d.id} className="mc-level-tag">
+                              {d.cognitiveLevelName}: {d.numberOfQuestions}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {matrixTemplates.length > 0 && !matrixTemplateId && (
+                <p style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "0.5rem" }}>⚠️ Vui lòng chọn một ma trận để tiếp tục</p>
+              )}
             </div>
+          ) : (
+            // ── 15-MIN: chapter + lesson selection ──
+            <>
+              {chapters.length > 0 && (
+                <div className="row2">
+                  <div className="field">
+                    <label>Chương</label>
+                    <select
+                      value={chapterId}
+                      onChange={(e) => setChapterId(e.target.value)}
+                    >
+                      {chapters.map((c) => (
+                        <option key={c.id} value={String(c.id)}>
+                          Chương {c.chapterNumber}: {c.chapterName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="divider" />
+              <h3>Chọn bài học</h3>
+              {!lessons.length ? (
+                <p className="muted">Chưa có bài học</p>
+              ) : (
+                <div className="lesson-grid">
+                  {lessons.map((l) => {
+                    const id = String(l.id);
+                    const checked = selectedLessonIds.includes(id);
+                    return (
+                      <label
+                        key={id}
+                        className={`lesson-pill ${checked ? "on" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleLesson(id)}
+                        />
+                        <span>
+                          Bài {l.lessonNumber}: {l.lessonName}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
 
           <div className="actions">
@@ -634,7 +783,59 @@ const ExamGenerator = () => {
         </div>
       )}
 
-      {step === 2 && (
+      {step === 2 && isMatrixType && (
+        <div className="panel glass">
+          <h2><FileText size={20} /> Xác nhận & Tạo đề thi từ ma trận</h2>
+
+          <div className="matrix-summary-box">
+            <div className="summary-row"><span>Tên đề thi:</span><strong>{examTitle}</strong></div>
+            <div className="summary-row"><span>Loại đề:</span><strong>{examType}</strong></div>
+            <div className="summary-row"><span>Môn / Khối:</span><strong>{filteredSubjects.find(s => String(s.id) === String(subjectId))?.subjectName || subjectId} / Khối {gradeLevel}</strong></div>
+            {selectedMatrix && (
+              <>
+                <div className="summary-row"><span>Ma trận:</span><strong>{selectedMatrix.templateName}</strong></div>
+                <div className="summary-row"><span>Tổng số câu:</span><strong>{selectedMatrix.totalQuestions} câu</strong></div>
+                <div className="summary-row"><span>Tổng điểm:</span><strong>{selectedMatrix.totalPoints} điểm</strong></div>
+              </>
+            )}
+          </div>
+
+          {selectedMatrix?.details?.length > 0 && (
+            <>
+              <h3 style={{ marginTop: "1.25rem" }}>Phân bố theo mức độ nhận thức</h3>
+              <table className="summary-table">
+                <thead><tr><th>Mức độ</th><th>Số câu</th><th>Điểm/câu</th><th>Tổng điểm</th></tr></thead>
+                <tbody>
+                  {selectedMatrix.details.map((d, i) => (
+                    <tr key={i}>
+                      <td>{d.cognitiveLevelName}</td>
+                      <td style={{ textAlign: "center" }}>{d.numberOfQuestions}</td>
+                      <td style={{ textAlign: "center" }}>{d.pointsPerQuestion}</td>
+                      <td style={{ textAlign: "center", fontWeight: 700 }}>{Number(d.totalPoints || 0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+
+          <p className="muted" style={{ marginTop: "1rem" }}>
+            Hệ thống sẽ tự động chọn câu hỏi từ ngân hàng theo phân bố của ma trận.
+            Nếu ngân hàng chưa đủ, AI sẽ sinh câu mới.
+          </p>
+
+          <div className="actions space">
+            <button className="btn btn-secondary" onClick={() => setStep(1)} disabled={loadingPreview}>Quay lại</button>
+            <button className="btn btn-primary" onClick={generatePreview} disabled={loadingPreview}>
+              {loadingPreview
+                ? <><RefreshCw size={16} className="spin" /> {loadingMsg || "Đang tạo đề..."}</>
+                : <><Eye size={16} /> Tạo & Xem preview</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && !isMatrixType && (
         <div className="panel glass">
           <h2>
             <FileText size={20} /> Cấu hình đề
@@ -805,9 +1006,20 @@ const ExamGenerator = () => {
               <p className="muted">
                 {previewQuestions.length} câu • Loại: {examType}
                 {currentExam?.examCode ? ` • Mã: ${currentExam.examCode}` : ""}
+                {currentExam?.status && (
+                  <span style={{
+                    marginLeft: 10,
+                    padding: "2px 10px",
+                    borderRadius: 999,
+                    background: currentExam.status === "PUBLISHED" ? "rgba(59,130,246,0.12)" : "rgba(107,114,128,0.12)",
+                    color: currentExam.status === "PUBLISHED" ? "#3b82f6" : "#6b7280",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                  }}>{currentExam.status}</span>
+                )}
               </p>
             </div>
-            <div className="actions">
+            <div className="actions" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
               <label className="toggle-label">
                 <input
                   type="checkbox"
@@ -816,26 +1028,66 @@ const ExamGenerator = () => {
                 />
                 Hiển thị đáp án
               </label>
-              <button className="btn btn-secondary" onClick={() => setStep(2)}>
+              <button className="btn btn-secondary" onClick={() => setStep(isMatrixType ? 2 : 2)}>
                 Chỉnh cấu hình
               </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSaveDraft}
-                disabled={!currentExam?.id}
-              >
-                <Sparkles size={16} /> Lưu draft
-              </button>
-              <button
-                className="btn btn-outline"
-                onClick={() => {
-                  setShowCorrectAnswers(false);
-                  handleExport();
-                }}
-                disabled={!currentExam?.id}
-              >
-                <Download size={16} /> Export
-              </button>
+
+              {/* Publish button */}
+              {currentExam?.status !== "PUBLISHED" ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={handlePublish}
+                  disabled={publishingExam || !currentExam?.id}
+                >
+                  {publishingExam
+                    ? <><RefreshCw size={16} className="spin" /> Đang công bố...</>
+                    : <><Sparkles size={16} /> Công bố</>}
+                </button>
+              ) : (
+                <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "#3b82f6", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
+                  ✓ Đã công bố
+                </span>
+              )}
+
+              {/* Export dropdown */}
+              <div style={{ position: "relative" }}>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setShowExportMenu((v) => !v)}
+                  disabled={exportingPdf || !currentExam?.id}
+                >
+                  {exportingPdf
+                    ? <><RefreshCw size={16} className="spin" /> Đang xuất...</>
+                    : <><Download size={16} /> Export</>}
+                </button>
+                {showExportMenu && (
+                  <div style={{
+                    position: "absolute", right: 0, top: "110%", zIndex: 50,
+                    background: "white", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    minWidth: 220, overflow: "hidden", border: "1px solid rgba(0,0,0,0.07)"
+                  }}>
+                    <button
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "0.85rem 1.2rem", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#1f2937", textAlign: "left" }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                      onClick={handleExportPdf}
+                    >
+                      <Download size={16} color="#6366f1" />
+                      <span><strong>Đề thi</strong><br /><small style={{ color: "#9ca3af" }}>Không có đáp án</small></span>
+                    </button>
+                    <div style={{ height: 1, background: "rgba(0,0,0,0.05)" }} />
+                    <button
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "0.85rem 1.2rem", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#1f2937", textAlign: "left" }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                      onClick={handleExportAnswerKey}
+                    >
+                      <FileText size={16} color="#10b981" />
+                      <span><strong>Đáp án &amp; Đề thi</strong><br /><small style={{ color: "#9ca3af" }}>Kèm đáp án đúng</small></span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1060,6 +1312,29 @@ const ExamGenerator = () => {
         .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
         .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         @media (max-width: 980px) { .row3, .row2 { grid-template-columns: 1fr; } }
+
+        /* Matrix selection */
+        .matrix-select-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; margin-bottom: 0.5rem; }
+        .matrix-card { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.07); cursor: pointer; transition: all 0.18s; position: relative; }
+        .matrix-card:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
+        .matrix-card.selected { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+        .mc-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; }
+        .mc-name { font-weight: 700; margin-bottom: 4px; font-size: 0.95rem; }
+        .mc-meta { font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .mc-levels { display: flex; flex-wrap: wrap; gap: 4px; }
+        .mc-level-tag { padding: 2px 8px; border-radius: 999px; background: rgba(99,102,241,0.1); color: #4338ca; font-size: 0.75rem; font-weight: 600; }
+        .badge-default { padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.1); color: #059669; font-size: 0.72rem; font-weight: 700; }
+        .matrix-empty-notice { padding: 2rem; border-radius: 14px; background: rgba(255,255,255,0.45); border: 1px dashed rgba(0,0,0,0.12); text-align: center; color: var(--color-text-secondary); }
+        .matrix-empty-notice p { margin: 0.75rem 0 1rem; }
+
+        /* Matrix summary */
+        .matrix-summary-box { background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.15); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 0.5rem; }
+        .summary-row { display: flex; gap: 1rem; padding: 0.35rem 0; border-bottom: 1px solid rgba(0,0,0,0.04); font-size: 0.9rem; }
+        .summary-row:last-child { border: none; }
+        .summary-row span { color: var(--color-text-secondary); min-width: 150px; }
+        .summary-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .summary-table th { background: rgba(99,102,241,0.06); padding: 0.5rem 0.75rem; text-align: left; font-size: 0.8rem; color: var(--color-text-secondary); }
+        .summary-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.04); }
 
         .field { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.9rem; }
