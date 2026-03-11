@@ -110,7 +110,8 @@
   backdrop-filter: blur(14px);
   border: 1px solid rgba(255,255,255,0.85);
   border-radius: 16px;
-  overflow: hidden;
+  /* Allow dropdowns to overflow */
+  overflow: visible;
   box-shadow: 0 4px 24px rgba(0,0,0,0.05);
 }
 
@@ -204,14 +205,16 @@
 .em-export-menu {
   position: absolute;
   right: 0;
-  top: 110%;
-  z-index: 100;
+  bottom: 0; /* Align it to bottom initially */
+  top: auto;
+  z-index: 9999;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   min-width: 210px;
   overflow: hidden;
+  transform: translateY(-40px); /* Move it up above the button */
 }
 .em-export-menu button {
   display: flex;

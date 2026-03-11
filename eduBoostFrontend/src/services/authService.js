@@ -200,6 +200,20 @@ export const authService = {
         }
     },
 
+    changePassword: async (oldPassword, newPassword, confirmPassword) => {
+        try {
+            const response = await apiClient.post(`${API.BASE}/auth/change-password`, {
+                oldPassword,
+                newPassword,
+                confirmPassword
+            }, { skipErrorToast: true });
+            return response.data;
+        } catch (error) {
+            console.error('Đổi mật khẩu thất bại', error);
+            throw error;
+        }
+    },
+
     refreshToken: async () => {
         const currentToken = tokenManager.getToken();
 

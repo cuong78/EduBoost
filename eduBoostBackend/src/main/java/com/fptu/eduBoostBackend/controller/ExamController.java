@@ -206,15 +206,6 @@ public class ExamController {
                 .body(content);
     }
 
-    // ==================== Clone ====================
-
-    @PostMapping("/{id}/clone")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @Operation(summary = "Clone exam",
-            description = "Creates a copy of an exam (including all questions) with status DRAFT.")
-    public ResponseEntity<ExamResponse> cloneExam(@PathVariable Long id) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(examService.cloneExam(id));
-    }
 
     // ==================== Statistics ====================
 

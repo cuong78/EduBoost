@@ -44,10 +44,7 @@ public interface ExamService {
     
     // Export (auto-sets status to USED if current status is DRAFT)
     byte[] exportExam(Long examId, String format);
-    
-    // Clone
-    ExamResponse cloneExam(Long examId);
-    
+
     // Statistics
     ExamStatisticsResponse getExamStatistics(Long examId);
     

@@ -236,18 +236,19 @@ const MatrixManagement = () => {
 
   const setDetail = (cognitiveLevelId, field, value) => {
     setForm((f) => {
+      const parsedValue = value === "" ? "" : (Number(value) || 0);
       const newDetails = {
         ...f.details,
         [cognitiveLevelId]: {
           ...(f.details[cognitiveLevelId] || {}),
-          [field]: Number(value) || 0,
+          [field]: parsedValue,
         },
       };
 
       if (field === "numberOfQuestions") {
         let totalQ = 0;
         Object.values(newDetails).forEach((d) => {
-          totalQ += d.numberOfQuestions || 0;
+          totalQ += Number(d.numberOfQuestions) || 0;
         });
 
         if (totalQ > 0) {
@@ -276,7 +277,7 @@ const MatrixManagement = () => {
         ...f.lessonDetails,
         [lessonId]: {
           ...(f.lessonDetails[lessonId] || {}),
-          [cognitiveLevelId]: Number(value) || 0,
+          [cognitiveLevelId]: value === "" ? "" : (Number(value) || 0),
         },
       },
     }));
@@ -309,6 +310,17 @@ const MatrixManagement = () => {
       .filter((d) => d.numberOfQuestions > 0);
 
     if (!details.length) return showErrorToast("Vui lòng nhập ít nhất 1 mức độ nhận thức");
+
+    for (const d of details) {
+      if (d.numberOfQuestions > 0) {
+        const target = d.numberOfQuestions;
+        const current = lessonTotalByCL(d.cognitiveLevelId);
+        if (current !== target) {
+          const clName = cognitiveLevels.find((c) => c.id === d.cognitiveLevelId)?.name || "mức độ tương ứng";
+          return showErrorToast(`Chưa phân bổ đúng số câu cho phần 2 mức "${clName}". Đã phân bổ: ${current}/${target} câu.`);
+        }
+      }
+    }
 
     // Build Part 2 lessonDetails
     const lessonDetails = [];
@@ -623,7 +635,8 @@ const MatrixManagement = () => {
                   </thead>
                   <tbody>
                     {cognitiveLevels.filter((cl) => cl.id).map((cl) => {
-                      const n = Number(form.details[cl.id]?.numberOfQuestions || 0);
+                      const rawN = form.details[cl.id]?.numberOfQuestions;
+                      const n = rawN === undefined ? "" : rawN;
                       const p = Number(form.details[cl.id]?.pointsPerQuestion || 0);
                       return (
                         <tr key={cl.id}>
@@ -635,6 +648,7 @@ const MatrixManagement = () => {
                               value={n}
                               onChange={(e) => setDetail(cl.id, "numberOfQuestions", e.target.value)}
                               className="num-input"
+                              placeholder="0"
                             />
                           </td>
                           <td>
@@ -650,7 +664,7 @@ const MatrixManagement = () => {
                               title="Điểm được tự động chia đều cho 10 điểm"
                             />
                           </td>
-                          <td className="total-cell">{(n * p).toFixed(2)}</td>
+                          <td className="total-cell">{(Number(n) * p).toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -750,15 +764,18 @@ const MatrixManagement = () => {
                                 const target = Number(form.details[cl.id]?.numberOfQuestions || 0);
                                 const current = lessonTotalByCL(cl.id);
                                 const isOver = current > target;
+                                const rawVal = form.lessonDetails[lid]?.[cl.id];
+                                const val = rawVal === undefined ? "" : rawVal;
                                 
                                 return (
                                   <td key={cl.id}>
                                     <input
                                       type="number"
                                       min={0}
-                                      value={form.lessonDetails[lid]?.[cl.id] || 0}
+                                      value={val}
                                       onChange={(e) => setLessonDetail(lid, cl.id, e.target.value)}
                                       className="num-input"
+                                      placeholder="0"
                                       style={isOver ? { borderColor: "#dc3545", color: "#dc3545", outlineColor: "#dc3545", backgroundColor: "#fff5f5" } : {}}
                                     />
                                   </td>

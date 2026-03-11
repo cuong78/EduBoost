@@ -170,14 +170,17 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         if (cognitiveLevelStr != null && !cognitiveLevelStr.trim().isEmpty() && !cognitiveLevels.isEmpty()) {
             String trimmedCogName = cognitiveLevelStr.trim();
             for (CognitiveLevel cl : cognitiveLevels) {
-                if (cl.getLevel() != null && cl.getLevel().equalsIgnoreCase(trimmedCogName)) {
+                if (cl.getLevel() != null && cl.getLevel().trim().equalsIgnoreCase(trimmedCogName)) {
                     mappedCognitiveLevelId = cl.getId();
                     break;
                 }
             }
+            if (mappedCognitiveLevelId == null) {
+                throw new BadRequestException("Mức độ nhận biết không hợp lệ: '" + trimmedCogName + "'. Vui lòng chọn từ danh sách.");
+            }
         }
         
-        // Default to first cognitive level if not matched or missing
+        // Default to first cognitive level only if missing
         if (mappedCognitiveLevelId == null && !cognitiveLevels.isEmpty()) {
             mappedCognitiveLevelId = cognitiveLevels.get(0).getId();
         }
