@@ -5,6 +5,7 @@ import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankImportResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
+import com.fptu.eduBoostBackend.dto.response.TemplateDownloadResponse;
 import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 import com.fptu.eduBoostBackend.service.QuestionBankService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -112,12 +115,19 @@ public class QuestionBankController {
     @GetMapping("/question-bank/template")
     @Operation(summary = "Download Excel template",
             description = "Downloads an Excel template for importing questions")
-    public ResponseEntity<Resource> downloadTemplate() {
+    public ResponseEntity<Resource> downloadTemplate() throws IOException {
+
         log.info("Downloading Excel template");
-        Resource resource = questionBankService.downloadTemplate();
+
+        TemplateDownloadResponse response = questionBankService.downloadTemplate();
+
+        Resource resource = new ByteArrayResource(response.getContent());
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=question-import-template.xlsx")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + response.getFileName())
+                .contentType(MediaType.parseMediaType(response.getContentType()))
+                .contentLength(response.getSize())
                 .body(resource);
     }
 

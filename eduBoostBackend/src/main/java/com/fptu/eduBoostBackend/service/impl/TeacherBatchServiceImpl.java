@@ -37,7 +37,7 @@
     import java.time.format.DateTimeFormatter;
     import java.time.format.DateTimeParseException;
     import java.util.*;
-    import java.time.LocalDate;
+
     import java.time.format.DateTimeFormatter;
     
     @Service
@@ -101,22 +101,17 @@
     
                 // Create header row
                 Row headerRow = sheet.createRow(0);
+
                 for (int i = 0; i < HEADERS.length; i++) {
                     Cell cell = headerRow.createCell(i);
                     cell.setCellValue(HEADERS[i]);
                     cell.setCellStyle(headerStyle);
-    
-                    if (i == COL_PHONE) {
-                        cell.setCellStyle(textStyle);
-                    } else if (i == COL_DATE_OF_BIRTH || i == COL_ENROLLMENT_DATE) {
-                        cell.setCellStyle(dateStyle);
-                    }
                 }
     
                 // Data validation for Gender
                 DataValidationHelper dvHelper = sheet.getDataValidationHelper();
                 DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(
-                        new String[]{"MALE", "FEMALE", "OTHER"}
+                        new String[]{"Nam", "Nữ", "Khác"}
                 );
                 CellRangeAddressList genderRange = new CellRangeAddressList(1, 1000, COL_GENDER, COL_GENDER);
                 DataValidation genderValidation = dvHelper.createValidation(dvConstraint, genderRange);
@@ -124,14 +119,14 @@
                 sheet.addValidationData(genderValidation);
     
                 // Set column widths
-                sheet.setColumnWidth(COL_EMAIL, 32 * 256);
-                sheet.setColumnWidth(COL_FULL_NAME, 40 * 256);
-                sheet.setColumnWidth(COL_PHONE, 18 * 256);
-                sheet.setColumnWidth(COL_DATE_OF_BIRTH, 20 * 256);
+                sheet.setColumnWidth(COL_EMAIL, 30 * 256);
+                sheet.setColumnWidth(COL_FULL_NAME, 35 * 256);
+                sheet.setColumnWidth(COL_PHONE, 15 * 256);
+                sheet.setColumnWidth(COL_DATE_OF_BIRTH, 15 * 256);
                 sheet.setColumnWidth(COL_GENDER, 15 * 256);
                 sheet.setColumnWidth(COL_ADDRESS, 50 * 256);
-                sheet.setColumnWidth(COL_ENROLLMENT_DATE, 24 * 256);
-                sheet.setColumnWidth(COL_PARENT_EMAIL, 32 * 256);
+                sheet.setColumnWidth(COL_ENROLLMENT_DATE, 15 * 256);
+                sheet.setColumnWidth(COL_PARENT_EMAIL, 30 * 256);
     
                 // Add example row
                 Row exampleRow = sheet.createRow(1);
@@ -139,22 +134,26 @@
                 exampleRow.createCell(COL_EMAIL).setCellValue("student1@example.com");
                 exampleRow.createCell(COL_FULL_NAME).setCellValue("Nguyễn Văn A");
     
-                // Phone - as text
-                Cell phoneCell = exampleRow.createCell(COL_PHONE);
-                phoneCell.setCellValue("0987654321");
-                phoneCell.setCellStyle(textStyle);
-    
+
                 // Date of Birth - as date with example
                 Cell dobCell = exampleRow.createCell(COL_DATE_OF_BIRTH);
-                dobCell.setCellValue("01/15/2010"); // String example
+                dobCell.setCellValue(Date.from(
+                        LocalDate.of(2010, 1, 15)
+                                .atStartOfDay(ZoneId.systemDefault())
+                                .toInstant()
+                ));
                 dobCell.setCellStyle(dateStyle);
     
-                exampleRow.createCell(COL_GENDER).setCellValue("MALE");
+                exampleRow.createCell(COL_GENDER).setCellValue("Nam");
                 exampleRow.createCell(COL_ADDRESS).setCellValue("123 Đường ABC, Quận 1");
     
                 // Enrollment Date - as date with example
                 Cell enrollmentCell = exampleRow.createCell(COL_ENROLLMENT_DATE);
-                enrollmentCell.setCellValue("09/01/2024"); // String example
+                enrollmentCell.setCellValue(Date.from(
+                        LocalDate.of(2024, 9, 1)
+                                .atStartOfDay(ZoneId.systemDefault())
+                                .toInstant()
+                ));
                 enrollmentCell.setCellStyle(dateStyle);
     
                 exampleRow.createCell(COL_PARENT_EMAIL).setCellValue("parent1@example.com");
@@ -167,7 +166,10 @@
                     }
     
                     // Phone column
-                    Cell phoneColCell = row.createCell(COL_PHONE);
+                    Cell phoneColCell = row.getCell(COL_PHONE);
+                    if (phoneColCell == null) {
+                        phoneColCell = row.createCell(COL_PHONE);
+                    }
                     phoneColCell.setCellStyle(textStyle);
     
                     // Date columns
@@ -189,6 +191,25 @@
                         .size(outputStream.size())
                         .build();
             }
+        }
+        private Gender mapGender(String gender) {
+
+            if (gender == null || gender.trim().isEmpty()) {
+                throw new BadRequestException("Gender is required");
+            }
+
+            return switch (gender.trim().toUpperCase()) {
+
+                case "NAM", "MALE" -> Gender.MALE;
+
+                case "NỮ", "NU", "FEMALE" -> Gender.FEMALE;
+
+                case "KHÁC", "KHAC", "OTHER" -> Gender.OTHER;
+
+                default -> throw new BadRequestException(
+                        "Invalid gender: " + gender + ". Allowed: Nam, Nữ, Khác"
+                );
+            };
         }
         @Override
         public BatchImportStudentResponse importStudents(MultipartFile file, BatchImportStudentRequest request) throws IOException {
@@ -394,15 +415,8 @@
                 if (genderCell == null) {
                     throw new BadRequestException("Gender is required");
                 }
-                String genderStr = getCellValue(genderCell).trim().toUpperCase();
-                if (genderStr.isEmpty()) {
-                    throw new BadRequestException("Gender is required");
-                }
-                try {
-                    rowData.setGender(Gender.valueOf(genderStr));
-                } catch (IllegalArgumentException e) {
-                    throw new BadRequestException("Invalid gender. Must be MALE, FEMALE, or OTHER");
-                }
+                String genderStr = getCellValue(genderCell);
+                rowData.setGender(mapGender(genderStr));
     
                 // Address (optional)
                 Cell addressCell = row.getCell(COL_ADDRESS);

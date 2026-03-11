@@ -3,8 +3,10 @@ package com.fptu.eduBoostBackend.service.impl;
 import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankImportResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
+import com.fptu.eduBoostBackend.entities.CognitiveLevel;
 import com.fptu.eduBoostBackend.entities.enums.QuestionType;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.service.ExcelImportService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +27,7 @@ import java.util.List;
 public class ExcelImportServiceImpl implements ExcelImportService {
 
     private final LessonRepository lessonRepository;
-
+    private final CognitiveLevelRepository cognitiveLevelRepository;
     @Override
     public QuestionBankImportResponse parseExcelFile(MultipartFile file, Long lessonId) {
         log.info("Parsing Excel file: {}, for lesson: {}", file.getOriginalFilename(), lessonId);
@@ -64,16 +66,24 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 }
 
                 try {
-                    QuestionBankRequest question = parseRow(row, i + 1);
+                    QuestionBankRequest question = parseRow(row, i + 1, lessonId);
                     if (question != null) {
                         totalRows++; // Only count non-empty rows
                         // Convert to response for preview
+                        CognitiveLevel level = cognitiveLevelRepository
+                                .findById(question.getCognitiveLevelId())
+                                .orElse(null);
+
                         QuestionBankResponse response = QuestionBankResponse.builder()
+                                .lessonId(lessonId)
                                 .questionText(question.getQuestionText())
                                 .correctAnswer(question.getCorrectAnswer())
                                 .explanation(question.getExplanation())
                                 .questionType(question.getQuestionType())
                                 .difficultyLevel(question.getDifficultyLevel())
+                                .cognitiveLevelId(level != null ? level.getId() : null)
+                                .cognitiveLevel(level != null ? level.getLevel() : null)
+                                .sourceType(null)
                                 .build();
                         questions.add(response);
                     } else {
@@ -101,21 +111,27 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 .build();
     }
 
-    private QuestionBankRequest parseRow(Row row, int rowNumber) {
-        // Expected columns: Câu hỏi | Câu trả lời | Explanation | Dạng câu hỏi
-        // Index: 0 | 1 | 2 | 3
+    private QuestionBankRequest parseRow(Row row, int rowNumber, Long lessonId) {
+        // Expected columns:
+        // A: Câu hỏi
+        // B: Câu trả lời
+        // C: Giải thích
+        // D: Dạng câu hỏi
+        // E: Mức độ nhận thức
+        // Index: 0 | 1 | 2 | 3 | 4
 
         Cell questionCell = row.getCell(0);
         Cell answerCell = row.getCell(1);
         Cell explanationCell = row.getCell(2);
         Cell typeCell = row.getCell(3);
+        Cell cognitiveCell = row.getCell(4);
 
         // Question text is required
         String questionText = getCellValueAsString(questionCell);
-        
-        // Skip empty rows (return null instead of throwing error)
+
+        // Skip empty rows
         if (questionText == null || questionText.trim().isEmpty()) {
-            return null; // Empty row, skip it
+            return null;
         }
 
         // Answer is required
@@ -127,26 +143,32 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         // Explanation is optional
         String explanation = getCellValueAsString(explanationCell);
 
-        // Question type - default to MULTIPLE_CHOICE if not provided
+        // Question type (default MULTIPLE_CHOICE)
         String typeStr = getCellValueAsString(typeCell);
-        QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
-        if (typeStr != null && !typeStr.trim().isEmpty()) {
-            try {
-                questionType = QuestionType.valueOf(typeStr.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid question type '{}' in row {}, using MULTIPLE_CHOICE", typeStr, rowNumber);
-            }
+        QuestionType questionType = mapQuestionType(typeStr);
+
+        // Cognitive Level (REQUIRED)
+        String cognitiveLevelStr = getCellValueAsString(cognitiveCell);
+        if (cognitiveLevelStr == null || cognitiveLevelStr.trim().isEmpty()) {
+            throw new BadRequestException("Cognitive level is required in column E");
         }
 
+        CognitiveLevel cognitiveLevel = cognitiveLevelRepository
+                .findByLevelIgnoreCase(cognitiveLevelStr.trim())
+                .orElseThrow(() -> new BadRequestException(
+                        "Invalid cognitive level '" + cognitiveLevelStr + "' in column E"));
+
         QuestionBankRequest request = new QuestionBankRequest();
+
+        request.setLessonId(lessonId);
         request.setQuestionText(questionText.trim());
         request.setCorrectAnswer(correctAnswer.trim());
         request.setExplanation(explanation != null ? explanation.trim() : null);
         request.setQuestionType(questionType);
+        request.setCognitiveLevelId(cognitiveLevel.getId());
 
         return request;
     }
-
     private String getCellValueAsString(Cell cell) {
         if (cell == null) {
             return null;
@@ -174,5 +196,16 @@ public class ExcelImportServiceImpl implements ExcelImportService {
             default:
                 return null;
         }
+    }
+    private QuestionType mapQuestionType(String type) {
+
+        if (type == null) return QuestionType.MULTIPLE_CHOICE;
+
+        return switch (type.trim().toUpperCase()) {
+            case "TRẮC NGHIỆM", "MULTIPLE_CHOICE" -> QuestionType.MULTIPLE_CHOICE;
+            case "ĐÚNG/SAI", "TRUE_FALSE" -> QuestionType.TRUE_FALSE;
+            case "ĐIỀN KHUYẾT", "FILL_BLANK" -> QuestionType.FILL_BLANK;
+            default -> throw new BadRequestException("Invalid question type: " + type);
+        };
     }
 }

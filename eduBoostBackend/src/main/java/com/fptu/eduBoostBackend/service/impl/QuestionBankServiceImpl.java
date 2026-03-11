@@ -7,15 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import com.fptu.eduBoostBackend.dto.response.TemplateDownloadResponse;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -196,79 +190,119 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    public Resource downloadTemplate() {
-        log.info("Generating Excel template for question import");
-        
+    public TemplateDownloadResponse downloadTemplate() throws IOException {
+
         try (Workbook workbook = new XSSFWorkbook()) {
+
             Sheet sheet = workbook.createSheet("Question Import Template");
-            
-            // Create header style
+
+            // ===== Column Index =====
+
+            final int COL_QUESTION_TEXT = 0;
+            final int COL_CORRECT_ANSWER = 1;
+            final int COL_EXPLANATION = 2;
+            final int COL_QUESTION_TYPE = 3;
+            final int COL_COGNITIVE_LEVEL = 4;
+
+            // ===== Headers =====
+            String[] HEADERS = {
+                    "Câu hỏi",
+                    "Câu trả lời đúng",
+                    "Giải thích",
+                    "Loại câu hỏi",
+                    "Mức độ nhận thức"
+            };
+
+            // ===== Allowed Values =====
+            String[] QUESTION_TYPES = {
+                    "Trắc nghiệm",
+                    "Đúng/Sai",
+                    "Điền khuyết"
+            };
+
+            String[] COGNITIVE_LEVELS = {
+                    "Nhận biết",
+                    "Thông hiểu",
+                    "Vận dụng",
+                    "Vận dụng cao"
+            };
+
+            // ===== Header Style =====
             CellStyle headerStyle = workbook.createCellStyle();
             Font headerFont = workbook.createFont();
             headerFont.setBold(true);
-            headerFont.setFontHeightInPoints((short) 12);
             headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
-            headerStyle.setBorderTop(BorderStyle.THIN);
-            headerStyle.setBorderLeft(BorderStyle.THIN);
-            headerStyle.setBorderRight(BorderStyle.THIN);
-            
-            // Create header row
+
+            // ===== Create Header Row =====
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Câu hỏi", "Câu trả lời", "Giải thích", "Dạng câu hỏi"};
-            for (int i = 0; i < headers.length; i++) {
+
+            for (int i = 0; i < HEADERS.length; i++) {
                 Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
+                cell.setCellValue(HEADERS[i]);
                 cell.setCellStyle(headerStyle);
             }
-            
-            // Create example style
-            CellStyle exampleStyle = workbook.createCellStyle();
-            exampleStyle.setBorderBottom(BorderStyle.THIN);
-            exampleStyle.setBorderTop(BorderStyle.THIN);
-            exampleStyle.setBorderLeft(BorderStyle.THIN);
-            exampleStyle.setBorderRight(BorderStyle.THIN);
-            exampleStyle.setWrapText(true);
-            
-            // Add example rows
-            String[][] examples = {
-                {"Tìm $x$ sao cho $2x + 5 = 15$", "$x = 5$", "$2x = 15 - 5 = 10$, suy ra $x = 5$", "MULTIPLE_CHOICE"},
-                {"Việt Nam độc lập năm nào?", "1945", "Ngày 2/9/1945, Bác Hồ đọc Tuyên ngôn độc lập", "MULTIPLE_CHOICE"},
-                {"Nước sôi ở 100°C là đúng hay sai?", "Đúng", "Ở áp suất khí quyển tiêu chuẩn", "TRUE_FALSE"},
-                {"Thủ đô của Pháp là ___", "Paris", "", "FILL_BLANK"},
-                {"Cho tam giác ABC với $AB = 3$, $BC = 4$, $AC = 5$. Tính diện tích?", "$S = 6$", "Tam giác vuông tại B, $S = \\frac{1}{2} \\times 3 \\times 4 = 6$", "MULTIPLE_CHOICE"}
-            };
-            
-            for (int i = 0; i < examples.length; i++) {
-                Row row = sheet.createRow(i + 1);
-                for (int j = 0; j < examples[i].length; j++) {
-                    Cell cell = row.createCell(j);
-                    cell.setCellValue(examples[i][j]);
-                    cell.setCellStyle(exampleStyle);
-                }
-            }
-            
-            // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.setColumnWidth(i, 8000); // ~30 characters width
-            }
-            sheet.setColumnWidth(0, 15000); // Wider for question text
-            sheet.setColumnWidth(2, 12000); // Wider for explanation
-            
-            // Write to ByteArrayOutputStream
+
+            // ===== Data Validation =====
+            DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+
+            // Question Type dropdown
+            DataValidationConstraint questionTypeConstraint =
+                    dvHelper.createExplicitListConstraint(QUESTION_TYPES);
+
+            CellRangeAddressList questionTypeRange =
+                    new CellRangeAddressList(1, 1000, COL_QUESTION_TYPE, COL_QUESTION_TYPE);
+
+            DataValidation questionTypeValidation =
+                    dvHelper.createValidation(questionTypeConstraint, questionTypeRange);
+
+            questionTypeValidation.setShowErrorBox(true);
+            sheet.addValidationData(questionTypeValidation);
+
+            // Cognitive Level dropdown
+            DataValidationConstraint cognitiveConstraint =
+                    dvHelper.createExplicitListConstraint(COGNITIVE_LEVELS);
+
+            CellRangeAddressList cognitiveRange =
+                    new CellRangeAddressList(1, 1000, COL_COGNITIVE_LEVEL, COL_COGNITIVE_LEVEL);
+
+            DataValidation cognitiveValidation =
+                    dvHelper.createValidation(cognitiveConstraint, cognitiveRange);
+
+            cognitiveValidation.setShowErrorBox(true);
+            sheet.addValidationData(cognitiveValidation);
+
+            // ===== Column Widths =====
+            sheet.setColumnWidth(COL_QUESTION_TEXT, 60 * 256);
+            sheet.setColumnWidth(COL_CORRECT_ANSWER, 30 * 256);
+            sheet.setColumnWidth(COL_EXPLANATION, 40 * 256);
+            sheet.setColumnWidth(COL_QUESTION_TYPE, 16 * 256);
+            sheet.setColumnWidth(COL_COGNITIVE_LEVEL, 16 * 256);
+
+            // ===== Example Row =====
+            Row exampleRow = sheet.createRow(1);
+
+
+            exampleRow.createCell(COL_QUESTION_TEXT).setCellValue("Tìm x sao cho 2x + 5 = 15");
+            exampleRow.createCell(COL_CORRECT_ANSWER).setCellValue("x = 5");
+            exampleRow.createCell(COL_EXPLANATION).setCellValue("2x = 10 => x = 5");
+            exampleRow.createCell(COL_QUESTION_TYPE).setCellValue("Trắc nghiệm");
+            exampleRow.createCell(COL_COGNITIVE_LEVEL).setCellValue("Vận dụng");
+
+            // ===== Freeze Header =====
+            sheet.createFreezePane(0, 1);
+
+            // ===== Write Workbook =====
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
-            
-            return new ByteArrayResource(outputStream.toByteArray());
-            
-        } catch (IOException e) {
-            log.error("Error generating Excel template", e);
-            throw new RuntimeException("Error generating Excel template: " + e.getMessage());
+
+            return TemplateDownloadResponse.builder()
+                    .fileName("question_import_template.xlsx")
+                    .contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .content(outputStream.toByteArray())
+                    .size(outputStream.size())
+                    .build();
         }
     }
-
     @Override
     @Transactional(readOnly = true)
     public QuestionBankStatsResponse getStats(Long subjectId, Integer gradeLevel) {
