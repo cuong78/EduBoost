@@ -426,10 +426,27 @@ public class TeacherServiceImpl implements TeacherService {
 
         // Check if parent account exists, if not create one
         String parentTemporaryPassword = null;
+        String parentAutoLoginToken = null;
+        Long parentUserId = null;
+
         if (!userRepository.existsByEmail(parentEmail)) {
+
             parentTemporaryPassword = createParentAccountAsync(parentEmail);
-            log.info("Parent account created for email: {}", parentEmail);
+
+            // generate token
+            java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+            byte[] randomBytes = new byte[32];
+            secureRandom.nextBytes(randomBytes);
+            parentAutoLoginToken = java.util.Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(randomBytes);
+
+            User parentUser = userRepository.findByEmail(parentEmail)
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent user not found"));
+
+            parentUserId = parentUser.getUserId();
         }
+//        log.info("Parent account created for email: {}", parentEmail);
 
         // Check if there's an active invitation for this student
         List<StudentInvitation> existingInvitations = studentInvitationRepository.findByStudentAndStatus(
@@ -466,10 +483,24 @@ public class TeacherServiceImpl implements TeacherService {
 
         // Send invitation email asynchronously with credentials if account was just created
         String finalParentPassword = parentTemporaryPassword;
+        String finalParentAutoLoginToken = parentAutoLoginToken;
+        Long finalParentUserId = parentUserId;
+
         CompletableFuture.runAsync(() -> {
             try {
-                // Gửi email với thông tin đăng nhập (nếu có)
-                sendInvitationEmail(parentEmail, savedInvitation, parentEmail, finalParentPassword, null);
+
+                if (finalParentAutoLoginToken != null && finalParentUserId != null) {
+                    oneTimeLoginTokenService.saveTokenByUserId(finalParentAutoLoginToken, finalParentUserId);
+                }
+
+                sendInvitationEmail(
+                        parentEmail,
+                        savedInvitation,
+                        parentEmail,
+                        finalParentPassword,
+                        finalParentAutoLoginToken
+                );
+
             } catch (Exception e) {
                 log.error("Failed to send invitation email to {}: {}", parentEmail, e.getMessage());
             }
