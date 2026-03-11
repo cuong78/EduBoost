@@ -111,17 +111,22 @@ public class TeacherServiceImpl implements TeacherService {
     @Transactional
     public ClassResponse createClass(CreateClassRequest request) {
         Teacher teacher = getCurrentTeacher();
-        
-        if (classRepository.existsByClassCode(request.getClassCode())) {
-            throw new ConflictException("Class code already exists");
+
+        String classCode = request.getClassCode();
+
+        if (classCode == null || classCode.isBlank()) {
+            classCode = generateClassCode(request.getSchoolYear(), request.getClassName());
         }
 
+        if (classRepository.existsByClassCode(classCode)) {
+            classCode = makeClassCodeUnique(classCode);
+        }
         GradeLevel gradeLevel = gradeLevelRepository.findById(request.getGradeLevelId())
                 .orElseThrow(() -> new ResourceNotFoundException("Grade level not found"));
 
         SchoolClass newClass = SchoolClass.builder()
                 .className(request.getClassName())
-                .classCode(request.getClassCode())
+                .classCode(classCode)
                 .gradeLevel(gradeLevel)
                 .teacher(teacher)
                 .schoolYear(request.getSchoolYear())
@@ -145,7 +150,28 @@ public class TeacherServiceImpl implements TeacherService {
                 .studentCount(0)
                 .build();
     }
+    private String generateClassCode(String schoolYear, String className) {
 
+        String normalizedName = className
+                .trim()
+                .toUpperCase()
+                .replaceAll("[^A-Z0-9]", "-")
+                .replaceAll("-+", "-");
+
+        return normalizedName + "-" + schoolYear;
+    }
+    private String makeClassCodeUnique(String baseCode) {
+
+        int counter = 1;
+        String newCode = baseCode;
+
+        while (classRepository.existsByClassCode(newCode)) {
+            newCode = baseCode + "-" + counter;
+            counter++;
+        }
+
+        return newCode;
+    }
     @Override
     @Transactional(readOnly = true)
     public List<StudentResponse> getStudentsByClass(String classId) {

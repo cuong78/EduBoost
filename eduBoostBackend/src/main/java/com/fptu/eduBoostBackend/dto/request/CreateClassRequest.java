@@ -13,7 +13,7 @@ public class CreateClassRequest {
     @Size(max = 100, message = "Class name must not exceed 100 characters")
     private String className;
 
-    @NotBlank(message = "Class code cannot be blank")
+
     @Size(max = 50, message = "Class code must not exceed 50 characters")
     private String classCode;
 
