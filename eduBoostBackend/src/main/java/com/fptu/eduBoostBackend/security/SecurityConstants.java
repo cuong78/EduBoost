@@ -11,7 +11,14 @@ public class SecurityConstants {
             "/api/auth/login",
             "/api/auth/register",
             "/api/parent/validate-invitation",
-            "/api/auth/auto-login"
+            "/api/auth/auto-login",
+            "/api/auth/google-login",
+            "/api/auth/refresh-token",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password" ,
+            "/api/auth/verify"
+
+
     );
 
     public static final String AUTHORIZATION_HEADER = "Authorization";
