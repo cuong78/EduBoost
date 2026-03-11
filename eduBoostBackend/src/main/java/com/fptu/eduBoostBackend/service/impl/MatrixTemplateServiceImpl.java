@@ -58,7 +58,7 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
                     currentUser.getUserId(), examTypeId, subjectId, gradeLevel);
         }
         return templates.stream()
-                .map(this::mapToResponse)
+                .map(this::mapToResponseWithDetails)
                 .collect(Collectors.toList());
     }
 

@@ -10,12 +10,16 @@ import java.util.stream.Collectors;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataValidation;
+import org.apache.poi.ss.usermodel.DataValidationConstraint;
+import org.apache.poi.ss.usermodel.DataValidationHelper;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -217,7 +221,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             
             // Create header row
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Câu hỏi", "Câu trả lời", "Giải thích", "Dạng câu hỏi"};
+            String[] headers = {"Câu hỏi", "Câu trả lời", "Giải thích", "Dạng câu hỏi", "Mức độ nhận biết"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -234,11 +238,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             
             // Add example rows
             String[][] examples = {
-                {"Tìm $x$ sao cho $2x + 5 = 15$", "$x = 5$", "$2x = 15 - 5 = 10$, suy ra $x = 5$", "MULTIPLE_CHOICE"},
-                {"Việt Nam độc lập năm nào?", "1945", "Ngày 2/9/1945, Bác Hồ đọc Tuyên ngôn độc lập", "MULTIPLE_CHOICE"},
-                {"Nước sôi ở 100°C là đúng hay sai?", "Đúng", "Ở áp suất khí quyển tiêu chuẩn", "TRUE_FALSE"},
-                {"Thủ đô của Pháp là ___", "Paris", "", "FILL_BLANK"},
-                {"Cho tam giác ABC với $AB = 3$, $BC = 4$, $AC = 5$. Tính diện tích?", "$S = 6$", "Tam giác vuông tại B, $S = \\frac{1}{2} \\times 3 \\times 4 = 6$", "MULTIPLE_CHOICE"}
+                {"Tìm $x$ sao cho $2x + 5 = 15$", "$x = 5$", "$2x = 15 - 5 = 10$, suy ra $x = 5$", "Trắc nghiệm", "Thông hiểu"},
+                {"Việt Nam độc lập năm nào?", "1945", "Ngày 2/9/1945, Bác Hồ đọc Tuyên ngôn độc lập", "Trắc nghiệm", "Nhận biết"},
+                {"Nước sôi ở 100°C là đúng hay sai?", "Đúng", "Ở áp suất khí quyển tiêu chuẩn", "Đúng/Sai", "Nhận biết"},
+                {"Thủ đô của Pháp là ___", "Paris", "", "Điền khuyết", "Nhận biết"},
+                {"Cho tam giác ABC với $AB = 3$, $BC = 4$, $AC = 5$. Tính diện tích?", "$S = 6$", "Tam giác vuông tại B, $S = \\frac{1}{2} \\times 3 \\times 4 = 6$", "Trắc nghiệm", "Vận dụng"}
             };
             
             for (int i = 0; i < examples.length; i++) {
@@ -256,6 +260,28 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             }
             sheet.setColumnWidth(0, 15000); // Wider for question text
             sheet.setColumnWidth(2, 12000); // Wider for explanation
+            sheet.setColumnWidth(4, 6000); // Mức độ nhận biết
+            
+            // Add Data Validation for 'Dạng câu hỏi'
+            String[] questionTypeNames = {"Trắc nghiệm", "Đúng/Sai", "Điền khuyết"};
+            DataValidationHelper validationHelper = sheet.getDataValidationHelper();
+            CellRangeAddressList typeAddressList = new CellRangeAddressList(1, 1000, 3, 3);
+            DataValidationConstraint typeConstraint = validationHelper.createExplicitListConstraint(questionTypeNames);
+            DataValidation typeValidation = validationHelper.createValidation(typeConstraint, typeAddressList);
+            typeValidation.setShowErrorBox(true);
+            sheet.addValidationData(typeValidation);
+            
+            // Add Data Validation for 'Mức độ nhận biết'
+            List<CognitiveLevel> levels = cognitiveLevelRepository.findAll();
+            String[] cognitiveLevelNames = levels.stream().map(CognitiveLevel::getLevel).toArray(String[]::new);
+            if (cognitiveLevelNames.length > 0) {
+                DataValidationHelper levelValidationHelper = sheet.getDataValidationHelper();
+                CellRangeAddressList addressList = new CellRangeAddressList(1, 1000, 4, 4);
+                DataValidationConstraint constraint = levelValidationHelper.createExplicitListConstraint(cognitiveLevelNames);
+                DataValidation dataValidation = levelValidationHelper.createValidation(constraint, addressList);
+                dataValidation.setShowErrorBox(true);
+                sheet.addValidationData(dataValidation);
+            }
             
             // Write to ByteArrayOutputStream
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

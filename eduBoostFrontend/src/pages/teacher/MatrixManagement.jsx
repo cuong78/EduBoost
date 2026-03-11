@@ -26,6 +26,28 @@ const COGNITIVE_LEVELS_DEFAULT = [
   { id: null, name: "Vận dụng cao", code: "vdc" },
 ];
 
+// Tên môn (keyword match không phân biệt hoa thường) theo nhóm khối
+const SUBJECT_KEYWORDS_BY_GRADE = {
+  // Lớp 6-9: Toán và Khoa học tự nhiên
+  middle: ["toán", "khoa học tự nhiên"],
+  // Lớp 10-12: Toán, Vật lý, Hóa học
+  high: ["toán", "vật lý", "hóa học"],
+};
+
+/** Lọc danh sách môn theo khối lớp */
+const filterSubjectsByGrade = (subjects, grade) => {
+  if (!grade) return subjects;
+  const gradeNum = Number(grade);
+  const keywords =
+    gradeNum >= 6 && gradeNum <= 9
+      ? SUBJECT_KEYWORDS_BY_GRADE.middle
+      : SUBJECT_KEYWORDS_BY_GRADE.high;
+  return subjects.filter((s) => {
+    const name = (s.subjectName || s.description || s.name || "").toLowerCase();
+    return keywords.some((kw) => name.includes(kw));
+  });
+};
+
 // ─── Small helper: format date ───────────────────────────────────────────────
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("vi-VN") : "—";
@@ -50,6 +72,7 @@ const MatrixManagement = () => {
   // Lessons (for Part 2)
   const [chapters, setChapters] = useState([]);
   const [lessons, setLessons] = useState([]);
+  const [loadedLessonsMap, setLoadedLessonsMap] = useState({});
 
   // Modal states
   const [showForm, setShowForm] = useState(false);
@@ -138,6 +161,11 @@ const MatrixManagement = () => {
       .then((d) => {
         const list = Array.isArray(d) ? d : d?.data || [];
         setFormLessons(list);
+        setLoadedLessonsMap((prev) => {
+          const map = { ...prev };
+          list.forEach((l) => { map[l.id] = l; });
+          return map;
+        });
       })
       .catch(() => setFormLessons([]));
   }, [formChapterId]);
@@ -155,6 +183,7 @@ const MatrixManagement = () => {
     setForm(blankForm());
     setFormChapterId("");
     setFormLessons([]);
+    setLoadedLessonsMap({});
     setShowForm(true);
   };
 
@@ -178,11 +207,18 @@ const MatrixManagement = () => {
     // Build lessonDetails map
     const lessonDetailsMap = {};
     const lessonIdSet = new Set();
+    const mapExtracted = {};
     (full.lessonDetails || []).forEach((ld) => {
       if (!lessonDetailsMap[ld.lessonId]) lessonDetailsMap[ld.lessonId] = {};
       lessonDetailsMap[ld.lessonId][ld.cognitiveLevelId] = ld.numberOfQuestions || 0;
       lessonIdSet.add(String(ld.lessonId));
+      mapExtracted[ld.lessonId] = {
+        id: ld.lessonId,
+        lessonNumber: ld.lessonNumber || "",
+        lessonName: ld.lessonName || "",
+      };
     });
+    setLoadedLessonsMap((prev) => ({ ...prev, ...mapExtracted }));
 
     setForm({
       templateName: full.templateName || "",
@@ -199,16 +235,38 @@ const MatrixManagement = () => {
   };
 
   const setDetail = (cognitiveLevelId, field, value) => {
-    setForm((f) => ({
-      ...f,
-      details: {
+    setForm((f) => {
+      const newDetails = {
         ...f.details,
         [cognitiveLevelId]: {
           ...(f.details[cognitiveLevelId] || {}),
           [field]: Number(value) || 0,
         },
-      },
-    }));
+      };
+
+      if (field === "numberOfQuestions") {
+        let totalQ = 0;
+        Object.values(newDetails).forEach((d) => {
+          totalQ += d.numberOfQuestions || 0;
+        });
+
+        if (totalQ > 0) {
+          const pointsPerQ = 10 / totalQ;
+          Object.keys(newDetails).forEach((key) => {
+            newDetails[key].pointsPerQuestion = Number(pointsPerQ.toFixed(4));
+          });
+        } else {
+          Object.keys(newDetails).forEach((key) => {
+            newDetails[key].pointsPerQuestion = 0;
+          });
+        }
+      }
+
+      return {
+        ...f,
+        details: newDetails,
+      };
+    });
   };
 
   const setLessonDetail = (lessonId, cognitiveLevelId, value) => {
@@ -368,15 +426,18 @@ const MatrixManagement = () => {
           />
         </div>
         <div className="filter-group">
-          <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
-            <option value="">Tất cả môn</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.subjectCode} - {s.description || s.subjectName}</option>
-            ))}
-          </select>
-          <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)}>
+          <select value={filterGrade} onChange={(e) => {
+            setFilterGrade(e.target.value);
+            setFilterSubject(""); // Reset subject when grade changes
+          }}>
             <option value="">Tất cả khối</option>
             {GRADE_OPTIONS.map((g) => <option key={g} value={g}>Khối {g}</option>)}
+          </select>
+          <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
+            <option value="">Tất cả môn</option>
+            {filterSubjectsByGrade(subjects, filterGrade).map((s) => (
+              <option key={s.id} value={s.id}>{s.subjectName || s.description || s.name}</option>
+            ))}
           </select>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
             <option value="">Tất cả loại đề</option>
@@ -508,7 +569,10 @@ const MatrixManagement = () => {
                     <label>Khối lớp *</label>
                     <select
                       value={form.gradeLevel}
-                      onChange={(e) => setForm((f) => ({ ...f, gradeLevel: Number(e.target.value) }))}
+                      onChange={(e) => {
+                        const newGrade = Number(e.target.value);
+                        setForm((f) => ({ ...f, gradeLevel: newGrade, subjectId: "" }));
+                      }}
                     >
                       {GRADE_OPTIONS.map((g) => <option key={g} value={g}>Khối {g}</option>)}
                     </select>
@@ -520,8 +584,8 @@ const MatrixManagement = () => {
                       onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
                     >
                       <option value="">-- Chọn môn --</option>
-                      {subjects.map((s) => (
-                        <option key={s.id} value={s.id}>{s.subjectCode} - {s.description || s.subjectName}</option>
+                      {filterSubjectsByGrade(subjects, form.gradeLevel).map((s) => (
+                        <option key={s.id} value={s.id}>{s.subjectName || s.description || s.name}</option>
                       ))}
                     </select>
                   </div>
@@ -577,10 +641,13 @@ const MatrixManagement = () => {
                             <input
                               type="number"
                               min={0}
-                              step={0.05}
-                              value={p}
+                              step={0.01}
+                              value={Number(p.toFixed(2))}
                               onChange={(e) => setDetail(cl.id, "pointsPerQuestion", e.target.value)}
-                              className="num-input"
+                              className="num-input muted"
+                              readOnly
+                              disabled
+                              title="Điểm được tự động chia đều cho 10 điểm"
                             />
                           </td>
                           <td className="total-cell">{(n * p).toFixed(2)}</td>
@@ -643,15 +710,32 @@ const MatrixManagement = () => {
                       <thead>
                         <tr>
                           <th>Bài học</th>
-                          {cognitiveLevels.filter((cl) => cl.id).map((cl) => (
-                            <th key={cl.id}>{cl.level || cl.name}</th>
-                          ))}
+                          {cognitiveLevels.filter((cl) => cl.id).map((cl) => {
+                            const target = Number(form.details[cl.id]?.numberOfQuestions || 0);
+                            const current = lessonTotalByCL(cl.id);
+                            const isOver = current > target;
+                            const isExact = current === target && target > 0;
+                            
+                            let colorStyle = {};
+                            if (isOver) colorStyle = { color: "#dc3545" }; // red
+                            else if (isExact) colorStyle = { color: "#28a745" }; // green
+
+                            return (
+                              <th key={cl.id} style={{ textAlign: "center", verticalAlign: "middle" }}>
+                                <div>{cl.level || cl.name}</div>
+                                <div style={{ fontSize: "0.85em", marginTop: "4px", fontWeight: "normal", ...colorStyle }}>
+                                  (Đã chia: {current}/{target}) {isExact && "✅"}
+                                </div>
+                              </th>
+                            );
+                          })}
                           <th>Tổng</th>
+                          <th>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
                         {form.selectedLessonIds.map((lid) => {
-                          const lessonObj = formLessons.find((l) => String(l.id) === lid);
+                          const lessonObj = loadedLessonsMap[lid] || formLessons.find((l) => String(l.id) === lid);
                           const rowTotal = cognitiveLevels
                             .filter((cl) => cl.id)
                             .reduce((s, cl) => s + Number(form.lessonDetails[lid]?.[cl.id] || 0), 0);
@@ -662,18 +746,35 @@ const MatrixManagement = () => {
                                   ? `Bài ${lessonObj.lessonNumber}: ${lessonObj.lessonName}`
                                   : `Bài ${lid}`}
                               </td>
-                              {cognitiveLevels.filter((cl) => cl.id).map((cl) => (
-                                <td key={cl.id}>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    value={form.lessonDetails[lid]?.[cl.id] || 0}
-                                    onChange={(e) => setLessonDetail(lid, cl.id, e.target.value)}
-                                    className="num-input"
-                                  />
-                                </td>
-                              ))}
+                              {cognitiveLevels.filter((cl) => cl.id).map((cl) => {
+                                const target = Number(form.details[cl.id]?.numberOfQuestions || 0);
+                                const current = lessonTotalByCL(cl.id);
+                                const isOver = current > target;
+                                
+                                return (
+                                  <td key={cl.id}>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={form.lessonDetails[lid]?.[cl.id] || 0}
+                                      onChange={(e) => setLessonDetail(lid, cl.id, e.target.value)}
+                                      className="num-input"
+                                      style={isOver ? { borderColor: "#dc3545", color: "#dc3545", outlineColor: "#dc3545", backgroundColor: "#fff5f5" } : {}}
+                                    />
+                                  </td>
+                                );
+                              })}
                               <td className="total-cell"><strong>{rowTotal}</strong></td>
+                              <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                                <button
+                                  className="btn-icon danger"
+                                  onClick={() => toggleLesson(lid)}
+                                  title="Gỡ bỏ bài học này khỏi ma trận"
+                                  type="button"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </td>
                             </tr>
                           );
                         })}
@@ -688,6 +789,7 @@ const MatrixManagement = () => {
                               {cognitiveLevels.filter((cl) => cl.id).reduce((s, cl) => s + lessonTotalByCL(cl.id), 0)}
                             </strong>
                           </td>
+                          <td></td>
                         </tr>
                       </tbody>
                     </table>
