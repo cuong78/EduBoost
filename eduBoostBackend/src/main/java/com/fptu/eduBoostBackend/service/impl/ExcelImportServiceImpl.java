@@ -6,6 +6,7 @@ import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
 import com.fptu.eduBoostBackend.entities.CognitiveLevel;
 import com.fptu.eduBoostBackend.entities.enums.QuestionType;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
+import com.fptu.eduBoostBackend.entities.CognitiveLevel;
 import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.service.ExcelImportService;
@@ -28,6 +29,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 
     private final LessonRepository lessonRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
+
     @Override
     public QuestionBankImportResponse parseExcelFile(MultipartFile file, Long lessonId) {
         log.info("Parsing Excel file: {}, for lesson: {}", file.getOriginalFilename(), lessonId);
@@ -56,6 +58,8 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 : new HSSFWorkbook(file.getInputStream())) {
 
             Sheet sheet = workbook.getSheetAt(0);
+            
+            List<CognitiveLevel> allCognitiveLevels = cognitiveLevelRepository.findAll();
 
             // Skip header row (row 0)
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -66,9 +70,18 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 }
 
                 try {
-                    QuestionBankRequest question = parseRow(row, i + 1, lessonId);
+                    QuestionBankRequest question = parseRow(row, i + 1, allCognitiveLevels);
                     if (question != null) {
                         totalRows++; // Only count non-empty rows
+                        
+                        String cogLevelName = null;
+                        if (question.getCognitiveLevelId() != null) {
+                            cogLevelName = allCognitiveLevels.stream()
+                                    .filter(c -> c.getId().equals(question.getCognitiveLevelId()))
+                                    .map(CognitiveLevel::getLevel)
+                                    .findFirst().orElse(null);
+                        }
+                        
                         // Convert to response for preview
                         CognitiveLevel level = cognitiveLevelRepository
                                 .findById(question.getCognitiveLevelId())
@@ -81,9 +94,8 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                                 .explanation(question.getExplanation())
                                 .questionType(question.getQuestionType())
                                 .difficultyLevel(question.getDifficultyLevel())
-                                .cognitiveLevelId(level != null ? level.getId() : null)
-                                .cognitiveLevel(level != null ? level.getLevel() : null)
-                                .sourceType(null)
+                                .cognitiveLevelId(question.getCognitiveLevelId())
+                                .cognitiveLevel(cogLevelName)
                                 .build();
                         questions.add(response);
                     } else {
@@ -111,20 +123,15 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 .build();
     }
 
-    private QuestionBankRequest parseRow(Row row, int rowNumber, Long lessonId) {
-        // Expected columns:
-        // A: Câu hỏi
-        // B: Câu trả lời
-        // C: Giải thích
-        // D: Dạng câu hỏi
-        // E: Mức độ nhận thức
+    private QuestionBankRequest parseRow(Row row, int rowNumber, List<CognitiveLevel> cognitiveLevels) {
+        // Expected columns: Câu hỏi | Câu trả lời | Explanation | Dạng câu hỏi | Mức độ nhận biết
         // Index: 0 | 1 | 2 | 3 | 4
 
         Cell questionCell = row.getCell(0);
         Cell answerCell = row.getCell(1);
         Cell explanationCell = row.getCell(2);
         Cell typeCell = row.getCell(3);
-        Cell cognitiveCell = row.getCell(4);
+        Cell cognitiveLevelCell = row.getCell(4);
 
         // Question text is required
         String questionText = getCellValueAsString(questionCell);
@@ -145,18 +152,41 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 
         // Question type (default MULTIPLE_CHOICE)
         String typeStr = getCellValueAsString(typeCell);
-        QuestionType questionType = mapQuestionType(typeStr);
-
-        // Cognitive Level (REQUIRED)
-        String cognitiveLevelStr = getCellValueAsString(cognitiveCell);
-        if (cognitiveLevelStr == null || cognitiveLevelStr.trim().isEmpty()) {
-            throw new BadRequestException("Cognitive level is required in column E");
+        QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
+        if (typeStr != null && !typeStr.trim().isEmpty()) {
+            String tz = typeStr.trim();
+            if (tz.equalsIgnoreCase("Trắc nghiệm") || tz.equalsIgnoreCase("MULTIPLE_CHOICE")) {
+                questionType = QuestionType.MULTIPLE_CHOICE;
+            } else if (tz.equalsIgnoreCase("Đúng/Sai") || tz.equalsIgnoreCase("TRUE_FALSE")) {
+                questionType = QuestionType.TRUE_FALSE;
+            } else if (tz.equalsIgnoreCase("Điền khuyết") || tz.equalsIgnoreCase("FILL_BLANK")) {
+                questionType = QuestionType.FILL_BLANK;
+            } else {
+                try {
+                    questionType = QuestionType.valueOf(tz.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid question type '{}' in row {}, using MULTIPLE_CHOICE", typeStr, rowNumber);
+                }
+            }
         }
 
-        CognitiveLevel cognitiveLevel = cognitiveLevelRepository
-                .findByLevelIgnoreCase(cognitiveLevelStr.trim())
-                .orElseThrow(() -> new BadRequestException(
-                        "Invalid cognitive level '" + cognitiveLevelStr + "' in column E"));
+        // Cognitive level
+        String cognitiveLevelStr = getCellValueAsString(cognitiveLevelCell);
+        Long mappedCognitiveLevelId = null;
+        if (cognitiveLevelStr != null && !cognitiveLevelStr.trim().isEmpty() && !cognitiveLevels.isEmpty()) {
+            String trimmedCogName = cognitiveLevelStr.trim();
+            for (CognitiveLevel cl : cognitiveLevels) {
+                if (cl.getLevel() != null && cl.getLevel().equalsIgnoreCase(trimmedCogName)) {
+                    mappedCognitiveLevelId = cl.getId();
+                    break;
+                }
+            }
+        }
+        
+        // Default to first cognitive level if not matched or missing
+        if (mappedCognitiveLevelId == null && !cognitiveLevels.isEmpty()) {
+            mappedCognitiveLevelId = cognitiveLevels.get(0).getId();
+        }
 
         QuestionBankRequest request = new QuestionBankRequest();
 
@@ -165,7 +195,10 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         request.setCorrectAnswer(correctAnswer.trim());
         request.setExplanation(explanation != null ? explanation.trim() : null);
         request.setQuestionType(questionType);
-        request.setCognitiveLevelId(cognitiveLevel.getId());
+        
+        if (mappedCognitiveLevelId != null) {
+            request.setCognitiveLevelId(mappedCognitiveLevelId);
+        }
 
         return request;
     }

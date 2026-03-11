@@ -6,7 +6,31 @@ import { useAuth } from "../hooks/useAuth";
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, loginWithGoogle, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading, isAuthenticated, user, loading } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated && user && !loading) {
+      const getRoleName = (roles) => {
+        if (!roles || roles.length === 0) return null;
+        const firstRole = roles[0];
+        if (typeof firstRole === "string") return firstRole;
+        if (typeof firstRole === "object" && firstRole.roleName)
+          return firstRole.roleName;
+        return null;
+      };
+
+      const roleName = getRoleName(user.roles);
+      const roleRedirect =
+        roleName === "PARENT"
+          ? "/parent"
+          : roleName === "STUDENT"
+          ? "/student"
+          : roleName === "ADMIN"
+          ? "/admin"
+          : "/teacher";
+      navigate(roleRedirect, { replace: true });
+    }
+  }, [isAuthenticated, user, loading, navigate]);
 
   const [formData, setFormData] = useState({
     username: "",
