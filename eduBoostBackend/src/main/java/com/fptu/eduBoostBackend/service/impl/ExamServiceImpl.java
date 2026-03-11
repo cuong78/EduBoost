@@ -79,7 +79,15 @@ public class ExamServiceImpl implements ExamService {
     @Override
     public Page<ExamResponse> getExams(Long subjectId, Integer gradeLevel, Long examTypeId,
                                         ExamStatus status, Long createdById, Pageable pageable) {
-        Page<Exam> exams = examRepository.findByFilters(subjectId, gradeLevel, examTypeId, status, createdById, pageable);
+        // Security: always scope to current user's exams.
+        // Teachers can only see their own exams via this endpoint.
+        // Published exams of others are accessed through /published endpoint.
+        User currentUser = getCurrentUser();
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        // For non-ADMIN users, ignore createdById param and force to current user
+        Long effectiveCreatedById = isAdmin ? createdById : currentUser.getUserId();
+        Page<Exam> exams = examRepository.findByFilters(subjectId, gradeLevel, examTypeId, status, effectiveCreatedById, pageable);
         return exams.map(this::mapToExamResponse);
     }
 
@@ -87,18 +95,28 @@ public class ExamServiceImpl implements ExamService {
     public ExamResponse getExamById(Long id) {
         Exam exam = examRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
-        
+
+        // Visibility check: non-owner can only see PUBLISHED exams
+        User currentUser = getCurrentUser();
+        boolean isOwner = exam.getCreatedBy() != null &&
+                exam.getCreatedBy().getUserId().equals(currentUser.getUserId());
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isOwner && !isAdmin && exam.getStatus() != ExamStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Exam not found with id: " + id);
+        }
+
         ExamResponse response = mapToExamResponseWithDetails(exam);
-        
+
         // Get questions
         List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(id);
         response.setQuestions(questions.stream().map(this::mapToExamQuestionResponse).collect(Collectors.toList()));
-        
+
         // Count statistics
         response.setQuestionsFromBank(examQuestionRepository.countByExamIdAndSourceFlag(id, ExamQuestionSourceFlag.EXISTING_BANK));
         response.setQuestionsAiGenerated(examQuestionRepository.countByExamIdAndSourceFlag(id, ExamQuestionSourceFlag.AI_GENERATED));
         response.setQuestionsEdited(examQuestionRepository.countByExamIdAndSourceFlag(id, ExamQuestionSourceFlag.TEACHER_EDITED));
-        
+
         return response;
     }
 

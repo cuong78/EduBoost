@@ -35,13 +35,28 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
     private final SubjectRepository subjectRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final LessonRepository lessonRepository;
+    private final ExamRepository examRepository;
 
     @Override
     @Transactional(readOnly = true)
     public List<MatrixTemplateResponse> getMatrixTemplates(Long examTypeId, Long subjectId, Integer gradeLevel) {
         log.info("Fetching matrix templates with filters - examTypeId: {}, subjectId: {}, gradeLevel: {}",
                 examTypeId, subjectId, gradeLevel);
-        List<ExamMatrixTemplate> templates = templateRepository.findByFilters(examTypeId, subjectId, gradeLevel);
+
+        // Scope to current user: own templates + templates used in PUBLISHED exams
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        List<ExamMatrixTemplate> templates;
+        if (isAdmin) {
+            // Admin sees everything
+            templates = templateRepository.findByFilters(examTypeId, subjectId, gradeLevel);
+        } else {
+            templates = templateRepository.findVisibleToUser(
+                    currentUser.getUserId(), examTypeId, subjectId, gradeLevel);
+        }
         return templates.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -55,6 +70,23 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
         if (template == null) {
             throw new ResourceNotFoundException("Matrix template not found with id: " + id);
         }
+
+        // Visibility check: non-owner can only see template if it's used in a PUBLISHED exam
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = template.getCreatedBy() != null &&
+                template.getCreatedBy().getUserId().equals(currentUser.getUserId());
+        if (!isOwner && !isAdmin) {
+            // Check if this template is used in any PUBLISHED exam
+            boolean usedInPublished = examRepository.existsByMatrixTemplateIdAndStatus(
+                    id, com.fptu.eduBoostBackend.entities.enums.ExamStatus.PUBLISHED);
+            if (!usedInPublished) {
+                throw new ResourceNotFoundException("Matrix template not found with id: " + id);
+            }
+        }
+
         return mapToResponseWithDetails(template);
     }
 

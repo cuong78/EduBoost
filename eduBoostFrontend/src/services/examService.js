@@ -128,7 +128,13 @@ export const examService = {
         useMock()
             ? mockResolve(mockExams.find(e => e.id === parseInt(id)) || mockExams[0])
             : apiClient.get(API.EXAM(id)).then((res) => res.data),
-    
+
+    /** Get PUBLISHED exams visible to all teachers (community feed) */
+    getPublishedExams: (params = {}) =>
+        useMock()
+            ? mockResolve(mockExams.filter(e => e.status === "PUBLISHED"))
+            : apiClient.get(`${API.EXAMS}/published`, { params }).then((res) => res.data),
+
     /**
      * Create a new exam
      * @param {Object} data - {

@@ -91,11 +91,18 @@ const TeacherLayout = () => {
             <LayoutGrid size={20} /> Quản lý ma trận
           </Link>
           <Link
+            to="/teacher/exams"
+            className={`nav-item ${location.pathname.startsWith("/teacher/exams") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <FileText size={20} /> Quản lý đề thi
+          </Link>
+          <Link
             to="/teacher/create-exam"
             className={`nav-item ${isActive("/teacher/create-exam") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <FileText size={20} /> Tạo đề thi
+            <PenTool size={20} /> Tạo đề thi
           </Link>
         </nav>
 

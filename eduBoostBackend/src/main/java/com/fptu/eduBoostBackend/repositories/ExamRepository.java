@@ -73,4 +73,8 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
             @Param("subjectId") Long subjectId,
             @Param("gradeLevel") Integer gradeLevel,
             @Param("examTypeId") Long examTypeId);
+    @Query("SELECT COUNT(e) > 0 FROM Exam e WHERE e.matrixTemplate.id = :matrixTemplateId AND e.status = :status")
+    boolean existsByMatrixTemplateIdAndStatus(
+            @Param("matrixTemplateId") Long matrixTemplateId,
+            @Param("status") com.fptu.eduBoostBackend.entities.enums.ExamStatus status);
 }

@@ -10,7 +10,8 @@ import java.util.List;
 
 @Repository
 public interface ExamMatrixTemplateRepository extends JpaRepository<ExamMatrixTemplate, Long> {
-    
+
+    /** Original: returns all matching (used internally for exam creation flow – owner already scoped upstream) */
     @Query("SELECT t FROM ExamMatrixTemplate t " +
            "LEFT JOIN FETCH t.examType " +
            "LEFT JOIN FETCH t.subject " +
@@ -22,15 +23,37 @@ public interface ExamMatrixTemplateRepository extends JpaRepository<ExamMatrixTe
             @Param("examTypeId") Long examTypeId,
             @Param("subjectId") Long subjectId,
             @Param("gradeLevel") Integer gradeLevel);
-    
+
+    /**
+     * Scoped query: returns templates that are either:
+     *   (a) owned by the current user (createdByUserId), OR
+     *   (b) linked to at least one PUBLISHED exam
+     * Used by GET /api/matrix-templates for non-admin callers.
+     */
+    @Query("SELECT DISTINCT t FROM ExamMatrixTemplate t " +
+           "LEFT JOIN FETCH t.examType " +
+           "LEFT JOIN FETCH t.subject " +
+           "WHERE (t.createdBy.userId = :currentUserId " +
+           "       OR EXISTS (SELECT e FROM Exam e WHERE e.matrixTemplate.id = t.id " +
+           "                  AND e.status = com.fptu.eduBoostBackend.entities.enums.ExamStatus.PUBLISHED)) " +
+           "AND (:examTypeId IS NULL OR t.examType.id = :examTypeId) " +
+           "AND (:subjectId IS NULL OR t.subject.id = :subjectId) " +
+           "AND (:gradeLevel IS NULL OR t.gradeLevel = :gradeLevel) " +
+           "ORDER BY t.createdAt DESC")
+    List<ExamMatrixTemplate> findVisibleToUser(
+            @Param("currentUserId") Long currentUserId,
+            @Param("examTypeId") Long examTypeId,
+            @Param("subjectId") Long subjectId,
+            @Param("gradeLevel") Integer gradeLevel);
+
     @Query("SELECT t FROM ExamMatrixTemplate t " +
            "LEFT JOIN FETCH t.examType " +
            "LEFT JOIN FETCH t.subject " +
            "LEFT JOIN FETCH t.createdBy " +
            "WHERE t.id = :id")
     ExamMatrixTemplate findByIdWithDetails(@Param("id") Long id);
-    
+
     List<ExamMatrixTemplate> findBySubjectIdAndGradeLevel(Long subjectId, Integer gradeLevel);
-    
+
     boolean existsByTemplateNameAndSubjectIdAndGradeLevel(String templateName, Long subjectId, Integer gradeLevel);
 }
