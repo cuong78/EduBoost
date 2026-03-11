@@ -8,9 +8,10 @@ public class SecurityConstants {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/api/auth/**",
+            "/api/auth/login",
+            "/api/auth/register",
             "/api/parent/validate-invitation",
-            "/api/admin/**"  // TODO: Remove after fixing role check
+            "/api/auth/auto-login"
     );
 
     public static final String AUTHORIZATION_HEADER = "Authorization";

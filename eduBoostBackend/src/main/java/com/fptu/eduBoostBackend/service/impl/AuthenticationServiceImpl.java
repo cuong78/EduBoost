@@ -2,6 +2,7 @@ package com.fptu.eduBoostBackend.service.impl;
 
 
 import com.fptu.eduBoostBackend.constant.PredefinedRole;
+import com.fptu.eduBoostBackend.dto.request.ChangePasswordRequest;
 import com.fptu.eduBoostBackend.dto.request.LoginRequest;
 import com.fptu.eduBoostBackend.dto.request.UserRegistrationRequest;
 import com.fptu.eduBoostBackend.dto.response.CustomerResponse;
@@ -10,6 +11,7 @@ import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.enums.UserStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
+import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.mapper.UserMapper;
 import com.fptu.eduBoostBackend.repositories.*;
 import com.fptu.eduBoostBackend.service.AuthenticationService;
@@ -380,34 +382,48 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void changeUserPassword(String oldPassword, String newPassword) {
-        // Get current authenticated user
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
+    @Transactional
+    public void changeUserPassword(ChangePasswordRequest request) {
 
-        User user = userRepository
-                .findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        String oldPassword = request.getOldPassword();
+        String newPassword = request.getNewPassword();
+        String confirmPassword = request.getConfirmPassword();
 
-        // Verify old password matches
-        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new BadRequestException("Old password is incorrect");
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BadRequestException("New password and confirm password do not match");
         }
 
-        // Fixed: Use efficient blank string check
-        if (isBlankString(newPassword)) {
-            throw new BadRequestException("New password cannot be empty");
+        User user = getCurrentUser();
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BadRequestException("Old password is incorrect");
         }
 
         if (newPassword.equals(oldPassword)) {
             throw new BadRequestException("New password must be different from old password");
         }
 
-        // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
+
+        user.incrementTokenVersion(); // optional but good security
+
         userRepository.save(user);
     }
 
+    private User getCurrentUser() {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        log.info("Authentication object: {}", authentication);
+        log.info("Authentication name: {}", authentication.getName());
+        log.info("Principal class: {}", authentication.getPrincipal().getClass());
+        log.info("Principal value: {}", authentication.getPrincipal());
+        String username = authentication.getName();
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    }
     @Override
     public User findUserByEmail(String email) {
         return userRepository.findByEmail(email)

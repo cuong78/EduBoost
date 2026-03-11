@@ -1,6 +1,7 @@
 package com.fptu.eduBoostBackend.service;
 
 
+import com.fptu.eduBoostBackend.dto.request.ChangePasswordRequest;
 import com.fptu.eduBoostBackend.dto.request.LoginRequest;
 import com.fptu.eduBoostBackend.dto.request.UserRegistrationRequest;
 import com.fptu.eduBoostBackend.dto.response.CustomerResponse;
@@ -27,9 +28,9 @@ public interface AuthenticationService extends UserDetailsService {
 
     void resetPasswordWithToken(String token, String newPassword);
 
-    void changeUserPassword(String oldPassword, String newPassword);
-    
-    // New methods for controller
+    void changeUserPassword(ChangePasswordRequest request);
+
+        // New methods for controller
     User findUserByEmail(String email);
     
     void logout(User user);
