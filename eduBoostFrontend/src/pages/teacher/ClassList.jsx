@@ -52,8 +52,17 @@ export default function ClassList() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      const newForm = { ...prev, [name]: value };
+      if (name === "className" || name === "schoolYear") {
+        newForm.classCode = (newForm.className || "") + (newForm.schoolYear || "");
+      }
+      return newForm;
+    });
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    if ((name === "className" || name === "schoolYear") && errors.classCode) {
+      setErrors((prev) => ({ ...prev, classCode: "" }));
+    }
   };
 
   const validate = () => {
@@ -149,9 +158,13 @@ export default function ClassList() {
       {showCreateModal && (
         <div
           className="modal-overlay"
-          onClick={() => !submitting && setShowCreateModal(false)}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !submitting) {
+              setShowCreateModal(false);
+            }
+          }}
         >
-          <div className="modal glass" onClick={(e) => e.stopPropagation()}>
+          <div className="modal glass">
             <h3>Tạo lớp mới</h3>
             <form onSubmit={handleCreate} className="auth-form">
               <div className="form-group">
@@ -197,9 +210,10 @@ export default function ClassList() {
                 <input
                   name="classCode"
                   value={form.classCode}
-                  onChange={handleChange}
-                  placeholder="VD: 10A1"
+                  readOnly
+                  placeholder="Tự động tạo (Tên lớp + Năm học)"
                   className={errors.classCode ? "error" : ""}
+                  style={{ opacity: 0.7, cursor: "not-allowed" }}
                 />
                 {errors.classCode && (
                   <span className="error-message">{errors.classCode}</span>
