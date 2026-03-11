@@ -271,7 +271,7 @@ const CreateQuestion = () => {
     } catch (e) {
       showErrorToast(
         "Lỗi lưu câu hỏi: " +
-          (e?.response?.data?.message || e?.message || "Không xác định"),
+        (e?.response?.data?.message || e?.message || "Không xác định"),
       );
     } finally {
       setSavingManual(false);
@@ -309,7 +309,7 @@ const CreateQuestion = () => {
     } catch (e) {
       showErrorToast(
         "Import thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     } finally {
       setImporting(false);
@@ -323,7 +323,7 @@ const CreateQuestion = () => {
     } catch (e) {
       showErrorToast(
         "Tải template thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     }
   };
@@ -374,7 +374,7 @@ const CreateQuestion = () => {
     } catch (e) {
       showErrorToast(
         "Lưu thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     } finally {
       setSavingImported(false);
@@ -430,7 +430,7 @@ const CreateQuestion = () => {
       console.error("AI generate error:", e);
       showErrorToast(
         "AI generate thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     } finally {
       setAiGenerating(false);
@@ -487,7 +487,7 @@ const CreateQuestion = () => {
     } catch (e) {
       showErrorToast(
         "Lưu thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     } finally {
       setSavingAiResource(false);
@@ -545,7 +545,7 @@ const CreateQuestion = () => {
       console.error("AI variation error:", e);
       showErrorToast(
         "AI generate thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     } finally {
       setVariationGenerating(false);
@@ -661,7 +661,7 @@ const CreateQuestion = () => {
     } catch (e) {
       showErrorToast(
         "Lưu thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
     } finally {
       setSavingVariation(false);
@@ -1417,10 +1417,7 @@ const CreateQuestion = () => {
                         </option>
                       ))}
                   </select>
-                  <small className="muted">
-                    Chỉ hiển thị tài nguyên đã được trích xuất nội dung
-                    (PDF/DOCX)
-                  </small>
+
                 </div>
                 <div className="field">
                   <label>Số câu hỏi muốn tạo</label>
@@ -1865,7 +1862,7 @@ const CreateQuestion = () => {
                             {group.variations.map((v, vIdx) => (
                               <div key={vIdx} className="question-card">
                                 {editingGroupIndex === gIdx &&
-                                editingVariationIndex === vIdx ? (
+                                  editingVariationIndex === vIdx ? (
                                   <div className="edit-mode">
                                     <div className="field">
                                       <label>
@@ -2043,8 +2040,8 @@ const CreateQuestion = () => {
                                             newGroups[gIdx].variations[
                                               vIdx
                                             ].cognitiveLevelId = e.target.value
-                                              ? Number(e.target.value)
-                                              : null;
+                                                ? Number(e.target.value)
+                                                : null;
                                             setVariationGroups(newGroups);
                                           }}
                                         >

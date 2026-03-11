@@ -13,6 +13,22 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     const initAuth = async () => {
+      // ── DEV MOCK MODE ──────────────────────────────────────────────
+      // Nếu có MOCK_USER trong localStorage, dùng trực tiếp (không cần BE)
+      const mockUserStr = localStorage.getItem('MOCK_USER');
+      if (mockUserStr) {
+        try {
+          const mockUser = JSON.parse(mockUserStr);
+          if (isMounted) {
+            setUser(mockUser);
+            setIsAuthenticated(true);
+            setLoading(false);
+          }
+          return;
+        } catch (_) { /* invalid JSON, ignore */ }
+      }
+      // ────────────────────────────────────────────────────────────────
+
       try {
         const token = tokenManager.getToken();
 

@@ -131,9 +131,12 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              {/* Parent Authentication */}
-              <Route path="/parent/login" element={<ParentLogin />} />
             </Route>
+          </Route>
+
+          {/* Parent Login - standalone, no AuthLayout wrapper */}
+          <Route element={<RedirectIfAuthenticated />}>
+            <Route path="/parent/login" element={<ParentLogin />} />
           </Route>
 
           {/* Student Dashboard Routes */}

@@ -149,10 +149,20 @@ export default function ClassList() {
       {showCreateModal && (
         <div
           className="modal-overlay"
-          onClick={() => !submitting && setShowCreateModal(false)}
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="modal glass" onClick={(e) => e.stopPropagation()}>
-            <h3>Tạo lớp mới</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Tạo lớp mới</h3>
+              <button
+                type="button"
+                onClick={() => !submitting && setShowCreateModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', color: 'var(--color-text-secondary)', borderRadius: '8px' }}
+                title="Đóng"
+              >
+                ✕
+              </button>
+            </div>
             <form onSubmit={handleCreate} className="auth-form">
               <div className="form-group">
                 <label>
