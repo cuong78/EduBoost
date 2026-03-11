@@ -13,7 +13,7 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
                 [{ 'header': [1, 2, 3, false] }],
                 ['bold', 'italic', 'underline', 'strike'],
                 [{ 'align': [] }],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                 ['image'],
                 ['clean']
             ],
@@ -69,10 +69,13 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
             <style>{`
                 .rich-text-editor .ql-editor {
                     min-height: 200px;
+                    font-size: 1.1rem;
+                    line-height: 1.7;
                 }
                 .rich-text-editor .ql-editor.ql-blank::before {
                     font-style: normal;
                     color: #999;
+                    font-size: 1.1rem;
                 }
             `}</style>
         </div>

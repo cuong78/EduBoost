@@ -38,7 +38,7 @@ const AdminLayout = () => {
 
       <aside className={`sidebar glass-dark ${isSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
-          <Link to="/" className="logo">
+          <Link to="/admin" className="logo">
             <img src={logo} alt="EduBoost" />
             <span style={{ color: "white" }}>EduBoost Admin</span>
           </Link>
