@@ -18,6 +18,10 @@ export const API = {
     TEACHER_INVITATION_REVOKE: (invitationId) => `${BASE_URL}/teacher/invitations/${invitationId}/revoke`,
     TEACHER_INVITATION: (invitationId) => `${BASE_URL}/teacher/invitations/${invitationId}`,
     TEACHER_INVITATION_LOGS: (invitationId) => `${BASE_URL}/teacher/invitations/${invitationId}/logs`,
+
+    // Teacher exam schedules
+    TEACHER_EXAM_SCHEDULES: `${BASE_URL}/teacher/exam-schedules`,
+    TEACHER_EXAM_SCHEDULES_CLASS: (classId) => `${BASE_URL}/teacher/exam-schedules/classes/${classId}`,
     // Parent (public validate uses BASE)
     PARENT_VALIDATE_INVITATION: `${BASE_URL}/parent/validate-invitation`,
     PARENT_LINK_STUDENT: `${BASE_URL}/parent/link-student`,
@@ -85,4 +89,11 @@ export const API = {
     EXAM_STATISTICS: (id) => `${BASE_URL}/exams/${id}/statistics`,
     MY_EXAMS: `${BASE_URL}/exams/my-exams`,
     EXAMS_PUBLISHED: `${BASE_URL}/exams/published`,
+
+    // Student exam attempts (online taking)
+    STUDENT_EXAM_ATTEMPT_START: `${BASE_URL}/student/exam-attempts/start`,
+    STUDENT_EXAM_ATTEMPT_STATE: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}`,
+    STUDENT_EXAM_ATTEMPT_AUTO_SAVE: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/auto-save`,
+    STUDENT_EXAM_ATTEMPT_SUBMIT: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/submit`,
+    STUDENT_EXAM_ATTEMPT_HEARTBEAT: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/heartbeat`,
 };

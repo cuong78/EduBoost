@@ -48,6 +48,7 @@ import ClassStudents from "./pages/teacher/ClassStudents";
 import CreateStudent from "./pages/teacher/CreateStudent";
 import StudentDetail from "./pages/teacher/StudentDetail";
 import StudentInvitations from "./pages/teacher/StudentInvitations";
+import ClassExamSchedules from "./pages/teacher/ClassExamSchedules";
 import EditStudent from "./pages/teacher/EditStudent";
 import MatrixManagement from "./pages/teacher/MatrixManagement";
 import LinkStudent from "./pages/parent/LinkStudent";
@@ -157,6 +158,10 @@ function App() {
               <Route
                 path="classes/:classId/students"
                 element={<ClassStudents />}
+              />
+              <Route
+                path="classes/:classId/exam-schedules"
+                element={<ClassExamSchedules />}
               />
               <Route path="students/new" element={<CreateStudent />} />
               <Route path="students/:studentId" element={<StudentDetail />} />

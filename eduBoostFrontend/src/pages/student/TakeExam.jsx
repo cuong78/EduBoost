@@ -9,72 +9,36 @@ import {
     AlertCircle,
     XCircle
 } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { examService } from '../../services/examService';
+import { showErrorToast, showSuccessToast } from '../../utils/show-toast';
 
 const TakeExam = () => {
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
 
-    // Exam Configuration (would normally come from API)
-    const examConfig = {
-        title: "Kiểm tra giữa kỳ Giải tích 1",
-        password: "123",
-        durationMinutes: 45,
-        isMultipleChoice: true,
-        showScore: true,
-        questions: [
-            { id: 1, text: "Tính đạo hàm của f(x) = x² + 3x.", options: ["2x + 3", "x + 3", "2x", "x² + 3"], correct: "2x + 3" },
-            { id: 2, text: "Ai là người phát triển thuyết tương đối?", options: ["Isaac Newton", "Albert Einstein", "Nikola Tesla", "Marie Curie"], correct: "Albert Einstein" },
-            { id: 3, text: "Thủ đô của Việt Nam là gì?", options: ["TP. Hồ Chí Minh", "Đà Nẵng", "Hà Nội", "Huế"], correct: "Hà Nội" },
-            { id: 4, text: "Nguyên tố nào có ký hiệu hóa học là 'O'?", options: ["Vàng", "Oxy", "Osmium", "Olive"], correct: "Oxy" },
-            { id: 5, text: "Tìm x: 2x - 4 = 10", options: ["5", "7", "3", "8"], correct: "7" }
-        ]
-    };
+    // Server-driven exam configuration & attempt info
+    const [loading, setLoading] = useState(true);
+    const [attemptCode, setAttemptCode] = useState(null);
+    const [activeTabToken, setActiveTabToken] = useState(null);
+    const [examTitle, setExamTitle] = useState('');
+    const [durationMinutes, setDurationMinutes] = useState(45);
+    const [questions, setQuestions] = useState([]);
 
     // State
-    const [hasAccess, setHasAccess] = useState(false);
-    const [passwordInput, setPasswordInput] = useState("");
-    const [passwordError, setPasswordError] = useState("");
-
     const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(examConfig.durationMinutes * 60);
+    const [timeLeft, setTimeLeft] = useState(0);
     const [answers, setAnswers] = useState({});
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [showWarning, setShowWarning] = useState(false);
+    const [takeover, setTakeover] = useState(false);
 
-    // Derived State
-    const questions = examConfig.questions;
+    const lastSavedVersionRef = useRef(null);
+    const autosaveTimerRef = useRef(null);
+    const heartbeatTimerRef = useRef(null);
+    const broadcastRef = useRef(null);
 
-    // Timer Logic
-    useEffect(() => {
-        if (!hasAccess || isSubmitted || timeLeft <= 0) return;
-
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    handleSubmit(true); // Auto-submit
-                    return 0;
-                }
-                // Warning logic (e.g., last 5 minutes)
-                if (prev === 5 * 60) {
-                    setShowWarning(true);
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [hasAccess, isSubmitted, timeLeft]);
-
-    const handlePasswordSubmit = (e) => {
-        e.preventDefault();
-        if (passwordInput === examConfig.password) {
-            setHasAccess(true);
-            setPasswordError("");
-        } else {
-            setPasswordError("Mật khẩu không đúng. Vui lòng thử lại.");
-        }
-    };
+    // ===== Helpers =====
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -88,121 +52,201 @@ const TakeExam = () => {
     };
 
     const handleSelect = (option) => {
-        if (isSubmitted) return;
-        setAnswers({ ...answers, [currentQuestion]: option });
+        if (isSubmitted || takeover) return;
+        setAnswers((prev) => ({
+            ...prev,
+            [currentQuestion]: option,
+        }));
     };
 
     const handleSubmit = (auto = false) => {
-        if (auto || window.confirm("Bạn có chắc chắn muốn nộp bài không?")) {
-            setIsSubmitted(true);
-            setShowWarning(false);
-            if (auto) alert("Hết giờ! Hệ thống đã tự động nộp bài của bạn.");
-        }
+        if (isSubmitted || !attemptCode || !activeTabToken) return;
+
+        if (!auto && !window.confirm("Bạn có chắc chắn muốn nộp bài không?")) return;
+
+        examService
+            .submitExamAttempt(attemptCode, { activeTabToken })
+            .then((res) => {
+                setIsSubmitted(true);
+                setShowWarning(false);
+                showSuccessToast("Đã nộp bài thành công");
+                // server already graded, but we keep local result UI simple
+            })
+            .catch((err) => {
+                const status = err?.response?.status;
+                if (status === 403) {
+                    setTakeover(true);
+                } else {
+                    showErrorToast(err?.response?.data?.message || 'Không thể nộp bài');
+                }
+            });
     };
 
     const calculateScore = () => {
-        let correctCount = 0;
-        questions.forEach(q => {
-            if (answers[questions.indexOf(q)] === q.correct) {
-                correctCount++;
-            }
-        });
-        const score = (correctCount / questions.length) * 10;
+        // This is only used for local display; server grading is authoritative
+        const total = questions.length || 1;
+        const correctCount = 0;
+        const score = 0;
         return { correctCount, score };
     };
 
-    // Password Screen
-    if (!hasAccess) {
+    // ===== Load exam attempt on mount =====
+    useEffect(() => {
+        if (!id) return;
+
+        let cancelled = false;
+        async function init() {
+            setLoading(true);
+            try {
+                const scheduleIdParam = searchParams.get('scheduleId');
+                const scheduleId = scheduleIdParam ? Number(scheduleIdParam) : undefined;
+                const res = await examService.startExamAttempt(Number(id), scheduleId);
+                if (cancelled) return;
+
+                setAttemptCode(res.attemptCode);
+                setActiveTabToken(res.activeTabToken);
+                setExamTitle(res.examTitle);
+                setDurationMinutes(res.durationMinutes || 45);
+                setQuestions(res.questions || []);
+                setCurrentQuestion(res.currentQuestionIndex || 0);
+                setTimeLeft(res.remainingSeconds ?? (res.durationMinutes || 45) * 60);
+                lastSavedVersionRef.current = res.serverVersion || null;
+
+                // Setup cross-tab communication
+                if ('BroadcastChannel' in window) {
+                    const channel = new BroadcastChannel(`exam_attempt_${res.attemptCode}`);
+                    channel.onmessage = (event) => {
+                        if (event.data === 'TAKEOVER') {
+                            setTakeover(true);
+                        }
+                    };
+                    broadcastRef.current = channel;
+                } else {
+                    const key = `exam_attempt_active_${res.attemptCode}`;
+                    window.addEventListener('storage', (e) => {
+                        if (e.key === key && e.newValue === 'TAKEOVER') {
+                            setTakeover(true);
+                        }
+                    });
+                }
+            } catch (err) {
+                showErrorToast(err?.response?.data?.message || 'Không thể tải bài thi');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        init();
+
+        return () => {
+            cancelled = true;
+            if (autosaveTimerRef.current) clearInterval(autosaveTimerRef.current);
+            if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
+            if (broadcastRef.current) broadcastRef.current.close();
+        };
+    }, [id]);
+
+    // ===== Timer Logic =====
+    useEffect(() => {
+        if (!attemptCode || isSubmitted || takeover || timeLeft <= 0) return;
+
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    handleSubmit(true); // Auto-submit
+                    return 0;
+                }
+                if (prev === 5 * 60) {
+                    setShowWarning(true);
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [attemptCode, isSubmitted, takeover, timeLeft]);
+
+    // ===== Auto-save every 45s =====
+    useEffect(() => {
+        if (!attemptCode || !activeTabToken || isSubmitted || takeover) return;
+
+        const interval = setInterval(() => {
+            const payload = {
+                activeTabToken,
+                currentQuestionIndex: currentQuestion,
+                clientVersion: lastSavedVersionRef.current,
+                answers: (questions || []).map((q, index) => ({
+                    examQuestionId: q.examQuestionId,
+                    selectedOption: answers[index] ?? null,
+                    textAnswer: null,
+                    flagged: false,
+                })),
+            };
+
+            examService
+                .autoSaveExamAttempt(attemptCode, payload)
+                .then((res) => {
+                    lastSavedVersionRef.current = res.serverVersion || null;
+                })
+                .catch((err) => {
+                    const status = err?.response?.status;
+                    if (status === 403) {
+                        setTakeover(true);
+                    }
+                });
+        }, 45000); // 45s
+
+        autosaveTimerRef.current = interval;
+        return () => clearInterval(interval);
+    }, [attemptCode, activeTabToken, currentQuestion, answers, questions, isSubmitted, takeover]);
+
+    // ===== Heartbeat every 25s =====
+    useEffect(() => {
+        if (!attemptCode || !activeTabToken || isSubmitted || takeover) return;
+
+        const interval = setInterval(() => {
+            examService
+                .heartbeatExamAttempt(attemptCode, { activeTabToken })
+                .catch((err) => {
+                    const status = err?.response?.status;
+                    if (status === 403) {
+                        setTakeover(true);
+                    }
+                });
+        }, 25000);
+
+        heartbeatTimerRef.current = interval;
+        return () => clearInterval(interval);
+    }, [attemptCode, activeTabToken, isSubmitted, takeover]);
+
+    if (loading) {
         return (
             <div className="exam-auth-container">
                 <div className="auth-card glass">
                     <div className="auth-icon-wrapper">
                         <Lock size={48} />
                     </div>
-                    <h2>Bảo mật bài thi</h2>
-                    <p>Bài thi "<strong>{examConfig.title}</strong>" yêu cầu mật khẩu để truy cập.</p>
-
-                    <form onSubmit={handlePasswordSubmit} className="auth-form">
-                        <input
-                            type="password"
-                            placeholder="Nhập mật khẩu bài thi..."
-                            value={passwordInput}
-                            onChange={(e) => setPasswordInput(e.target.value)}
-                            className="auth-input"
-                            autoFocus
-                        />
-                        {passwordError && (
-                            <div className="error-message">
-                                <AlertCircle size={16} /> {passwordError}
-                            </div>
-                        )}
-                        <button type="submit" className="btn btn-primary full-width">
-                            Bắt đầu làm bài
-                        </button>
-                    </form>
+                    <h2>Đang tải bài thi...</h2>
+                    <p>Vui lòng chờ trong giây lát.</p>
                 </div>
-                <style>{`
-                    .exam-auth-container {
-                        min-height: 80vh;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 1rem;
-                    }
-                    .auth-card {
-                        max-width: 450px;
-                        width: 100%;
-                        padding: 1.5rem;
-                        border-radius: 1.5rem;
-                        text-align: center;
-                        background: rgba(255, 255, 255, 0.8);
-                    }
-                    @media (min-width: 640px) {
-                        .auth-card { padding: 3rem; }
-                    }
-                    .auth-icon-wrapper {
-                        width: 80px;
-                        height: 80px;
-                        background: #e0e7ff;
-                        color: #4338ca;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        margin: 0 auto 1.5rem;
-                    }
-                    .auth-card h2 {
-                        margin-bottom: 0.5rem;
-                        font-size: 1.5rem;
-                    }
-                    .auth-card p {
-                        color: var(--color-text-secondary);
-                        margin-bottom: 2rem;
-                    }
-                    .auth-input {
-                        width: 100%;
-                        padding: 1rem;
-                        border-radius: 0.75rem;
-                        border: 1px solid #e5e7eb;
-                        margin-bottom: 1rem;
-                        font-size: 1rem;
-                        outline: none;
-                        transition: border-color 0.2s;
-                    }
-                    .auth-input:focus {
-                        border-color: var(--color-accent-1);
-                    }
-                    .error-message {
-                        color: #ef4444;
-                        font-size: 0.875rem;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 0.5rem;
-                        margin-bottom: 1rem;
-                    }
-                    .full-width { width: 100%; }
-                `}</style>
+            </div>
+        );
+    }
+
+    if (takeover) {
+        return (
+            <div className="exam-auth-container">
+                <div className="auth-card glass">
+                    <div className="auth-icon-wrapper">
+                        <AlertCircle size={48} />
+                    </div>
+                    <h2>Phiên làm bài đã chuyển sang tab khác</h2>
+                    <p>Bạn không thể tiếp tục làm bài trên tab này. Vui lòng quay lại tab đang hoạt động.</p>
+                    <Link to="/student/exams" className="btn btn-primary full-width">
+                        Quay lại danh sách
+                    </Link>
+                </div>
             </div>
         );
     }
@@ -222,15 +266,15 @@ const TakeExam = () => {
                     <h2>Đã nộp bài thành công!</h2>
                     <p className="subtitle">Hệ thống đã ghi nhận câu trả lời của bạn.</p>
 
-                    {examConfig.showScore && (
+                    {true && (
                         <div className="score-box">
                             <div className="score-item">
-                                <span className="label">Số câu đúng</span>
+                                <span className="label">Số câu đúng (demo)</span>
                                 <span className="value">{correctCount}/{questions.length}</span>
                             </div>
                             <div className="score-divider"></div>
                             <div className="score-item">
-                                <span className="label">Điểm số</span>
+                                <span className="label">Điểm số (demo)</span>
                                 <span className={`value ${isPass ? 'text-green' : 'text-red'}`}>{score.toFixed(1)}</span>
                             </div>
                         </div>
@@ -344,9 +388,9 @@ const TakeExam = () => {
             {/* Header */}
             <header className="exam-header-bar glass">
                 <div className="exam-info">
-                    <h1>{examConfig.title}</h1>
+                    <h1>{examTitle}</h1>
                     <div className="progress-text">
-                        Câu {currentQuestion + 1} / {questions.length}
+                        Câu {currentQuestion + 1} / {questions.length || 0}
                     </div>
                 </div>
                 <div className={`timer-display ${timeLeft < 300 ? 'timer-warning' : 'timer-normal'}`}>
@@ -359,14 +403,14 @@ const TakeExam = () => {
                 {/* Main Question Area */}
                 <main className="question-area glass">
                     <div className="question-header">
-                        <span className="question-number">Câu hỏi {questions[currentQuestion].id}</span>
+                        <span className="question-number">Câu hỏi {questions[currentQuestion]?.orderNumber}</span>
                         <h2 className="question-text">
-                            {questions[currentQuestion].text}
+                            {questions[currentQuestion]?.questionText}
                         </h2>
                     </div>
 
                     <div className="options-list">
-                        {questions[currentQuestion].options.map((option, idx) => (
+                        {questions[currentQuestion]?.options?.map((option, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => handleSelect(option)}

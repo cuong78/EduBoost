@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { Plus, Users, Loader2, ChevronRight, Mail, Pencil, Trash2, User, Upload, Download, X } from 'lucide-react';
+import { Plus, Users, Loader2, ChevronRight, Mail, Pencil, Trash2, User, Upload, Download, X, Calendar } from 'lucide-react';
 import { teacherService } from '../../services/teacherService';
 import { showErrorToast, showSuccessToast } from '../../utils/show-toast';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -121,6 +121,12 @@ export default function ClassStudents() {
                     <p>{students.length} học sinh trong lớp</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
+                    <Link
+                        to={`/teacher/classes/${classId}/exam-schedules`}
+                        className="btn btn-outline"
+                    >
+                        <Calendar size={18} /> Lịch thi
+                    </Link>
                     <button
                         type="button"
                         className="btn btn-download"

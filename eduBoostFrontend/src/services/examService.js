@@ -386,4 +386,65 @@ export const examService = {
         useMock()
             ? mockResolve([])
             : apiClient.get(API.EXAMS_PUBLISHED, { params }).then((res) => res.data),
+
+    // ==================== Student Exam Attempts (Online Taking) ====================
+
+    /**
+     * Start or resume an exam attempt for the current student.
+     * @param {number} examId
+     * @param {number} [scheduleId] - optional exam schedule id to enforce start window
+     */
+    startExamAttempt: (examId, scheduleId) => {
+        const payload = scheduleId ? { examId, scheduleId } : { examId };
+        return apiClient
+            .post(API.STUDENT_EXAM_ATTEMPT_START, payload)
+            .then((res) => res.data);
+    },
+
+    /**
+     * Get full state of an existing exam attempt by attemptCode.
+     * Useful for reload / resume flows.
+     * @param {string} attemptCode
+     */
+    getExamAttemptState: (attemptCode) =>
+        apiClient
+            .get(API.STUDENT_EXAM_ATTEMPT_STATE(attemptCode))
+            .then((res) => res.data),
+
+    /**
+     * Auto-save answers for an exam attempt.
+     * @param {string} attemptCode
+     * @param {object} payload - { activeTabToken, currentQuestionIndex, clientVersion, answers: [{ examQuestionId, selectedOption, textAnswer, flagged }] }
+     */
+    autoSaveExamAttempt: (attemptCode, payload) =>
+        apiClient
+            .post(API.STUDENT_EXAM_ATTEMPT_AUTO_SAVE(attemptCode), payload, {
+                // skip auto error toast, let caller handle specific lock/takeover messages
+                skipErrorToast: true,
+            })
+            .then((res) => res.data),
+
+    /**
+     * Submit an exam attempt.
+     * @param {string} attemptCode
+     * @param {object} payload - { activeTabToken }
+     */
+    submitExamAttempt: (attemptCode, payload) =>
+        apiClient
+            .post(API.STUDENT_EXAM_ATTEMPT_SUBMIT(attemptCode), payload, {
+                skipErrorToast: true,
+            })
+            .then((res) => res.data),
+
+    /**
+     * Heartbeat to keep session active and detect multi-tab takeover.
+     * @param {string} attemptCode
+     * @param {object} payload - { activeTabToken }
+     */
+    heartbeatExamAttempt: (attemptCode, payload) =>
+        apiClient
+            .post(API.STUDENT_EXAM_ATTEMPT_HEARTBEAT(attemptCode), payload, {
+                skipErrorToast: true,
+            })
+            .then((res) => res.data),
 };

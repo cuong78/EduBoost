@@ -167,4 +167,16 @@ export const teacherService = {
             URL.revokeObjectURL(link.href);
         });
     },
+
+    // ============== Exam Schedules ==============
+
+    getClassExamSchedules: (classId, params = {}) =>
+        apiClient
+            .get(API.TEACHER_EXAM_SCHEDULES_CLASS(classId), { params })
+            .then((res) => res.data?.data ?? res.data),
+
+    createExamSchedule: (body) =>
+        apiClient
+            .post(API.TEACHER_EXAM_SCHEDULES, body)
+            .then((res) => res.data?.data ?? res.data),
 };
