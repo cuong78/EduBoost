@@ -800,57 +800,6 @@ public class ExamServiceImpl implements ExamService {
 
 
     @Override
-    public ExamResponse cloneExam(Long examId) {
-        Exam original = examRepository.findByIdWithDetails(examId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
-        User currentUser = getCurrentUser();
-        
-        // Create new exam
-        Exam clone = Exam.builder()
-                .examCode(generateExamCode(original.getSubject().getSubjectCode(), original.getGradeLevel()))
-                .examTitle(original.getExamTitle() + " (Copy)")
-                .examType(original.getExamType())
-                .subject(original.getSubject())
-                .gradeLevel(original.getGradeLevel())
-                .chapter(original.getChapter())
-                .semester(original.getSemester())
-                .schoolYear(original.getSchoolYear())
-                .matrixTemplate(original.getMatrixTemplate())
-                .totalQuestions(original.getTotalQuestions())
-                .totalPoints(original.getTotalPoints())
-                .createdBy(currentUser)
-                .status(ExamStatus.DRAFT)
-                .build();
-        
-        clone = examRepository.save(clone);
-        
-        // Clone questions
-        List<ExamQuestion> originalQuestions = examQuestionRepository.findByExamIdOrdered(examId);
-        for (ExamQuestion oq : originalQuestions) {
-            ExamQuestion clonedQ = ExamQuestion.builder()
-                    .exam(clone)
-                    .question(oq.getQuestion())
-                    .orderNumber(oq.getOrderNumber())
-                    .points(oq.getPoints())
-                    .sourceFlag(oq.getSourceFlag())
-                    .questionText(oq.getQuestionText())
-                    .correctAnswer(oq.getCorrectAnswer())
-                    .explanation(oq.getExplanation())
-                    .wrongAnswer1(oq.getWrongAnswer1())
-                    .wrongAnswer2(oq.getWrongAnswer2())
-                    .wrongAnswer3(oq.getWrongAnswer3())
-                    .isModified(false)
-                    .build();
-            examQuestionRepository.save(clonedQ);
-        }
-        
-        log.info("Cloned exam {} to {} by user: {}", original.getExamCode(), clone.getExamCode(), currentUser.getUsername());
-        
-        return mapToExamResponse(clone);
-    }
-
-    @Override
     public ExamStatisticsResponse getExamStatistics(Long examId) {
         Exam exam = examRepository.findByIdWithDetails(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -1029,7 +978,7 @@ public class ExamServiceImpl implements ExamService {
     private void validateStatusTransition(ExamStatus current, ExamStatus newStatus) {
         // New simplified transitions: DRAFT/USED -> PUBLISHED, PUBLISHED -> DRAFT (unpublish)
         boolean valid = switch (current) {
-            case DRAFT -> newStatus == ExamStatus.PUBLISHED;
+            case DRAFT -> newStatus == ExamStatus.PUBLISHED || newStatus == ExamStatus.USED;
             case USED -> newStatus == ExamStatus.PUBLISHED;
             case PUBLISHED -> newStatus == ExamStatus.DRAFT || newStatus == ExamStatus.USED;
         };
@@ -1121,71 +1070,15 @@ public class ExamServiceImpl implements ExamService {
             if (exam.getStatus() == ExamStatus.DRAFT) {
                 exam.setStatus(ExamStatus.USED);
                 examRepository.save(exam);
-                log.info("Exam {} status changed to USED after export", exam.getExamCode());
+                log.info("Exam {} status changed to USED after export signaling from frontend", exam.getExamCode());
             }
 
-            boolean showAnswer = "answer-key".equalsIgnoreCase(format);
-
-            List<ExamQuestion> questions = examQuestionRepository.findByExamIdOrdered(examId);
-            log.info("Export exam {} - question count: {}", examId, questions.size());
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PdfWriter writer = new PdfWriter(baos);
-            PdfDocument pdf = new PdfDocument(writer);
-            Document document = new Document(pdf);
-
-            ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
-            FontProgram fontProgram;
-            try (InputStream fontStream = fontResource.getInputStream()) {
-                fontProgram = FontProgramFactory.createFont(fontStream.readAllBytes());
-            }
-            PdfFont font = PdfFontFactory.createFont(fontProgram, PdfEncodings.IDENTITY_H);
-            document.setFont(font);
-
-            document.add(new Paragraph(cleanText(exam.getExamTitle()))
-                    .setBold().setFontSize(18).setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("Môn: " + exam.getSubject().getDescription())
-                    .setTextAlignment(TextAlignment.CENTER).setFontSize(12));
-            document.add(new Paragraph("Thời gian: " + getExamDuration(exam))
-                    .setTextAlignment(TextAlignment.CENTER).setFontSize(12));
-            document.add(new Paragraph("\n"));
-            document.add(new Paragraph("------------------------------------------------------------")
-                    .setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("\n"));
-
-            int questionNumber = 1;
-            for (ExamQuestion q : questions) {
-                document.add(new Paragraph(
-                        "Câu " + questionNumber + ": " + cleanText(q.getQuestionText())
-                ).setBold().setFontSize(12));
-                document.add(new Paragraph("\n"));
-
-                List<String> answers = new ArrayList<>();
-                answers.add(q.getCorrectAnswer());
-                if (q.getWrongAnswer1() != null) answers.add(q.getWrongAnswer1());
-                if (q.getWrongAnswer2() != null) answers.add(q.getWrongAnswer2());
-                if (q.getWrongAnswer3() != null) answers.add(q.getWrongAnswer3());
-                Collections.shuffle(answers);
-
-                char label = 'A';
-                for (String ans : answers) {
-                    Paragraph answerParagraph = new Paragraph(label + ". " + cleanText(ans)).setFontSize(11);
-                    if (showAnswer && ans.equals(q.getCorrectAnswer())) {
-                        answerParagraph.setBold();
-                    }
-                    document.add(answerParagraph);
-                    label++;
-                }
-                document.add(new Paragraph("\n"));
-                questionNumber++;
-            }
-
-            document.close();
-            return baos.toByteArray();
+            // The actual PDF generation is now handled by the React frontend
+            return new byte[0];
 
         } catch (Exception e) {
-            log.error("Failed to export exam", e);
-            throw new RuntimeException("Failed to export exam", e);
+            log.error("Failed to marked exam as exported", e);
+            throw new RuntimeException("Failed to marked exam as exported", e);
         }
     }
     private Cell createInfoCell(String text) {

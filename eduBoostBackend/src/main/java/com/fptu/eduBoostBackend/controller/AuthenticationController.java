@@ -198,18 +198,21 @@ public class AuthenticationController {
     @SecurityRequirement(name = "api")
     public ResponseEntity<ResponseObject> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         try {
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                throw new BadRequestException("Mật khẩu mới và mật khẩu xác nhận không khớp");
+            }
             authenticationService.changeUserPassword(request.getOldPassword(), request.getNewPassword());
             return ResponseEntity.ok()
-                    .body(new ResponseObject(HttpStatus.OK.value(), "Password changed successfully", null));
+                    .body(new ResponseObject(HttpStatus.OK.value(), "Đổi mật khẩu thành công", null));
         } catch (UsernameNotFoundException e) {
             // Fixed: Preserve stack trace
-            throw new NotFoundException("User not found", e);
+            throw new NotFoundException("Không tìm thấy người dùng", e);
         } catch (BadRequestException e) {
             // Fixed: Preserve stack trace
             throw new BadRequestException(e.getMessage(), e);
         } catch (Exception e) {
             // Fixed: Preserve stack trace
-            throw new InternalServerErrorException("Failed to change password: " + e.getMessage(), e);
+            throw new InternalServerErrorException("Đổi mật khẩu thất bại: " + e.getMessage(), e);
         }
     }
 

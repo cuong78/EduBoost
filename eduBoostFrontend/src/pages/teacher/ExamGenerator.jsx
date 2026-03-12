@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   ArrowRight,
   Layers,
@@ -9,8 +9,7 @@ import {
   Pencil,
   RefreshCw,
   Trash2,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
   LayoutGrid,
   ExternalLink,
   Check,
@@ -19,6 +18,7 @@ import { knowledgeService } from "../../services/knowledgeService";
 import { examService } from "../../services/examService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import RichTextEditor from "../../components/common/RichTextEditor";
+import { exportHtmlToPdf } from "../../utils/pdfExport";
 import MathRenderer from "../../components/common/MathRenderer";
 import { jsPDF } from "jspdf";
 
@@ -115,6 +115,7 @@ const ExamGenerator = () => {
   const [currentExam, setCurrentExam] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [replacingQuestion, setReplacingQuestion] = useState(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(true); // Toggle hiển thị đáp án đúng
   const [editForm, setEditForm] = useState({
     modifiedQuestionText: "",
@@ -124,6 +125,13 @@ const ExamGenerator = () => {
     wrongAnswer2: "",
     wrongAnswer3: "",
   });
+
+  // Drag and Drop State
+  const [draggedIdx, setDraggedIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const autoScrollY = useRef(null);
+  const autoScrollFrame = useRef(null);
+  const pdfContainerRef = useRef(null);
 
   const stats = useMemo(() => {
     const byLesson = selectedLessonIds.reduce((acc, lid) => {
@@ -270,6 +278,61 @@ const ExamGenerator = () => {
     loadLessons().catch(() => setLessons([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId]);
+
+  // Support manual wheel scrolling while native dragging
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (draggedIdx !== null) {
+        // Force scroll when the browser blocks wheel during native drag
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, [draggedIdx]);
+
+  // Smooth continuous auto-scroll during drag
+  useEffect(() => {
+    if (draggedIdx === null) {
+      if (autoScrollFrame.current) {
+        cancelAnimationFrame(autoScrollFrame.current);
+        autoScrollFrame.current = null;
+      }
+      return;
+    }
+
+    const scrollLoop = () => {
+      if (autoScrollY.current !== null) {
+        const threshold = 120; // pixels from edge to start scrolling
+        const y = autoScrollY.current;
+        const vh = window.innerHeight;
+        
+        let speed = 0;
+        if (y < threshold) {
+          speed = -((threshold - y) / threshold) * 15; // scroll up
+        } else if (vh - y < threshold) {
+          speed = ((threshold - (vh - y)) / threshold) * 15; // scroll down
+        }
+        
+        if (speed !== 0) {
+          window.scrollBy(0, speed);
+        }
+      }
+      autoScrollFrame.current = requestAnimationFrame(scrollLoop);
+    };
+    
+    autoScrollFrame.current = requestAnimationFrame(scrollLoop);
+    return () => {
+      if (autoScrollFrame.current) cancelAnimationFrame(autoScrollFrame.current);
+    };
+  }, [draggedIdx]);
+
+  const updateAutoScroll = (e) => {
+    if (e.clientY && e.clientY !== 0) {
+      autoScrollY.current = e.clientY;
+    }
+  };
 
   const toggleLesson = (lessonId) => {
     setSelectedLessonIds((prev) => {
@@ -476,37 +539,53 @@ const ExamGenerator = () => {
 
   // Export PDF without answers (đề thi thường)
   const handleExportPdf = async () => {
-    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
-    setShowExportMenu(false);
-    setExportingPdf(true);
-    try {
-      const blob = await examService.exportExam(currentExam.id, "pdf");
-      downloadBlob(blob, `${currentExam.examCode || "de-thi"}.pdf`);
-      showSuccessToast("Đã xuất PDF đề thi thành công! Trạng thái đề thi được cập nhật USED.");
-      // After export, status changes to USED — refresh
-      await refreshExam(currentExam.id);
-    } catch (e) {
-      showErrorToast(e?.response?.data?.message || "Xuất PDF thất bại");
-    } finally {
-      setExportingPdf(false);
-    }
+    if (!currentExam?.id || !pdfContainerRef.current) return showErrorToast("Chưa có đề thi");
+    
+    // Disable answers before export
+    const previousShowCorrectAnswers = showCorrectAnswers;
+    setShowCorrectAnswers(false);
+    
+    // Let React render without answers
+    setTimeout(async () => {
+      setExportingPdf(true);
+      try {
+        await exportHtmlToPdf(pdfContainerRef.current, `${currentExam.examCode || "de-thi"}.pdf`);
+        showSuccessToast("Đã xuất PDF đề thi thành công! Trạng thái đề thi đã được cập nhật USED.");
+        // Notify backend to mark as USED
+        await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+        await refreshExam(currentExam.id);
+      } catch (e) {
+        showErrorToast("Xuất PDF thất bại");
+      } finally {
+        setExportingPdf(false);
+        // Restore previous state if needed
+        setShowCorrectAnswers(previousShowCorrectAnswers);
+      }
+    }, 100);
   };
 
   // Export PDF with answers (đáp án)
   const handleExportAnswerKey = async () => {
-    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
-    setShowExportMenu(false);
-    setExportingPdf(true);
-    try {
-      const blob = await examService.exportExam(currentExam.id, "answer-key");
-      downloadBlob(blob, `${currentExam.examCode || "de-thi"}-dap-an.pdf`);
-      showSuccessToast("Đã xuất đáp án PDF thành công!");
-      await refreshExam(currentExam.id);
-    } catch (e) {
-      showErrorToast(e?.response?.data?.message || "Xuất đáp án thất bại");
-    } finally {
-      setExportingPdf(false);
-    }
+    if (!currentExam?.id || !pdfContainerRef.current) return showErrorToast("Chưa có đề thi");
+    
+    // Enable answers before export
+    setShowCorrectAnswers(true);
+
+    // Let React render answers
+    setTimeout(async () => {
+      setExportingPdf(true);
+      try {
+        await exportHtmlToPdf(pdfContainerRef.current, `${currentExam.examCode || "de-thi"}-dap-an.pdf`);
+        showSuccessToast("Đã xuất đáp án PDF thành công! Trạng thái đề thi đã được cập nhật USED.");
+        // Notify backend to mark as USED
+        await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+        await refreshExam(currentExam.id);
+      } catch (e) {
+        showErrorToast("Xuất đáp án thất bại");
+      } finally {
+        setExportingPdf(false);
+      }
+    }, 100);
   };
 
 
@@ -536,18 +615,6 @@ const ExamGenerator = () => {
     }
   };
 
-  const handleRegenerateWrong = async (qid) => {
-    if (!currentExam?.id) return;
-    try {
-      await examService.regenerateWrongAnswers(currentExam.id, qid);
-      await refreshExam(currentExam.id);
-      showSuccessToast("Đã yêu cầu sinh lại đáp án sai");
-    } catch (e) {
-      console.error(e);
-      showErrorToast("Không thể sinh lại đáp án sai");
-    }
-  };
-
   const handleDeleteQuestion = async (qid) => {
     if (!currentExam?.id) return;
     try {
@@ -560,26 +627,70 @@ const ExamGenerator = () => {
     }
   };
 
-  const moveQuestion = async (index, dir) => {
-    if (!currentExam?.id) return;
-    const next = [...previewQuestions];
-    const j = index + dir;
-    if (j < 0 || j >= next.length) return;
-    [next[index], next[j]] = [next[j], next[index]];
-    const reOrdered = next.map((q, idx) => ({ ...q, orderNumber: idx + 1 }));
-    setPreviewQuestions(reOrdered);
-    try {
-      await examService.reorderQuestions(currentExam.id, {
-        questionOrders: reOrdered.map((q, idx) => ({
-          examQuestionId: q.id,
-          newOrderNumber: idx + 1,
-        })),
-      });
-      await refreshExam(currentExam.id);
-    } catch (e) {
-      console.error(e);
-      showErrorToast("Không thể sắp xếp lại thứ tự");
+  const handleDragStart = (e, index) => {
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index);
+    
+    // Create an empty drag image to hide the massive ghost image
+    const dragImg = new Image();
+    dragImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(dragImg, 0, 0);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    updateAutoScroll(e);
+    if (dragOverIdx !== index) {
+      setDragOverIdx(index);
     }
+  };
+
+  const handleDrop = async (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await applyDragAndDrop(index);
+  };
+
+  const handleListDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    updateAutoScroll(e);
+  };
+
+  const handleListDrop = async (e) => {
+    e.preventDefault();
+    if (draggedIdx !== null && previewQuestions.length > 0) {
+      // If dropped on the empty bottom list area, move to the very end
+      await applyDragAndDrop(previewQuestions.length - 1);
+    }
+  };
+
+  const applyDragAndDrop = async (targetIndex) => {
+    if (draggedIdx !== null && targetIndex !== null && draggedIdx !== targetIndex && currentExam?.id) {
+      const next = [...previewQuestions];
+      const draggedItem = next[draggedIdx];
+      next.splice(draggedIdx, 1);
+      next.splice(targetIndex, 0, draggedItem);
+      
+      const reOrdered = next.map((q, idx) => ({ ...q, orderNumber: idx + 1 }));
+      setPreviewQuestions(reOrdered);
+      
+      try {
+        await examService.reorderQuestions(currentExam.id, {
+          questionOrders: reOrdered.map((q, idx) => ({
+            examQuestionId: q.id,
+            newOrderNumber: idx + 1,
+          })),
+        });
+      } catch (err) {
+        console.error(err);
+        showErrorToast("Không thể sắp xếp lại thứ tự");
+      }
+    }
+    setDraggedIdx(null);
+    setDragOverIdx(null);
   };
 
   return (
@@ -1049,60 +1160,79 @@ const ExamGenerator = () => {
                 </span>
               )}
 
-              {/* Export dropdown */}
-              <div style={{ position: "relative" }}>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setShowExportMenu((v) => !v)}
-                  disabled={exportingPdf || !currentExam?.id}
-                >
-                  {exportingPdf
-                    ? <><RefreshCw size={16} className="spin" /> Đang xuất...</>
-                    : <><Download size={16} /> Export</>}
-                </button>
-                {showExportMenu && (
-                  <div style={{
-                    position: "absolute", right: 0, top: "110%", zIndex: 50,
-                    background: "white", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    minWidth: 220, overflow: "hidden", border: "1px solid rgba(0,0,0,0.07)"
-                  }}>
-                    <button
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "0.85rem 1.2rem", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#1f2937", textAlign: "left" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                      onClick={handleExportPdf}
-                    >
-                      <Download size={16} color="#6366f1" />
-                      <span><strong>Đề thi</strong><br /><small style={{ color: "#9ca3af" }}>Không có đáp án</small></span>
-                    </button>
-                    <div style={{ height: 1, background: "rgba(0,0,0,0.05)" }} />
-                    <button
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "0.85rem 1.2rem", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#1f2937", textAlign: "left" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                      onClick={handleExportAnswerKey}
-                    >
-                      <FileText size={16} color="#10b981" />
-                      <span><strong>Đáp án &amp; Đề thi</strong><br /><small style={{ color: "#9ca3af" }}>Kèm đáp án đúng</small></span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Export button */}
+              <button
+                className="btn btn-outline"
+                onClick={() => showCorrectAnswers ? handleExportAnswerKey() : handleExportPdf()}
+                disabled={exportingPdf || !currentExam?.id}
+              >
+                {exportingPdf
+                  ? <><RefreshCw size={16} className="spin" /> Đang xuất...</>
+                  : <><Download size={16} /> Export</>}
+              </button>
             </div>
           </div>
 
-          <div className="q-list">
+          <div 
+            className="q-list"
+            onDragOver={handleListDragOver}
+            onDrop={handleListDrop}
+            ref={pdfContainerRef}
+            style={{ backgroundColor: 'white' }}
+          >
+            {/* Header only for PDF Export */}
+            <div className="pdf-only-header">
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", color: "black" }}>
+                <div style={{ textAlign: "center", fontWeight: "normal", fontSize: "16px" }}>
+                  TRƯỜNG: ...........................................<br/>
+                  HỌ TÊN: ...........................................<br/>
+                  LỚP: ...........................................
+                </div>
+                <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "16px" }}>
+                  MÃ ĐỀ: {currentExam?.examCode || "........."}
+                </div>
+              </div>
+              <h2 style={{ textAlign: "center", marginBottom: "8px", color: "black", width: "100%", justifyContent: "center", textTransform: "uppercase" }}>
+                {currentExam?.examTitle || "ĐỀ KIỂM TRA"}
+              </h2>
+              <div style={{ textAlign: "center", fontSize: "18px", marginBottom: "5px", color: "black", fontWeight: "bold" }}>
+                MÔN: {currentExam?.subjectName?.toUpperCase()}
+              </div>
+              <div style={{ textAlign: "center", fontSize: "16px", marginBottom: "20px", color: "black", fontStyle: "italic" }}>
+                Thời gian làm bài: {currentExam?.examTypeCode === "15MIN" ? "15" : currentExam?.examTypeCode === "45MIN" ? "45" : currentExam?.examTypeCode === "MIDTERM" ? "60" : currentExam?.examTypeCode === "FINAL" ? "90" : "..."} phút (không kể thời gian phát đề)
+              </div>
+              <hr style={{ borderTop: "2px solid #000", marginBottom: "20px" }} />
+            </div>
+
             {loadingPreview ? (
               <div className="muted" style={{ padding: "1rem" }}>
                 <RefreshCw className="spin" size={16} /> Đang tạo preview...
               </div>
             ) : (
-              previewQuestions.map((q, idx) => (
-                <div key={q.id} className="q-item">
+              previewQuestions.map((q, idx) => {
+                const isDraggingMe = draggedIdx === idx;
+                const isDragOverMe = dragOverIdx === idx && !isDraggingMe;
+                const dropDirection = dragOverIdx !== null && draggedIdx !== null && draggedIdx < dragOverIdx ? 'bottom' : 'top';
+                
+                return (
+                <div 
+                  key={q.id} 
+                  className={`q-item ${isDragOverMe ? `drag-over-${dropDirection}` : ""} ${isDraggingMe ? "is-dragging" : ""}`}
+                  draggable={currentExam?.status === "DRAFT"}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDrag={(e) => updateAutoScroll(e)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); autoScrollY.current = null; }}
+                  style={{ cursor: currentExam?.status === "DRAFT" ? (isDraggingMe ? "grabbing" : "grab") : "default" }}
+                >
                   <div className="q-top">
-                    <span className="q-num">
-                      Câu {q.orderNumber || idx + 1}
-                    </span>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      {currentExam?.status === "DRAFT" && <GripVertical size={18} style={{ color: "#9ca3af" }} />}
+                      <span className="q-num">Câu {q.orderNumber || idx + 1}</span>
+                    </div>
                     {q.cognitiveLevelName && (
                       <span className="badge bank">{q.cognitiveLevelName}</span>
                     )}
@@ -1119,36 +1249,15 @@ const ExamGenerator = () => {
                     <div className="q-actions">
                       <button
                         className="btn btn-outline btn-xs"
-                        onClick={() => moveQuestion(idx, -1)}
-                        title="Lên"
-                      >
-                        <ArrowUp size={14} />
-                      </button>
-                      <button
-                        className="btn btn-outline btn-xs"
-                        onClick={() => moveQuestion(idx, 1)}
-                        title="Xuống"
-                      >
-                        <ArrowDown size={14} />
-                      </button>
-                      <button
-                        className="btn btn-outline btn-xs"
                         onClick={() => startEdit(q)}
                         title="Sửa"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
-                        className="btn btn-outline btn-xs"
-                        onClick={() => handleRegenerateWrong(q.id)}
-                        title="Sinh lại đáp án sai"
-                      >
-                        <RefreshCw size={14} />
-                      </button>
-                      <button
                         className="btn btn-outline btn-xs danger"
-                        onClick={() => handleDeleteQuestion(q.id)}
-                        title="Xóa"
+                        onClick={() => setReplacingQuestion(q)}
+                        title="Xóa / Thay thế"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -1287,8 +1396,85 @@ const ExamGenerator = () => {
                     </>
                   )}
                 </div>
-              ))
+              );
+              })
             )}
+          </div>
+        </div>
+      )}
+
+      {replacingQuestion && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: "#fff", padding: "24px", borderRadius: "16px", width: "400px", maxWidth: "90%",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.1)", textAlign: "center"
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: "12px", color: "#1f2937" }}>Tùy chọn Câu hỏi</h3>
+            <p style={{ color: "#4b5563", fontSize: "0.95rem", marginBottom: "20px" }}>
+              Bạn muốn xử lý câu hỏi này như thế nào?
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button 
+                className="btn btn-outline"
+                style={{ justifyContent: "center" }}
+                onClick={() => {
+                  setEditingId(replacingQuestion.id);
+                  setEditForm({
+                    modifiedQuestionText: "",
+                    modifiedCorrectAnswer: "",
+                    modifiedExplanation: "",
+                    wrongAnswer1: "",
+                    wrongAnswer2: "",
+                    wrongAnswer3: "",
+                  });
+                  setReplacingQuestion(null);
+                }}
+              >
+                ✏️ Nhập tay câu hỏi mới (Trống)
+              </button>
+              
+              <button 
+                className="btn btn-primary"
+                style={{ justifyContent: "center", background: "linear-gradient(135deg, #f97316, #fb923c)" }}
+                onClick={async () => {
+                  if (!replacingQuestion.lessonId || !replacingQuestion.cognitiveLevelId) {
+                    showErrorToast("Câu hỏi này thiếu thông tin để AI tạo mới. Vui lòng nhập tay.");
+                    return;
+                  }
+                  setReplacingQuestion(null);
+                  setLoadingPreview(true);
+                  try {
+                    await examService.aiGenerateQuestionsForExam(currentExam.id, {
+                      lessonId: replacingQuestion.lessonId,
+                      cognitiveLevelId: replacingQuestion.cognitiveLevelId,
+                      numberOfQuestions: 1,
+                      pointsPerQuestion: replacingQuestion.points
+                    });
+                    await examService.deleteExamQuestion(currentExam.id, replacingQuestion.id);
+                    await refreshExam(currentExam.id);
+                    showSuccessToast("Đã thay thế câu hỏi bằng AI!");
+                  } catch (e) {
+                    console.error(e);
+                    showErrorToast("Không thể gọi AI thay thế câu hỏi.");
+                  } finally {
+                    setLoadingPreview(false);
+                  }
+                }}
+              >
+                ✨ Nhờ AI tự tạo câu hỏi khác
+              </button>
+              
+              <button 
+                className="btn"
+                style={{ justifyContent: "center", marginTop: "5px", background: "transparent", color: "#6b7280" }}
+                onClick={() => setReplacingQuestion(null)}
+              >
+                Hủy bỏ
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1356,8 +1542,15 @@ const ExamGenerator = () => {
 
         .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 1rem; }
 
-        .q-list { display: flex; flex-direction: column; gap: 12px; }
-        .q-item { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.06); }
+        .q-list { display: flex; flex-direction: column; gap: 12px; min-height: 200px; padding-bottom: 60px; }
+        .q-item { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.5); border: 2px solid rgba(0,0,0,0.06); transition: border-color 0.15s, opacity 0.15s; }
+        .q-item[draggable="true"] { user-select: none; -webkit-user-select: none; }
+        .q-item[draggable="true"] * { user-select: none; -webkit-user-select: none; }
+        .q-item[draggable="true"] img { pointer-events: none; }
+        .q-item[draggable="true"]:hover { border-color: rgba(0,0,0,0.12); }
+        .q-item.is-dragging { opacity: 0.35; border: 2px dashed rgba(0,0,0,0.2); }
+        .q-item.drag-over-top { border-top: 3px solid var(--color-accent-1); }
+        .q-item.drag-over-bottom { border-bottom: 3px solid var(--color-accent-1); }
         .q-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; justify-content: space-between; }
         .q-num { font-weight: 800; }
         .q-meta { font-size: 0.9rem; margin-bottom: 8px; }
@@ -1369,6 +1562,41 @@ const ExamGenerator = () => {
         .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
         .badge.ai { background: rgba(99,102,241,0.12); color: var(--color-accent-1); }
         .badge.bank { background: rgba(17,24,39,0.1); color: #111827; }
+
+        /* Hide specific elements during PDF Export */
+        .pdf-only-header { display: none; }
+        
+        .pdf-exporting .q-actions, 
+        .pdf-exporting .badge,
+        .pdf-exporting .GripVertical,
+        .pdf-exporting .q-meta { display: none !important; }
+        .pdf-exporting.q-list { gap: 12px !important; padding: 20px !important; color: black !important; }
+        .pdf-exporting .pdf-only-header { display: block !important; }
+        
+        .pdf-exporting .q-item { 
+          border: none !important; 
+          box-shadow: none !important; 
+          background: white !important; 
+          padding: 0 !important; 
+          margin-bottom: 15px !important; 
+          page-break-inside: avoid; 
+        }
+        
+        /* Exam content styling for PDF */
+        .pdf-exporting .q-top { margin-bottom: 2px !important; }
+        .pdf-exporting .q-num { font-weight: bold !important; font-size: 16px !important; color: black !important; }
+        .pdf-exporting .q-text { font-size: 16px !important; color: black !important; margin-bottom: 8px !important; }
+        .pdf-exporting .exam-answers { margin-top: 0 !important; gap: 4px !important; }
+        .pdf-exporting .exam-option { background: none !important; border: none !important; padding: 2px 0 !important; font-size: 15px !important; color: black !important; }
+        .pdf-exporting .option-label { color: black !important; font-weight: bold !important; }
+        .pdf-exporting .correct-icon { display: none !important; }
+        .pdf-exporting .exam-option.correct-marked { font-weight: bold !important; }
+        .pdf-exporting .exam-option.correct-marked .option-label,
+        .pdf-exporting .exam-option.correct-marked .option-content * { 
+          color: #d97706 !important; 
+          font-weight: bold !important; 
+          text-decoration: underline !important; 
+        }
 
         .answers { margin-top: 10px; display: grid; gap: 6px; }
         .a { padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.06); }

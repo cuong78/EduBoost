@@ -236,13 +236,21 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             exampleStyle.setBorderRight(BorderStyle.THIN);
             exampleStyle.setWrapText(true);
             
-            // Add example rows
+            // Get levels from DB for dynamic mapping
+            List<CognitiveLevel> levels = cognitiveLevelRepository.findAll();
+            java.util.function.Function<Integer, String> getLevel = (Integer idx) -> {
+                if (levels.isEmpty()) return "Nhận biết";
+                return levels.get(idx % levels.size()).getLevel();
+            };
+            
+            // Add example rows (cycling through all available levels)
             String[][] examples = {
-                {"Tìm $x$ sao cho $2x + 5 = 15$", "$x = 5$", "$2x = 15 - 5 = 10$, suy ra $x = 5$", "Trắc nghiệm", "Thông hiểu"},
-                {"Việt Nam độc lập năm nào?", "1945", "Ngày 2/9/1945, Bác Hồ đọc Tuyên ngôn độc lập", "Trắc nghiệm", "Nhận biết"},
-                {"Nước sôi ở 100°C là đúng hay sai?", "Đúng", "Ở áp suất khí quyển tiêu chuẩn", "Đúng/Sai", "Nhận biết"},
-                {"Thủ đô của Pháp là ___", "Paris", "", "Điền khuyết", "Nhận biết"},
-                {"Cho tam giác ABC với $AB = 3$, $BC = 4$, $AC = 5$. Tính diện tích?", "$S = 6$", "Tam giác vuông tại B, $S = \\frac{1}{2} \\times 3 \\times 4 = 6$", "Trắc nghiệm", "Vận dụng"}
+                {"Tìm $x$ sao cho $2x + 5 = 15$", "$x = 5$", "$2x = 15 - 5 = 10$, suy ra $x = 5$", "Trắc nghiệm", levels.isEmpty() ? "Thông hiểu" : getLevel.apply(1)},
+                {"Việt Nam độc lập năm nào?", "1945", "Ngày 2/9/1945, Bác Hồ đọc Tuyên ngôn độc lập", "Trắc nghiệm", getLevel.apply(0)},
+                {"Nước sôi ở 100°C là đúng hay sai?", "Đúng", "Ở áp suất khí quyển tiêu chuẩn", "Đúng/Sai", getLevel.apply(0)},
+                {"Thủ đô của Pháp là ___", "Paris", "", "Điền khuyết", getLevel.apply(0)},
+                {"Cho tam giác ABC với $AB = 3$, $BC = 4$, $AC = 5$. Tính diện tích?", "$S = 6$", "Tam giác vuông tại B, $S = \\frac{1}{2} \\times 3 \\times 4 = 6$", "Trắc nghiệm", levels.isEmpty() ? "Vận dụng" : getLevel.apply(2)},
+                {"Tác phẩm Tắt Đèn do ai sáng tác?", "Ngô Tất Tố", "", "Trắc nghiệm", levels.isEmpty() ? "Vận dụng cao" : getLevel.apply(3)}
             };
             
             for (int i = 0; i < examples.length; i++) {
@@ -272,7 +280,6 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             sheet.addValidationData(typeValidation);
             
             // Add Data Validation for 'Mức độ nhận biết'
-            List<CognitiveLevel> levels = cognitiveLevelRepository.findAll();
             String[] cognitiveLevelNames = levels.stream().map(CognitiveLevel::getLevel).toArray(String[]::new);
             if (cognitiveLevelNames.length > 0) {
                 DataValidationHelper levelValidationHelper = sheet.getDataValidationHelper();
