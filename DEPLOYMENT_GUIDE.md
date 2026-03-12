@@ -269,6 +269,8 @@ sudo chmod 600 nginx/ssl/key.pem
 cd /opt/eduboost
 
 # Build và start tất cả services với docker-compose.prod.yml
+docker-compose -f docker-compose.prod.yml down -v
+
 docker-compose -f docker-compose.prod.yml up -d --build
 
 # Xem logs

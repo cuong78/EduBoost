@@ -13,11 +13,13 @@ import com.fptu.eduBoostBackend.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.net.URLEncoder;
@@ -25,8 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,16 +39,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final TeacherSubscriptionRepository subscriptionRepository;
     private final PaymentTransactionRepository transactionRepository;
     private final TeacherRepository teacherRepository;
+    private final RestTemplate restTemplate;
 
-    // ─── VietQR config (bank receiving payment) ───
-    @Value("${payment.vietqr.bank-code:VCB}")
+    // ─── VietQR bank receiving payment ───
+    @Value("${payment.vietqr.bank-code:TPB}")
     private String bankCode;
-
     @Value("${payment.vietqr.account-no:0000000000}")
     private String accountNo;
-
     @Value("${payment.vietqr.account-name:EDUBOOST PLATFORM}")
     private String accountName;
+
+    // ─── VietQR API (server calls VietQR to generate dynamic QR) ───
+    @Value("${vietqr.api.base-url:https://dev.vietqr.org}")
+    private String vietQrApiBaseUrl;
+    @Value("${vietqr.api.username:}")
+    private String vietQrApiUsername;
+    @Value("${vietqr.api.password:}")
+    private String vietQrApiPassword;
 
     // ─── Public ───────────────────────────────────
 
@@ -82,13 +90,28 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new IllegalArgumentException("FREE plan does not require payment");
         }
 
-        // Generate unique order ID
-        String orderId = "EDU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String transferNote = orderId; // teacher will put this in transfer note
+        // orderId max 13 chars (VietQR requirement)
+        String orderId = "EDU" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
 
-        // Build VietQR deeplink: https://img.vietqr.io/image/{bankCode}-{accountNo}-compact.png?amount=...&addInfo=...&accountName=...
-        String qrImageUrl = buildVietQrImageUrl(plan.getPrice(), transferNote);
-        String qrContent = buildVietQrContent(plan.getPrice(), transferNote);
+        // Try to generate dynamic QR via VietQR API (enables callback)
+        String qrImageUrl = null;
+        String qrLink    = null;
+        String vietQrToken = fetchVietQrToken();
+        if (vietQrToken != null) {
+            Map<String, Object> qrResult = generateDynamicQr(vietQrToken, plan, orderId);
+            if (qrResult != null) {
+                qrLink    = String.valueOf(qrResult.getOrDefault("qrLink", ""));
+                qrImageUrl = buildQrImageFromLink(qrLink, qrResult, plan, orderId);
+                log.info("Dynamic QR generated for orderId={} qrLink={}", orderId, qrLink);
+            }
+        }
+        // Fallback: static VietQR image URL
+        if (qrImageUrl == null) {
+            log.warn("Falling back to static QR for orderId={}", orderId);
+            qrImageUrl = buildStaticVietQrImageUrl(plan.getPrice(), orderId);
+        }
+
+        String qrContent = buildVietQrContent(plan.getPrice(), orderId);
 
         PaymentTransaction tx = PaymentTransaction.builder()
                 .orderId(orderId)
@@ -282,15 +305,80 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (expired > 0) log.info("Expired {} subscriptions", expired);
     }
 
-    // ─── VietQR helpers ───────────────────────────
+    // ─── VietQR API helpers ───────────────────────────
 
-    private String buildVietQrImageUrl(BigDecimal amount, String addInfo) {
-        // https://img.vietqr.io/image/{bankCode}-{accountNo}-compact2.png?amount=xxx&addInfo=xxx&accountName=xxx
-        String encoded = URLEncoder.encode(addInfo, StandardCharsets.UTF_8);
-        String nameEncoded = URLEncoder.encode(accountName, StandardCharsets.UTF_8);
+    /** Step 1: get access token from VietQR */
+    private String fetchVietQrToken() {
+        if (vietQrApiUsername.isBlank() || vietQrApiPassword.isBlank()) {
+            log.warn("VietQR API credentials not configured — using static QR");
+            return null;
+        }
+        try {
+            String raw = vietQrApiUsername + ":" + vietQrApiPassword;
+            String basic = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Basic " + basic);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<Map> resp = restTemplate.exchange(
+                    vietQrApiBaseUrl + "/vqr/api/token_generate",
+                    HttpMethod.POST, new HttpEntity<>("{}", headers), Map.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                return String.valueOf(resp.getBody().get("access_token"));
+            }
+        } catch (Exception e) {
+            log.warn("VietQR get token failed: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /** Step 2: generate dynamic QR code with orderId so VietQR can callback */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> generateDynamicQr(String token, SubscriptionPlan plan, String orderId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("bankCode",    bankCode);
+            body.put("bankAccount", accountNo);
+            body.put("userBankName", accountName);
+            // nội dung CK là orderId (tối đa 23 ký tự: "EDU" + 10 chars = 13 chars ✓)
+            body.put("content",    orderId);
+            body.put("qrType",     0);            // 0 = dynamic QR (enables callback)
+            body.put("amount",     plan.getPrice().longValue());
+            body.put("orderId",    orderId);       // VietQR links this to the callback
+            body.put("transType",  "C");           // C = incoming
+
+            ResponseEntity<Map> resp = restTemplate.exchange(
+                    vietQrApiBaseUrl + "/vqr/api/qr/generate-customer",
+                    HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+
+            if (resp.getStatusCode().is2xxSuccessful()) {
+                return resp.getBody();
+            }
+        } catch (Exception e) {
+            log.warn("VietQR generate QR failed: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private String buildQrImageFromLink(String qrLink, Map<String, Object> result, SubscriptionPlan plan, String orderId) {
+        // Prefer qrLink (web QR), fallback to img.vietqr.io with transactionRefId
+        if (qrLink != null && !qrLink.isBlank() && !"{}".equals(qrLink)) return qrLink;
+        Object refId = result.get("transactionRefId");
+        if (refId != null && !String.valueOf(refId).isBlank()) {
+            return "https://pro.vietqr.vn/qr-generated?token=" + refId;
+        }
+        return buildStaticVietQrImageUrl(plan.getPrice(), orderId);
+    }
+
+    private String buildStaticVietQrImageUrl(BigDecimal amount, String addInfo) {
+        String encoded  = URLEncoder.encode(addInfo,    StandardCharsets.UTF_8);
+        String nameEnc  = URLEncoder.encode(accountName, StandardCharsets.UTF_8);
         return String.format(
                 "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%s&addInfo=%s&accountName=%s",
-                bankCode, accountNo, amount.toPlainString(), encoded, nameEncoded);
+                bankCode, accountNo, amount.toPlainString(), encoded, nameEnc);
     }
 
     private String buildVietQrContent(BigDecimal amount, String transferNote) {
