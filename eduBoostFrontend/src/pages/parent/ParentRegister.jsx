@@ -8,7 +8,7 @@ const ParentRegister = () => {
     const location = useLocation();
     const { register, isLoading } = useAuth();
     const invitationCode = location.state?.invitationCode;
-    
+
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -16,7 +16,7 @@ const ParentRegister = () => {
         password: '',
         confirmPassword: '',
     });
-    
+
     const [errors, setErrors] = useState({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -110,9 +110,9 @@ const ParentRegister = () => {
         return (
             <div className="auth-card glass">
                 <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                    <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
                         justifyContent: 'center',
                         margin: '0 auto 2rem',
                         width: '80px',
@@ -125,11 +125,11 @@ const ParentRegister = () => {
                     </div>
                     <h2 style={{ marginBottom: '1rem' }}>Đăng ký thành công!</h2>
                     <p className="auth-subtitle" style={{ marginBottom: '1.5rem' }}>
-                        Chúng tôi đã gửi email xác thực đến địa chỉ email của bạn.<br/>
+                        Chúng tôi đã gửi email xác thực đến địa chỉ email của bạn.<br />
                         Vui lòng kiểm tra hộp thư và nhấp vào link để xác thực tài khoản.
                     </p>
-                    <Link 
-                        to="/parent/login" 
+                    <Link
+                        to="/parent/login"
                         state={invitationCode ? { invitationCode } : undefined}
                         className="btn btn-primary"
                     >
