@@ -17,6 +17,7 @@ public class SecurityConstants {
             "/api/auth/google-login",
             "/api/auth/auto-login",
             "/api/parent/validate-invitation",
+            "/api/subscriptions/plans",   // Public pricing page — no auth needed
             "/api/admin/**"  // TODO: Remove after fixing role check
     );
 

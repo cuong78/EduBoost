@@ -83,6 +83,10 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-eduboost}
       AI_DEEPSEEK_API_KEY: ${AI_DEEPSEEK_API_KEY}
+      # VietQR Payment Config
+      VIETQR_BANK_CODE: ${VIETQR_BANK_CODE:-TPB}
+      VIETQR_ACCOUNT_NO: ${VIETQR_ACCOUNT_NO:-78174803882}
+      VIETQR_ACCOUNT_NAME: ${VIETQR_ACCOUNT_NAME:-CAO LE ANH CUONG}
     depends_on:
       postgres:
         condition: service_healthy

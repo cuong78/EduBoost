@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   LayoutGrid,
+  Crown,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 import { useAuth } from "../hooks/useAuth";
@@ -103,6 +104,14 @@ const TeacherLayout = () => {
             onClick={closeSidebar}
           >
             <PenTool size={20} /> Tạo đề thi
+          </Link>
+          <Link
+            to="/teacher/subscription"
+            className={`nav-item ${isActive("/teacher/subscription") ? "active" : ""}`}
+            onClick={closeSidebar}
+            style={{ marginTop: "auto" }}
+          >
+            <Crown size={20} /> Gói đăng ký
           </Link>
         </nav>
 

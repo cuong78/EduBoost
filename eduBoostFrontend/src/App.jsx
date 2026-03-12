@@ -69,6 +69,9 @@ import Chapters from "./pages/admin/Chapters";
 import LessonResources from "./pages/admin/LessonResources";
 import QuestionBank from "./pages/admin/QuestionBank";
 import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
+import Pricing from "./pages/Pricing";
+import SubscriptionManagement from "./pages/teacher/SubscriptionManagement";
+import SubscriptionAdmin from "./pages/admin/SubscriptionAdmin";
 
 const Home = () => (
   <>
@@ -111,6 +114,11 @@ function App() {
         <DynamicBackground />
 
         <Routes>
+          {/* Pricing page — accessible to everyone (logged in or not) */}
+          <Route element={<PublicLayout />}>
+            <Route path="/pricing" element={<Pricing />} />
+          </Route>
+
           {/* Public Pages - Redirect if already logged in */}
           <Route element={<RedirectIfAuthenticated />}>
             <Route element={<PublicLayout />}>
@@ -181,6 +189,7 @@ function App() {
               <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="matrix-templates" element={<MatrixManagement />} />
+              <Route path="subscription" element={<SubscriptionManagement />} />
               <Route path="profile" element={<UserProfile />} />
             </Route>
           </Route>
@@ -216,6 +225,7 @@ function App() {
               <Route path="chapters" element={<Chapters />} />
               <Route path="lesson-resources" element={<LessonResources />} />
               <Route path="question-bank" element={<QuestionBank />} />
+              <Route path="subscriptions" element={<SubscriptionAdmin />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>

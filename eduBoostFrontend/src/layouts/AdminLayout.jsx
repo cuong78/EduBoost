@@ -10,7 +10,8 @@ import {
   GraduationCap,
   Award,
   Menu,
-  X
+  X,
+  Crown,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 
@@ -86,6 +87,13 @@ const AdminLayout = () => {
             onClick={closeSidebar}
           >
             <HelpCircle size={20} /> Ngân hàng câu hỏi
+          </Link>
+          <Link
+            to="/admin/subscriptions"
+            className={`nav-item ${isActive("/admin/subscriptions") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <Crown size={20} /> Quản lý gói
           </Link>
         </nav>
 
