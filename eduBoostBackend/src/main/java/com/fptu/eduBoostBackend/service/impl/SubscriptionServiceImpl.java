@@ -309,23 +309,28 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     /** Step 1: get access token from VietQR
      *
-     * VietQR cung cấp "mk" (VIETQR_API_PASSWORD) là chuỗi Base64 credentials dùng trực tiếp.
-     * Authorization: Basic {mk}   ← KHÔNG encode thêm lần nữa
+     * Standard Basic Auth: Authorization: Basic Base64(username:password)
+     * - VIETQR_API_USERNAME = username hệ thống từ portal VietQR
+     * - VIETQR_API_PASSWORD = password hệ thống từ portal VietQR
+     * - SANDBOX URL  : https://dev.vietqr.org
+     * - PRODUCTION URL: https://api.vietqr.org  (chỉ dùng khi VietQR approve production)
      */
     private String fetchVietQrToken() {
-        if (vietQrApiPassword.isBlank()) {
+        if (vietQrApiUsername.isBlank() || vietQrApiPassword.isBlank()) {
             log.warn("VietQR API credentials not configured — using static QR");
             return null;
         }
         try {
+            // Standard HTTP Basic Auth: Base64(username:password)
+            String raw   = vietQrApiUsername + ":" + vietQrApiPassword;
+            String basic = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
             HttpHeaders headers = new HttpHeaders();
-            // mk từ VietQR portal là Base64 credential string dùng trực tiếp
-            headers.set("Authorization", "Basic " + vietQrApiPassword);
+            headers.set("Authorization", "Basic " + basic);
             headers.setContentType(MediaType.APPLICATION_JSON);
-            log.info("VietQR: calling {}/vqr/api/token_generate", vietQrApiBaseUrl);
+            String url = vietQrApiBaseUrl + "/vqr/api/token_generate";
+            log.info("VietQR: calling {}", url);
             ResponseEntity<Map> resp = restTemplate.exchange(
-                    vietQrApiBaseUrl + "/vqr/api/token_generate",
-                    HttpMethod.POST, new HttpEntity<>("{}", headers), Map.class);
+                    url, HttpMethod.POST, new HttpEntity<>("{}", headers), Map.class);
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 String token = String.valueOf(resp.getBody().get("access_token"));
                 log.info("VietQR: got access token successfully");
