@@ -87,6 +87,13 @@ services:
       VIETQR_BANK_CODE: ${VIETQR_BANK_CODE:-TPB}
       VIETQR_ACCOUNT_NO: ${VIETQR_ACCOUNT_NO:-78174803882}
       VIETQR_ACCOUNT_NAME: ${VIETQR_ACCOUNT_NAME:-CAO LE ANH CUONG}
+      # VietQR Callback (VietQR calls into our server)
+      VIETQR_CB_USERNAME: ${VIETQR_CB_USERNAME}
+      VIETQR_CB_PASSWORD: ${VIETQR_CB_PASSWORD}
+      VIETQR_CB_SECRET: ${VIETQR_CB_SECRET}
+      # VietQR API (our server calls VietQR to generate QR)
+      VIETQR_API_USERNAME: ${VIETQR_API_USERNAME}
+      VIETQR_API_PASSWORD: ${VIETQR_API_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy

@@ -30,6 +30,12 @@ public interface SubscriptionService {
     /** Admin — cancel a pending transaction */
     PaymentTransactionResponse cancelTransaction(Long transactionId, String reason);
 
+    /**
+     * VietQR Webhook — auto-confirm payment by matching orderId in transfer content.
+     * Returns true if matched & confirmed, false if no matching PENDING transaction found.
+     */
+    boolean confirmPaymentByOrderId(String content, long amount);
+
     /** Scheduled — expire subscriptions past endDate */
     void expireSubscriptions();
 }

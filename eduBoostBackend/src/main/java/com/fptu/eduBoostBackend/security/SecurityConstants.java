@@ -18,6 +18,8 @@ public class SecurityConstants {
             "/api/auth/auto-login",
             "/api/parent/validate-invitation",
             "/api/subscriptions/plans",   // Public pricing page — no auth needed
+            "/api/token_generate",        // VietQR callback: get token
+            "/bank/api/transaction-sync", // VietQR callback: payment notification
             "/api/admin/**"  // TODO: Remove after fixing role check
     );
 

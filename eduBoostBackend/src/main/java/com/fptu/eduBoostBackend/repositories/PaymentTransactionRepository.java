@@ -15,6 +15,8 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
 
     Optional<PaymentTransaction> findByOrderId(String orderId);
 
+    Optional<PaymentTransaction> findByOrderIdAndPaymentStatus(String orderId, PaymentStatus status);
+
     @Query("SELECT pt FROM PaymentTransaction pt " +
            "JOIN FETCH pt.plan " +
            "WHERE pt.teacher.teacherId = :teacherId " +

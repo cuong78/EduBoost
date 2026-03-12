@@ -190,7 +190,79 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return mapTransaction(transactionRepository.save(tx));
     }
 
-    // ─── Scheduled ────────────────────────────────
+    // ─── VietQR Webhook Auto-Confirm ──────────────
+
+    @Override
+    @Transactional
+    public boolean confirmPaymentByOrderId(String content, long amount) {
+        if (content == null || content.isBlank()) return false;
+
+        // Extract EDU-XXXXXXXX from transfer content (case-insensitive)
+        String upper = content.toUpperCase();
+        String orderId = null;
+        int idx = upper.indexOf("EDU-");
+        if (idx >= 0) {
+            // take "EDU-" + up to 8 alphanumeric chars
+            int end = idx + 4;
+            while (end < upper.length() && end < idx + 12 && Character.isLetterOrDigit(upper.charAt(end))) {
+                end++;
+            }
+            orderId = upper.substring(idx, end);
+        }
+        if (orderId == null) {
+            log.warn("VietQR callback: cannot extract orderId from content=[{}]", content);
+            return false;
+        }
+
+        final String finalOrderId = orderId;
+        return transactionRepository
+                .findByOrderIdAndPaymentStatus(finalOrderId, PaymentStatus.PENDING)
+                .map(tx -> {
+                    long expectedAmount = tx.getAmount().longValue();
+                    if (Math.abs(expectedAmount - amount) > 500) {
+                        // Allow ±500 VND tolerance for bank fee differences
+                        log.warn("VietQR callback: amount mismatch orderId={} expected={} got={}", finalOrderId, expectedAmount, amount);
+                        return false;
+                    }
+
+                    // Expire old active subscription
+                    subscriptionRepository.findActiveByTeacherId(tx.getTeacher().getTeacherId())
+                            .ifPresent(existing -> {
+                                existing.setStatus(SubscriptionStatus.EXPIRED);
+                                existing.setUpdatedAt(LocalDateTime.now());
+                                subscriptionRepository.save(existing);
+                            });
+
+                    // Mark tx SUCCESS
+                    tx.setPaymentStatus(PaymentStatus.SUCCESS);
+                    tx.setPaidAt(LocalDateTime.now());
+                    tx.setNote("Auto-confirmed by VietQR webhook");
+
+                    // Create new ACTIVE subscription
+                    LocalDate now = LocalDate.now();
+                    LocalDate endDate = tx.getPlan().getDurationDays() != null
+                            ? now.plusDays(tx.getPlan().getDurationDays()) : null;
+                    TeacherSubscription sub = TeacherSubscription.builder()
+                            .teacher(tx.getTeacher())
+                            .plan(tx.getPlan())
+                            .startDate(now)
+                            .endDate(endDate)
+                            .status(SubscriptionStatus.ACTIVE)
+                            .build();
+                    sub = subscriptionRepository.save(sub);
+                    tx.setSubscription(sub);
+                    transactionRepository.save(tx);
+
+                    log.info("✅ VietQR auto-confirmed: orderId={} teacher={} plan={}",
+                            finalOrderId, tx.getTeacher().getTeacherId(), tx.getPlan().getPlanCode());
+                    return true;
+                })
+                .orElseGet(() -> {
+                    log.warn("VietQR callback: no PENDING transaction for orderId={}", finalOrderId);
+                    return false;
+                });
+    }
+
 
     @Override
     @Scheduled(cron = "0 0 1 * * *") // 1 AM daily
