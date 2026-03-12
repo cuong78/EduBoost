@@ -1597,6 +1597,11 @@ const ExamGenerator = () => {
           font-weight: bold !important; 
           text-decoration: underline !important; 
         }
+        .pdf-exporting .option-content {
+          min-width: 0 !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
+        }
 
         .answers { margin-top: 10px; display: grid; gap: 6px; }
         .a { padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.06); }
@@ -1605,12 +1610,12 @@ const ExamGenerator = () => {
         .explain { margin-top: 10px; }
 
         /* Exam-style answers A B C D */
-        .exam-answers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
-        @media (max-width: 768px) { .exam-answers { grid-template-columns: 1fr; } }
-        .exam-option { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.08); transition: all 0.2s; }
+        .exam-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+        @media (max-width: 768px) { .exam-answers { grid-template-columns: minmax(0, 1fr); } }
+        .exam-option { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.08); transition: all 0.2s; min-width: 0; }
         .exam-option.correct-marked { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.4); }
-        .option-label { font-weight: 700; color: var(--color-accent-1); min-width: 20px; }
-        .option-content { flex: 1; }
+        .option-label { font-weight: 700; color: var(--color-accent-1); min-width: 20px; flex-shrink: 0; }
+        .option-content { flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; }
         .correct-icon { color: #10b981; font-weight: 700; margin-left: auto; }
         .toggle-label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
         .toggle-label input { width: auto; cursor: pointer; }
