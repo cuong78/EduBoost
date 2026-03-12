@@ -307,24 +307,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     // ─── VietQR API helpers ───────────────────────────
 
-    /** Step 1: get access token from VietQR */
+    /** Step 1: get access token from VietQR
+     *
+     * VietQR cung cấp "mk" (VIETQR_API_PASSWORD) là chuỗi Base64 credentials dùng trực tiếp.
+     * Authorization: Basic {mk}   ← KHÔNG encode thêm lần nữa
+     */
     private String fetchVietQrToken() {
-        if (vietQrApiUsername.isBlank() || vietQrApiPassword.isBlank()) {
+        if (vietQrApiPassword.isBlank()) {
             log.warn("VietQR API credentials not configured — using static QR");
             return null;
         }
         try {
-            String raw = vietQrApiUsername + ":" + vietQrApiPassword;
-            String basic = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Basic " + basic);
+            // mk từ VietQR portal là Base64 credential string dùng trực tiếp
+            headers.set("Authorization", "Basic " + vietQrApiPassword);
             headers.setContentType(MediaType.APPLICATION_JSON);
+            log.info("VietQR: calling {}/vqr/api/token_generate", vietQrApiBaseUrl);
             ResponseEntity<Map> resp = restTemplate.exchange(
                     vietQrApiBaseUrl + "/vqr/api/token_generate",
                     HttpMethod.POST, new HttpEntity<>("{}", headers), Map.class);
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
-                return String.valueOf(resp.getBody().get("access_token"));
+                String token = String.valueOf(resp.getBody().get("access_token"));
+                log.info("VietQR: got access token successfully");
+                return token;
             }
+            log.warn("VietQR get token: unexpected response {}", resp.getStatusCode());
         } catch (Exception e) {
             log.warn("VietQR get token failed: {}", e.getMessage());
         }
