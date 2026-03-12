@@ -552,6 +552,8 @@ const TakeExam = () => {
                     color: var(--color-text-primary);
                     margin-top: 0.75rem;
                     line-height: 1.4;
+                    word-break: break-word;
+                    overflow-wrap: break-word;
                 }
 
                 /* Options */
@@ -593,8 +595,9 @@ const TakeExam = () => {
                     margin-right: 1rem;
                     font-weight: 700;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    flex-shrink: 0;
                 }
-                .option-text { flex: 1; font-size: 1.1rem; }
+                .option-text { flex: 1; font-size: 1.1rem; min-width: 0; word-break: break-word; overflow-wrap: break-word; }
                 .check-icon { margin-left: 1rem; color: #4338ca; }
 
                 /* Controls */

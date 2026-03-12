@@ -709,6 +709,11 @@ const ExamManagement = () => {
             .pdf-exporting .exam-option.correct-marked { font-weight: bold !important; }
             .pdf-exporting .exam-option.correct-marked .option-label,
             .pdf-exporting .exam-option.correct-marked .option-content * { color: #d97706 !important; font-weight: bold !important; text-decoration: underline !important; }
+            .pdf-exporting .option-content {
+              min-width: 0 !important;
+              word-break: break-word !important;
+              overflow-wrap: break-word !important;
+            }
           `}</style>
           
           <div ref={exportContainerRef} className="q-list" style={{ backgroundColor: 'white' }}>
