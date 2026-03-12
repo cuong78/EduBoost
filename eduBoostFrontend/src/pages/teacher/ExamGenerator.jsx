@@ -243,7 +243,7 @@ const ExamGenerator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId, gradeLevel]);
 
-  // Load matrix templates when exam type OR subject changes
+  // Load matrix templates when exam type OR subject OR grade changes
   useEffect(() => {
     if (!isMatrixType) {
       setMatrixTemplates([]);
@@ -254,10 +254,9 @@ const ExamGenerator = () => {
     if (!subjectId) return;
     setLoadingMatrices(true);
     const examTypeId = getSelectedExamTypeId();
-    // NOTE: we intentionally do NOT filter by gradeLevel here so teachers can
-    // select matrices created for any grade of the same subject+examType.
+    
     examService
-      .getMatrixTemplates({ examTypeId, subjectId: Number(subjectId) })
+      .getMatrixTemplates({ examTypeId, subjectId: Number(subjectId), gradeLevel: Number(gradeLevel) })
       .then((data) => {
         const list = Array.isArray(data) ? data : data?.data || [];
         setMatrixTemplates(list);
@@ -272,7 +271,7 @@ const ExamGenerator = () => {
       .catch(() => setMatrixTemplates([]))
       .finally(() => setLoadingMatrices(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMatrixType, subjectId]);
+  }, [isMatrixType, subjectId, gradeLevel]);
 
   useEffect(() => {
     loadLessons().catch(() => setLessons([]));
