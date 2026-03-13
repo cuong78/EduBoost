@@ -49,13 +49,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Value("${payment.vietqr.account-name:EDUBOOST PLATFORM}")
     private String accountName;
 
-    // ─── VietQR API (server calls VietQR to generate dynamic QR) ───
-    @Value("${vietqr.api.base-url:https://dev.vietqr.org}")
+    // ─── VietQR API (server gọi VietQR để generate dynamic QR) ───
+    @Value("${vietqr.api.base-url:https://api.vietqr.org}")
     private String vietQrApiBaseUrl;
-    // Để đơn giản: CB và API dùng chung 1 credentials (vietqr.username / vietqr.password)
-    @Value("${vietqr.username:}")
+    @Value("${vietqr.api.username}")
     private String vietQrApiUsername;
-    @Value("${vietqr.password:}")
+    @Value("${vietqr.api.password}")
     private String vietQrApiPassword;
 
     // ─── Public ───────────────────────────────────

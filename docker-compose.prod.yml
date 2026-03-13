@@ -83,16 +83,18 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-eduboost}
       AI_DEEPSEEK_API_KEY: ${AI_DEEPSEEK_API_KEY}
-      # VietQR — credentials dùng chung (CB & API)
-      VIETQR_USERNAME: ${VIETQR_USERNAME}
-      VIETQR_PASSWORD: ${VIETQR_PASSWORD}
+      # VietQR Callback — VietQR gọi VÀO server mình
+      VIETQR_CB_USERNAME: ${VIETQR_CB_USERNAME}
+      VIETQR_CB_PASSWORD: ${VIETQR_CB_PASSWORD}
       VIETQR_CB_SECRET: ${VIETQR_CB_SECRET}
-      # VietQR — bank account & API URL (đổi 4 dòng khi chuyển DEV↔PROD)
-      VIETQR_BANK_CODE: ${VIETQR_BANK_CODE:-MB}
-      VIETQR_ACCOUNT_NO: ${VIETQR_ACCOUNT_NO:-0369053640}
-      VIETQR_ACCOUNT_NAME: ${VIETQR_ACCOUNT_NAME:-LE THI MAI HUONG}
-      # DEV: https://dev.vietqr.org | PROD: https://api.vietqr.org
-      VIETQR_API_BASE_URL: ${VIETQR_API_BASE_URL:-https://dev.vietqr.org}
+      # VietQR API — server mình gọi VietQR (credentials do VietQR cấp)
+      VIETQR_API_USERNAME: ${VIETQR_API_USERNAME}
+      VIETQR_API_PASSWORD: ${VIETQR_API_PASSWORD}
+      # PROD: api.vietqr.org + TPBank (đổi sang dev.vietqr.org + MB để test sandbox)
+      VIETQR_API_BASE_URL: ${VIETQR_API_BASE_URL:-https://api.vietqr.org}
+      VIETQR_BANK_CODE: ${VIETQR_BANK_CODE:-TPB}
+      VIETQR_ACCOUNT_NO: ${VIETQR_ACCOUNT_NO:-78174803882}
+      VIETQR_ACCOUNT_NAME: ${VIETQR_ACCOUNT_NAME:-CAO LE ANH CUONG}
     depends_on:
       postgres:
         condition: service_healthy

@@ -33,14 +33,13 @@ public class VietQRCallbackController {
 
     private final SubscriptionService subscriptionService;
 
-    @Value("${vietqr.username}")
+    @Value("${vietqr.callback.username}")
     private String callbackUsername;
 
-    @Value("${vietqr.password}")
+    @Value("${vietqr.callback.password}")
     private String callbackPassword;
 
-    // Token cấp cho VietQR — đơn giản dùng UUID cố định (có thể rotate bằng cron nếu cần)
-    @Value("${vietqr.callback.secret-key:eduboost-vietqr-secret-2025}")
+    @Value("${vietqr.callback.secret-key}")
     private String secretKey;
 
     // ─── 1. GET TOKEN ────────────────────────────────────────────────────────
