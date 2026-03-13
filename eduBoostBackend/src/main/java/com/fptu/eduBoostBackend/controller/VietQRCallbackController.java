@@ -33,10 +33,10 @@ public class VietQRCallbackController {
 
     private final SubscriptionService subscriptionService;
 
-    @Value("${vietqr.callback.username:admintest}")
+    @Value("${vietqr.username}")
     private String callbackUsername;
 
-    @Value("${vietqr.callback.password:123456@!}")
+    @Value("${vietqr.password}")
     private String callbackPassword;
 
     // Token cấp cho VietQR — đơn giản dùng UUID cố định (có thể rotate bằng cron nếu cần)

@@ -52,9 +52,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     // ─── VietQR API (server calls VietQR to generate dynamic QR) ───
     @Value("${vietqr.api.base-url:https://dev.vietqr.org}")
     private String vietQrApiBaseUrl;
-    @Value("${vietqr.api.username:}")
+    // Để đơn giản: CB và API dùng chung 1 credentials (vietqr.username / vietqr.password)
+    @Value("${vietqr.username:}")
     private String vietQrApiUsername;
-    @Value("${vietqr.api.password:}")
+    @Value("${vietqr.password:}")
     private String vietQrApiPassword;
 
     // ─── Public ───────────────────────────────────
@@ -221,27 +222,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return mapTransaction(transactionRepository.save(tx));
     }
 
-    // ─── VietQR Webhook Auto-Confirm ──────────────
-
     @Override
     @Transactional
     public boolean confirmPaymentByOrderId(String content, long amount) {
         if (content == null || content.isBlank()) return false;
 
-        // Extract EDU-XXXXXXXX from transfer content (case-insensitive)
-        String upper = content.toUpperCase();
+        // Extract orderId from transfer content.
+        // Our format: "EDU" + 10 uppercase hex chars (e.g. "EDU45BDE11A63")
+        // content from VietQR callback is exactly what we set (the orderId itself),
+        // but we do a regex search to be safe if content has extra text.
+        String upper = content.trim().toUpperCase();
         String orderId = null;
-        int idx = upper.indexOf("EDU-");
-        if (idx >= 0) {
-            // take "EDU-" + up to 8 alphanumeric chars
-            int end = idx + 4;
-            while (end < upper.length() && end < idx + 12 && Character.isLetterOrDigit(upper.charAt(end))) {
-                end++;
-            }
-            orderId = upper.substring(idx, end);
+
+        // Try exact match first (content IS the orderId)
+        if (upper.matches("EDU[0-9A-F]{10}")) {
+            orderId = upper;
+        } else {
+            // Fallback: extract EDUxxxxxxxxxx from a longer string
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("EDU([0-9A-F]{10})")
+                    .matcher(upper);
+            if (m.find()) orderId = m.group(0);
         }
+
         if (orderId == null) {
-            log.warn("VietQR callback: cannot extract orderId from content=[{}]", content);
+            log.warn("VietQR callback: cannot extract EDUxxxxxxxxxx orderId from content=[{}]", content);
             return false;
         }
 
