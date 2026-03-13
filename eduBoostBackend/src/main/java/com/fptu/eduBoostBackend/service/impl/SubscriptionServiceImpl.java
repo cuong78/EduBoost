@@ -376,12 +376,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     private String buildQrImageFromLink(String qrLink, Map<String, Object> result, SubscriptionPlan plan, String orderId) {
-        // Prefer qrLink (web QR), fallback to img.vietqr.io with transactionRefId
-        if (qrLink != null && !qrLink.isBlank() && !"{}".equals(qrLink)) return qrLink;
-        Object refId = result.get("transactionRefId");
-        if (refId != null && !String.valueOf(refId).isBlank()) {
-            return "https://pro.vietqr.vn/qr-generated?token=" + refId;
-        }
+        // Always use static img.vietqr.io for display (displayable image, correct QR content).
+        // Dynamic QR API was called to register orderId with VietQR for callback tracking.
+        // qrLink (https://pro.vietqr.vn/...) is a web page, NOT a direct image — skip it.
         return buildStaticVietQrImageUrl(plan.getPrice(), orderId);
     }
 
