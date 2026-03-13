@@ -26,4 +26,8 @@ export const subscriptionService = {
     /** Admin — cancel a pending transaction */
     cancelTransaction: (id, reason = '') =>
         apiClient.post(`${BASE}/admin/cancel/${id}`, { reason }).then(r => r.data?.data ?? r.data),
+
+    /** Poll transaction status by ID (used by payment modal to detect confirmation) */
+    getTransactionStatus: (id) =>
+        apiClient.get(`${BASE}/transactions/${id}`).then(r => r.data?.data ?? r.data),
 };

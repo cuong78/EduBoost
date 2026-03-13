@@ -140,6 +140,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .stream().map(this::mapTransaction).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentTransactionResponse getTransactionById(Long id) {
+        return transactionRepository.findById(id)
+                .map(this::mapTransaction)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+    }
+
     // ─── Admin ────────────────────────────────────
 
     @Override

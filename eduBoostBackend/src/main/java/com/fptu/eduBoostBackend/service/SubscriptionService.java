@@ -21,6 +21,9 @@ public interface SubscriptionService {
     /** Teacher — transaction history */
     List<PaymentTransactionResponse> getMyTransactions();
 
+    /** Teacher — get single transaction by ID (for polling payment status) */
+    PaymentTransactionResponse getTransactionById(Long id);
+
     /** Admin — all pending transactions */
     List<PaymentTransactionResponse> getPendingTransactions();
 

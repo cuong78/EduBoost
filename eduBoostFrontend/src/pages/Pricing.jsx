@@ -32,13 +32,38 @@ function fmtVND(n) {
 
 /* ─── VietQR Modal ─── */
 function VietQRModal({ tx, onClose }) {
-  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate ? useNavigate() : null;
+  const [copied,   setCopied]   = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes
+  const [status,   setStatus]   = useState(tx.paymentStatus || "PENDING"); // poll result
+  const [confirmed, setConfirmed] = useState(false);
 
+  // Countdown timer
   useEffect(() => {
     const t = setInterval(() => setTimeLeft(s => s > 0 ? s - 1 : 0), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // ── Auto-polling every 5s to detect VietQR callback confirmation ──
+  useEffect(() => {
+    if (status === "SUCCESS" || status === "CANCELLED" || !tx?.id) return;
+    const poll = setInterval(async () => {
+      try {
+        const updated = await subscriptionService.getTransactionStatus(tx.id);
+        if (updated?.paymentStatus === "SUCCESS") {
+          setStatus("SUCCESS");
+          setConfirmed(true);
+          clearInterval(poll);
+          // Auto-redirect to subscription page after 3s
+          setTimeout(() => {
+            if (navigate) navigate("/teacher/subscription");
+            else window.location.href = "/teacher/subscription";
+          }, 3000);
+        }
+      } catch (_) { /* ignore poll errors */ }
+    }, 5000);
+    return () => clearInterval(poll);
+  }, [tx?.id, status, navigate]);
 
   const fmt = s => `${Math.floor(s / 60).toString().padStart(2,"0")}:${(s % 60).toString().padStart(2,"0")}`;
 
@@ -47,6 +72,19 @@ function VietQRModal({ tx, onClose }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // ── Success screen after auto-confirm ──
+  if (confirmed) {
+    return (
+      <div className="pr-overlay">
+        <div className="pr-modal" style={{textAlign:"center",padding:"48px 32px"}}>
+          <div style={{fontSize:64,marginBottom:16}}>🎉</div>
+          <h2 style={{color:"#10b981",marginBottom:8}}>Thanh toán thành công!</h2>
+          <p style={{color:"#6b7280"}}>Gói Pro đã được kích hoạt. Đang chuyển hướng...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pr-overlay" onClick={onClose}>
@@ -59,6 +97,9 @@ function VietQRModal({ tx, onClose }) {
         {/* Countdown */}
         <div className={`pr-countdown ${timeLeft < 60 ? "pr-countdown--urgent" : ""}`}>
           <Clock size={16}/> Hết hạn sau: <strong>{fmt(timeLeft)}</strong>
+          <span style={{marginLeft:12,fontSize:11,color:"#9ca3af",fontWeight:"normal"}}>
+            🔄 Tự kiểm tra mỗi 5 giây...
+          </span>
         </div>
 
         {/* QR Image */}
@@ -93,7 +134,7 @@ function VietQRModal({ tx, onClose }) {
 
         {/* Instruction */}
         <div className="pr-instruction">
-          <AlertCircle size={15}/> Sau khi chuyển khoản, đội ngũ EduBoost sẽ xác nhận và kích hoạt gói của bạn trong vòng <strong>30 phút</strong> (giờ hành chính).
+          <AlertCircle size={15}/> Sau khi chuyển khoản, hệ thống sẽ <strong>tự động kích hoạt</strong> gói trong vòng <strong>vài giây</strong>.
         </div>
 
         <div className="pr-modal-footer">

@@ -52,6 +52,12 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscriptionService.getMyTransactions());
     }
 
+    /** GET /api/subscriptions/transactions/{id} — poll payment status */
+    @GetMapping("/transactions/{id}")
+    public ResponseEntity<PaymentTransactionResponse> getTransactionById(@PathVariable Long id) {
+        return ResponseEntity.ok(subscriptionService.getTransactionById(id));
+    }
+
     /* ─────── Admin ─────── */
 
     /** GET /api/subscriptions/admin/pending */
