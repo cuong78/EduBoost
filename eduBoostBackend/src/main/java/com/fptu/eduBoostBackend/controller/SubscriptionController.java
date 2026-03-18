@@ -10,12 +10,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/subscriptions")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "api")
 public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
