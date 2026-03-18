@@ -15,13 +15,13 @@ public interface SubscriptionService {
     /** Teacher — get current active subscription */
     TeacherSubscriptionResponse getMySubscription();
 
-    /** Teacher — initiate payment, returns VietQR info */
+    /** Teacher — initiate payment, trả về thông tin QR để hiển thị */
     PaymentTransactionResponse initiatePayment(InitPaymentRequest request);
 
     /** Teacher — transaction history */
     List<PaymentTransactionResponse> getMyTransactions();
 
-    /** Teacher — get single transaction by ID (for polling payment status) */
+    /** Teacher — get single transaction by ID */
     PaymentTransactionResponse getTransactionById(Long id);
 
     /** Admin — all pending transactions */
@@ -33,11 +33,8 @@ public interface SubscriptionService {
     /** Admin — cancel a pending transaction */
     PaymentTransactionResponse cancelTransaction(Long transactionId, String reason);
 
-    /**
-     * VietQR Webhook — auto-confirm payment by matching orderId in transfer content.
-     * Returns true if matched & confirmed, false if no matching PENDING transaction found.
-     */
-    boolean confirmPaymentByOrderId(String content, long amount);
+    /** VietQR Webhook — auto-confirm payment by orderId */
+    boolean confirmPaymentByOrderId(String orderId, long amount);
 
     /** Scheduled — expire subscriptions past endDate */
     void expireSubscriptions();

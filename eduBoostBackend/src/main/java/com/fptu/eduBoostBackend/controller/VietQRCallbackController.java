@@ -15,16 +15,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * VietQR Webhook Endpoints
+ * VietQR Webhook Endpoints — server mình expose cho VietQR gọi vào.
  *
- * VietQR sẽ gọi 2 endpoint này:
- *   1. POST /api/token_generate  — VietQR xin token để xác thực
- *   2. POST /bank/api/transaction-sync — VietQR gửi thông tin giao dịch khi có tiền về
- *
- * Cấu hình trong application.properties:
- *   vietqr.callback.username   (phải khớp với username bạn đăng ký với VietQR)
- *   vietqr.callback.password   (phải khớp với password bạn đăng ký với VietQR)
- *   vietqr.callback.secret-key (bí mật để sign/verify JWT giữa 2 bên)
+ *   1. POST /api/token_generate         — VietQR xin token (Basic Auth)
+ *   2. POST /bank/api/transaction-sync   — VietQR gửi thông tin giao dịch (Bearer token)
  */
 @RestController
 @RequiredArgsConstructor
@@ -34,121 +28,138 @@ public class VietQRCallbackController {
     private final SubscriptionService subscriptionService;
 
     @Value("${vietqr.callback.username}")
-    private String callbackUsername;
+    private String cbUsername;
 
     @Value("${vietqr.callback.password}")
-    private String callbackPassword;
+    private String cbPassword;
 
     @Value("${vietqr.callback.secret-key}")
     private String secretKey;
 
-    // ─── 1. GET TOKEN ────────────────────────────────────────────────────────
-    /**
-     * VietQR gọi endpoint này để lấy token trước khi gửi callback.
-     * Request: Basic Auth với username:password bạn đã đăng ký với VietQR.
-     */
+    // ═══════════════════════════════════════════════════════════════════
+    // 1. GET TOKEN — VietQR gọi để lấy Bearer token
+    // ═══════════════════════════════════════════════════════════════════
     @PostMapping("/api/token_generate")
-    public ResponseEntity<?> generateToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        log.info("VietQR get_token request received");
+    public ResponseEntity<?> tokenGenerate(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
+        log.info("VietQR /api/token_generate called");
+
+        // Validate Basic Auth
         if (authHeader == null || !authHeader.startsWith("Basic ")) {
+            log.warn("VietQR token_generate: missing Basic Auth");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Missing Basic Authorization header"));
+                    .body(Map.of("status", "FAILED", "message", "Missing Basic Authorization"));
         }
 
         try {
-            String base64 = authHeader.substring("Basic ".length()).trim();
-            String decoded = new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
+            String decoded = new String(
+                    Base64.getDecoder().decode(authHeader.substring(6).trim()),
+                    StandardCharsets.UTF_8);
             String[] parts = decoded.split(":", 2);
-            if (parts.length != 2 || !callbackUsername.equals(parts[0]) || !callbackPassword.equals(parts[1])) {
-                log.warn("VietQR get_token: invalid credentials");
+
+            if (parts.length != 2
+                    || !cbUsername.equals(parts[0])
+                    || !cbPassword.equals(parts[1])) {
+                log.warn("VietQR token_generate: invalid credentials user=[{}]", parts.length > 0 ? parts[0] : "?");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid credentials"));
+                        .body(Map.of("status", "FAILED", "message", "Invalid credentials"));
             }
         } catch (Exception e) {
+            log.warn("VietQR token_generate: cannot decode header: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Cannot decode Authorization header"));
+                    .body(Map.of("status", "FAILED", "message", "Cannot decode Authorization header"));
         }
 
-        // Token đơn giản: secretKey + UUID (VietQR sẽ gửi lại token này trong header của transaction-sync)
-        String token = secretKey + ":" + UUID.randomUUID().toString().replace("-", "");
-        String encoded = Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
+        // Issue token = Base64(secretKey:uuid)
+        String raw = secretKey + ":" + UUID.randomUUID().toString().replace("-", "");
+        String token = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
 
-        log.info("VietQR get_token: issued token successfully");
+        log.info("VietQR token_generate: issued token OK");
         return ResponseEntity.ok(Map.of(
-                "access_token", encoded,
+                "access_token", token,
                 "token_type", "Bearer",
                 "expires_in", 300
         ));
     }
 
-    // ─── 2. TRANSACTION SYNC (CALLBACK) ──────────────────────────────────────
-    /**
-     * VietQR gọi endpoint này mỗi khi có tiền về tài khoản của bạn.
-     * Body chứa thông tin giao dịch — ta dùng content + amount để tự động kích hoạt gói.
-     */
+    // ═══════════════════════════════════════════════════════════════════
+    // 2. TRANSACTION SYNC — VietQR gửi thông tin giao dịch khi có tiền về
+    // ═══════════════════════════════════════════════════════════════════
     @PostMapping("/bank/api/transaction-sync")
     public ResponseEntity<?> transactionSync(
             @RequestBody Map<String, Object> body,
             HttpServletRequest request) {
 
         String authHeader = request.getHeader("Authorization");
-        log.info("VietQR transaction-sync received, auth=[{}]", authHeader != null ? "present" : "missing");
+        log.info("VietQR /bank/api/transaction-sync called, auth=[{}]",
+                authHeader != null ? "present" : "missing");
 
-        // Validate Bearer token từ VietQR
+        // Validate Bearer token
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", true, "errorReason", "INVALID_AUTH",
-                            "toastMessage", "Missing Bearer token", "object", null));
+            return syncResponse(true, "INVALID_AUTH", "Missing Bearer token", "");
         }
 
-        String receivedToken = authHeader.substring("Bearer ".length()).trim();
+        String receivedToken = authHeader.substring(7).trim();
         try {
             String decoded = new String(Base64.getDecoder().decode(receivedToken), StandardCharsets.UTF_8);
             if (!decoded.startsWith(secretKey + ":")) {
                 log.warn("VietQR transaction-sync: invalid token");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", true, "errorReason", "INVALID_TOKEN",
-                                "toastMessage", "Invalid or expired token", "object", null));
+                return syncResponse(true, "INVALID_TOKEN", "Invalid token", "");
             }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", true, "errorReason", "INVALID_TOKEN",
-                            "toastMessage", "Cannot decode token", "object", null));
+            log.warn("VietQR transaction-sync: cannot decode token: {}", e.getMessage());
+            return syncResponse(true, "INVALID_TOKEN", "Cannot decode token", "");
         }
 
-        // Extract thông tin giao dịch
-        String content     = String.valueOf(body.getOrDefault("content", ""));
-        String transType   = String.valueOf(body.getOrDefault("transType", "C"));
-        String transId     = String.valueOf(body.getOrDefault("transactionid", ""));
-        Object amountRaw   = body.get("amount");
+        // Extract fields theo tài liệu VietQR
+        String orderId       = str(body, "orderId");
+        String content       = str(body, "content");
+        String transType     = str(body, "transType");
+        String transId       = str(body, "transactionid");
+        String refNumber     = str(body, "referencenumber");
         long amount = 0;
-        try { amount = amountRaw != null ? Long.parseLong(amountRaw.toString()) : 0; } catch (Exception ignored) {}
+        try { amount = Long.parseLong(String.valueOf(body.getOrDefault("amount", "0"))); }
+        catch (Exception ignored) {}
 
-        log.info("VietQR callback: transType={} content=[{}] amount={} transId={}", transType, content, amount, transId);
+        log.info("VietQR callback: orderId=[{}] content=[{}] amount={} transType={} transId={} ref={}",
+                orderId, content, amount, transType, transId, refNumber);
 
         // Chỉ xử lý giao dịch GHI CÓ (C = tiền vào)
         if (!"C".equalsIgnoreCase(transType)) {
             log.info("VietQR callback: ignored transType={}", transType);
-            return ResponseEntity.ok(Map.of("error", false, "errorReason", null,
-                    "toastMessage", "Ignored (not incoming)", "object", Map.of("reftransactionid", transId)));
+            return syncResponse(false, null, "Ignored (not credit)", transId);
         }
 
-        // Auto-confirm dựa trên orderId trong nội dung chuyển khoản
-        boolean confirmed = subscriptionService.confirmPaymentByOrderId(content, amount);
+        // Auto-confirm dùng orderId trực tiếp (KHÔNG parse từ content)
+        boolean confirmed = subscriptionService.confirmPaymentByOrderId(orderId, amount);
 
         if (confirmed) {
-            log.info("VietQR callback: ✅ auto-confirmed subscription for content=[{}]", content);
+            log.info("VietQR callback: ✅ auto-confirmed orderId=[{}]", orderId);
         } else {
-            log.warn("VietQR callback: ⚠️ no matching PENDING transaction for content=[{}]", content);
+            log.warn("VietQR callback: ⚠️ no matching PENDING for orderId=[{}]", orderId);
         }
 
-        // VietQR yêu cầu luôn trả về 200 OK ngay cả khi không match
+        // VietQR yêu cầu luôn trả 200 OK
+        return syncResponse(false,
+                confirmed ? null : "NO_MATCH",
+                confirmed ? "Subscription activated" : "No matching order",
+                transId);
+    }
+
+    // ─── helpers ────────────────────────────────────────────────────
+
+    private String str(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        return v != null ? v.toString() : "";
+    }
+
+    private ResponseEntity<?> syncResponse(boolean error, String reason, String msg, String refTxId) {
         return ResponseEntity.ok(Map.of(
-                "error", false,
-                "errorReason", confirmed ? null : "NO_MATCH",
-                "toastMessage", confirmed ? "Subscription activated" : "No matching order",
-                "object", Map.of("reftransactionid", transId)
+                "error", error,
+                "errorReason", reason != null ? reason : "",
+                "toastMessage", msg != null ? msg : "",
+                "object", Map.of("reftransactionid", refTxId != null ? refTxId : "")
         ));
     }
 }

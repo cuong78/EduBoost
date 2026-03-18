@@ -41,34 +41,36 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final TeacherRepository teacherRepository;
     private final RestTemplate restTemplate;
 
-    // ─── VietQR bank receiving payment ───
-    @Value("${payment.vietqr.bank-code:TPB}")
+    // ─── Tài khoản ngân hàng nhận tiền ───
+    @Value("${payment.vietqr.bank-code:MB}")
     private String bankCode;
-    @Value("${payment.vietqr.account-no:0000000000}")
+    @Value("${payment.vietqr.account-no:0369053640}")
     private String accountNo;
-    @Value("${payment.vietqr.account-name:EDUBOOST PLATFORM}")
+    @Value("${payment.vietqr.account-name:LE THI MAI HUONG}")
     private String accountName;
 
-    // ─── VietQR API (server gọi VietQR để generate dynamic QR) ───
-    @Value("${vietqr.api.base-url:https://api.vietqr.org}")
-    private String vietQrApiBaseUrl;
-    @Value("${vietqr.api.username}")
-    private String vietQrApiUsername;
-    @Value("${vietqr.api.password}")
-    private String vietQrApiPassword;
+    // ─── VietQR API (ta gọi VietQR) ───
+    @Value("${vietqr.api.base-url:https://dev.vietqr.org}")
+    private String vietQrBaseUrl;
+    @Value("${vietqr.api.username:}")
+    private String vietQrApiUser;
+    @Value("${vietqr.api.password:}")
+    private String vietQrApiPass;
 
-    // ─── Public ───────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // Public
+    // ═══════════════════════════════════════════════════════════════
 
     @Override
     @Transactional(readOnly = true)
     public List<SubscriptionPlanResponse> getActivePlans() {
         return planRepository.findByIsActiveTrueOrderByPriceAsc()
-                .stream()
-                .map(this::mapPlan)
-                .collect(Collectors.toList());
+                .stream().map(this::mapPlan).collect(Collectors.toList());
     }
 
-    // ─── Teacher ──────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // Teacher
+    // ═══════════════════════════════════════════════════════════════
 
     @Override
     @Transactional(readOnly = true)
@@ -90,28 +92,24 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new IllegalArgumentException("FREE plan does not require payment");
         }
 
-        // orderId max 13 chars (VietQR requirement)
-        String orderId = "EDU" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
+        // orderId tối đa 13 chars (yêu cầu VietQR)
+        String orderId = "EDU" + UUID.randomUUID().toString().replace("-", "")
+                .substring(0, 10).toUpperCase();
 
-        // Try to generate dynamic QR via VietQR API (enables callback)
+        // ─── Tạo Dynamic QR qua VietQR API ───
         String qrImageUrl = null;
-        String qrLink    = null;
         String vietQrToken = fetchVietQrToken();
         if (vietQrToken != null) {
             Map<String, Object> qrResult = generateDynamicQr(vietQrToken, plan, orderId);
             if (qrResult != null) {
-                qrLink    = String.valueOf(qrResult.getOrDefault("qrLink", ""));
-                qrImageUrl = buildQrImageFromLink(qrLink, qrResult, plan, orderId);
-                log.info("Dynamic QR generated for orderId={} qrLink={}", orderId, qrLink);
+                // Dynamic QR đăng ký thành công → VietQR sẽ callback khi có tiền
+                // Nhưng VietQR trả qrLink (web page) chứ không trả image → dùng static img
+                log.info("Dynamic QR registered: orderId={}", orderId);
             }
         }
-        // Fallback: static VietQR image URL
-        if (qrImageUrl == null) {
-            log.warn("Falling back to static QR for orderId={}", orderId);
-            qrImageUrl = buildStaticVietQrImageUrl(plan.getPrice(), orderId);
-        }
-
-        String qrContent = buildVietQrContent(plan.getPrice(), orderId);
+        // Luôn dùng static image cho hiển thị (img.vietqr.io luôn đúng)
+        qrImageUrl = buildStaticQrImageUrl(plan.getPrice(), orderId);
+        String qrContent = buildQrContent(plan.getPrice(), orderId);
 
         PaymentTransaction tx = PaymentTransaction.builder()
                 .orderId(orderId)
@@ -126,9 +124,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .qrImageUrl(qrImageUrl)
                 .paymentStatus(PaymentStatus.PENDING)
                 .build();
-
         tx = transactionRepository.save(tx);
-        log.info("Initiated payment {} for teacher {} plan {}", orderId, teacher.getTeacherId(), plan.getPlanCode());
+
+        log.info("Initiated payment {} for teacher {} plan {}",
+                orderId, teacher.getTeacherId(), plan.getPlanCode());
         return mapTransaction(tx);
     }
 
@@ -148,7 +147,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
     }
 
-    // ─── Admin ────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // Admin
+    // ═══════════════════════════════════════════════════════════════
 
     @Override
     @Transactional(readOnly = true)
@@ -165,47 +166,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         PaymentTransaction tx = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
-
         if (tx.getPaymentStatus() != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Transaction is not in PENDING status");
+            throw new IllegalStateException("Transaction is not PENDING");
         }
 
-        // Mark transaction SUCCESS
         tx.setPaymentStatus(PaymentStatus.SUCCESS);
         tx.setPaidAt(LocalDateTime.now());
         tx.setConfirmedByUserId(adminUser.getUserId());
         tx.setNote(note);
 
-        // Expire any existing active subscription
-        subscriptionRepository.findActiveByTeacherId(tx.getTeacher().getTeacherId())
-                .ifPresent(existing -> {
-                    existing.setStatus(SubscriptionStatus.EXPIRED);
-                    existing.setUpdatedAt(LocalDateTime.now());
-                    subscriptionRepository.save(existing);
-                });
-
-        // Create new active subscription
-        LocalDate now = LocalDate.now();
-        LocalDate endDate = tx.getPlan().getDurationDays() != null
-                ? now.plusDays(tx.getPlan().getDurationDays())
-                : null;
-
-        TeacherSubscription subscription = TeacherSubscription.builder()
-                .teacher(tx.getTeacher())
-                .plan(tx.getPlan())
-                .startDate(now)
-                .endDate(endDate)
-                .status(SubscriptionStatus.ACTIVE)
-                .build();
-        subscription = subscriptionRepository.save(subscription);
-
-        tx.setSubscription(subscription);
-        transactionRepository.save(tx);
-
-        log.info("Confirmed payment {} → activated subscription {} for teacher {}",
-                tx.getOrderId(), subscription.getId(), tx.getTeacher().getTeacherId());
-
-        return mapSubscription(subscription);
+        TeacherSubscription sub = activateSubscription(tx);
+        return mapSubscription(sub);
     }
 
     @Override
@@ -221,86 +192,47 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return mapTransaction(transactionRepository.save(tx));
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // VietQR Webhook — auto-confirm
+    // ═══════════════════════════════════════════════════════════════
+
     @Override
     @Transactional
-    public boolean confirmPaymentByOrderId(String content, long amount) {
-        if (content == null || content.isBlank()) return false;
+    public boolean confirmPaymentByOrderId(String orderId, long amount) {
+        if (orderId == null || orderId.isBlank()) return false;
 
-        // Extract orderId from transfer content.
-        // Our format: "EDU" + 10 uppercase hex chars (e.g. "EDU45BDE11A63")
-        // content from VietQR callback is exactly what we set (the orderId itself),
-        // but we do a regex search to be safe if content has extra text.
-        String upper = content.trim().toUpperCase();
-        String orderId = null;
-
-        // Try exact match first (content IS the orderId)
-        if (upper.matches("EDU[0-9A-F]{10}")) {
-            orderId = upper;
-        } else {
-            // Fallback: extract EDUxxxxxxxxxx from a longer string
-            java.util.regex.Matcher m = java.util.regex.Pattern
-                    .compile("EDU([0-9A-F]{10})")
-                    .matcher(upper);
-            if (m.find()) orderId = m.group(0);
-        }
-
-        if (orderId == null) {
-            log.warn("VietQR callback: cannot extract EDUxxxxxxxxxx orderId from content=[{}]", content);
-            return false;
-        }
-
-        final String finalOrderId = orderId;
         return transactionRepository
-                .findByOrderIdAndPaymentStatus(finalOrderId, PaymentStatus.PENDING)
+                .findByOrderIdAndPaymentStatus(orderId.trim(), PaymentStatus.PENDING)
                 .map(tx -> {
-                    long expectedAmount = tx.getAmount().longValue();
-                    if (Math.abs(expectedAmount - amount) > 500) {
-                        // Allow ±500 VND tolerance for bank fee differences
-                        log.warn("VietQR callback: amount mismatch orderId={} expected={} got={}", finalOrderId, expectedAmount, amount);
+                    long expected = tx.getAmount().longValue();
+                    if (Math.abs(expected - amount) > 500) {
+                        log.warn("VietQR: amount mismatch orderId={} expected={} got={}",
+                                orderId, expected, amount);
                         return false;
                     }
 
-                    // Expire old active subscription
-                    subscriptionRepository.findActiveByTeacherId(tx.getTeacher().getTeacherId())
-                            .ifPresent(existing -> {
-                                existing.setStatus(SubscriptionStatus.EXPIRED);
-                                existing.setUpdatedAt(LocalDateTime.now());
-                                subscriptionRepository.save(existing);
-                            });
-
-                    // Mark tx SUCCESS
                     tx.setPaymentStatus(PaymentStatus.SUCCESS);
                     tx.setPaidAt(LocalDateTime.now());
-                    tx.setNote("Auto-confirmed by VietQR webhook");
+                    tx.setNote("Auto-confirmed by VietQR callback");
 
-                    // Create new ACTIVE subscription
-                    LocalDate now = LocalDate.now();
-                    LocalDate endDate = tx.getPlan().getDurationDays() != null
-                            ? now.plusDays(tx.getPlan().getDurationDays()) : null;
-                    TeacherSubscription sub = TeacherSubscription.builder()
-                            .teacher(tx.getTeacher())
-                            .plan(tx.getPlan())
-                            .startDate(now)
-                            .endDate(endDate)
-                            .status(SubscriptionStatus.ACTIVE)
-                            .build();
-                    sub = subscriptionRepository.save(sub);
-                    tx.setSubscription(sub);
-                    transactionRepository.save(tx);
+                    activateSubscription(tx);
 
                     log.info("✅ VietQR auto-confirmed: orderId={} teacher={} plan={}",
-                            finalOrderId, tx.getTeacher().getTeacherId(), tx.getPlan().getPlanCode());
+                            orderId, tx.getTeacher().getTeacherId(), tx.getPlan().getPlanCode());
                     return true;
                 })
                 .orElseGet(() -> {
-                    log.warn("VietQR callback: no PENDING transaction for orderId={}", finalOrderId);
+                    log.warn("VietQR: no PENDING transaction for orderId={}", orderId);
                     return false;
                 });
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // Scheduled
+    // ═══════════════════════════════════════════════════════════════
 
     @Override
-    @Scheduled(cron = "0 0 1 * * *") // 1 AM daily
+    @Scheduled(cron = "0 0 1 * * *")
     @Transactional
     public void expireSubscriptions() {
         List<TeacherSubscription> active = subscriptionRepository.findByStatus(SubscriptionStatus.ACTIVE);
@@ -317,45 +249,51 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (expired > 0) log.info("Expired {} subscriptions", expired);
     }
 
-    // ─── VietQR API helpers ───────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // VietQR API helpers — ta gọi VietQR
+    // ═══════════════════════════════════════════════════════════════
 
-    /** Step 1: get access token from VietQR
-     *
-     * Standard Basic Auth: Authorization: Basic Base64(username:password)
-     * - VIETQR_API_USERNAME = username hệ thống từ portal VietQR
-     * - VIETQR_API_PASSWORD = password hệ thống từ portal VietQR
-     * - SANDBOX URL  : https://dev.vietqr.org
-     * - PRODUCTION URL: https://api.vietqr.org  (chỉ dùng khi VietQR approve production)
+    /**
+     * Bước 1: Lấy access_token từ VietQR.
+     * POST {baseUrl}/vqr/api/token_generate
+     * Authorization: Basic Base64(username:password)
      */
     private String fetchVietQrToken() {
-        if (vietQrApiUsername.isBlank() || vietQrApiPassword.isBlank()) {
-            log.warn("VietQR API credentials not configured — using static QR");
+        if (vietQrApiUser == null || vietQrApiUser.isBlank()) {
+            log.warn("VietQR API credentials not configured — skip dynamic QR");
             return null;
         }
         try {
-            // Standard HTTP Basic Auth: Base64(username:password)
-            String raw   = vietQrApiUsername + ":" + vietQrApiPassword;
+            String raw = vietQrApiUser + ":" + vietQrApiPass;
             String basic = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Basic " + basic);
             headers.setContentType(MediaType.APPLICATION_JSON);
-            String url = vietQrApiBaseUrl + "/vqr/api/token_generate";
-            log.info("VietQR: calling {}", url);
+
+            String url = vietQrBaseUrl + "/vqr/api/token_generate";
+            log.info("VietQR API: GET token from {}", url);
+
             ResponseEntity<Map> resp = restTemplate.exchange(
                     url, HttpMethod.POST, new HttpEntity<>("{}", headers), Map.class);
+
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 String token = String.valueOf(resp.getBody().get("access_token"));
-                log.info("VietQR: got access token successfully");
+                log.info("VietQR API: got token OK");
                 return token;
             }
-            log.warn("VietQR get token: unexpected response {}", resp.getStatusCode());
+            log.warn("VietQR API: token response {}", resp.getStatusCode());
         } catch (Exception e) {
-            log.warn("VietQR get token failed: {}", e.getMessage());
+            log.warn("VietQR API: get token failed: {}", e.getMessage());
         }
         return null;
     }
 
-    /** Step 2: generate dynamic QR code with orderId so VietQR can callback */
+    /**
+     * Bước 2: Tạo Dynamic QR.
+     * POST {baseUrl}/vqr/api/qr/generate-customer
+     * Authorization: Bearer <token>
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> generateDynamicQr(String token, SubscriptionPlan plan, String orderId) {
         try {
@@ -364,51 +302,75 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("bankCode",    bankCode);
-            body.put("bankAccount", accountNo);
+            body.put("bankCode",     bankCode);
+            body.put("bankAccount",  accountNo);
             body.put("userBankName", accountName);
-            // nội dung CK là orderId (tối đa 23 ký tự: "EDU" + 10 chars = 13 chars ✓)
-            body.put("content",    orderId);
-            body.put("qrType",     0);            // 0 = dynamic QR (enables callback)
-            body.put("amount",     plan.getPrice().longValue());
-            body.put("orderId",    orderId);       // VietQR links this to the callback
-            body.put("transType",  "C");           // C = incoming
+            body.put("content",      orderId);       // nội dung CK
+            body.put("qrType",       0);             // 0 = dynamic QR
+            body.put("amount",       plan.getPrice().longValue());
+            body.put("orderId",      orderId);       // VietQR dùng để callback
+            body.put("transType",    "C");
 
+            String url = vietQrBaseUrl + "/vqr/api/qr/generate-customer";
             ResponseEntity<Map> resp = restTemplate.exchange(
-                    vietQrApiBaseUrl + "/vqr/api/qr/generate-customer",
-                    HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+                    url, HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
 
-            if (resp.getStatusCode().is2xxSuccessful()) {
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                log.info("VietQR API: dynamic QR generated, orderId={}", orderId);
                 return resp.getBody();
             }
+            log.warn("VietQR API: generate QR response {}", resp.getStatusCode());
         } catch (Exception e) {
-            log.warn("VietQR generate QR failed: {}", e.getMessage());
+            log.warn("VietQR API: generate QR failed: {}", e.getMessage());
         }
         return null;
     }
 
-    private String buildQrImageFromLink(String qrLink, Map<String, Object> result, SubscriptionPlan plan, String orderId) {
-        // Always use static img.vietqr.io for display (displayable image, correct QR content).
-        // Dynamic QR API was called to register orderId with VietQR for callback tracking.
-        // qrLink (https://pro.vietqr.vn/...) is a web page, NOT a direct image — skip it.
-        return buildStaticVietQrImageUrl(plan.getPrice(), orderId);
+    // ═══════════════════════════════════════════════════════════════
+    // Shared helpers
+    // ═══════════════════════════════════════════════════════════════
+
+    /** Kích hoạt subscription cho transaction đã confirmed */
+    private TeacherSubscription activateSubscription(PaymentTransaction tx) {
+        // Expire sub cũ
+        subscriptionRepository.findActiveByTeacherId(tx.getTeacher().getTeacherId())
+                .ifPresent(existing -> {
+                    existing.setStatus(SubscriptionStatus.EXPIRED);
+                    existing.setUpdatedAt(LocalDateTime.now());
+                    subscriptionRepository.save(existing);
+                });
+
+        // Tạo sub mới
+        LocalDate now = LocalDate.now();
+        LocalDate endDate = tx.getPlan().getDurationDays() != null
+                ? now.plusDays(tx.getPlan().getDurationDays()) : null;
+
+        TeacherSubscription sub = TeacherSubscription.builder()
+                .teacher(tx.getTeacher())
+                .plan(tx.getPlan())
+                .startDate(now)
+                .endDate(endDate)
+                .status(SubscriptionStatus.ACTIVE)
+                .build();
+        sub = subscriptionRepository.save(sub);
+
+        tx.setSubscription(sub);
+        transactionRepository.save(tx);
+        return sub;
     }
 
-    private String buildStaticVietQrImageUrl(BigDecimal amount, String addInfo) {
-        String encoded  = URLEncoder.encode(addInfo,    StandardCharsets.UTF_8);
-        String nameEnc  = URLEncoder.encode(accountName, StandardCharsets.UTF_8);
+    private String buildStaticQrImageUrl(BigDecimal amount, String addInfo) {
         return String.format(
                 "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%s&addInfo=%s&accountName=%s",
-                bankCode, accountNo, amount.toPlainString(), encoded, nameEnc);
+                bankCode, accountNo, amount.toPlainString(),
+                URLEncoder.encode(addInfo, StandardCharsets.UTF_8),
+                URLEncoder.encode(accountName, StandardCharsets.UTF_8));
     }
 
-    private String buildVietQrContent(BigDecimal amount, String transferNote) {
-        // VietQR EMV string format (simplified)
+    private String buildQrContent(BigDecimal amount, String note) {
         return String.format("TK:%s/%s | Nội dung: %s | Số tiền: %s VND",
-                bankCode, accountNo, transferNote, String.format("%,.0f", amount));
+                bankCode, accountNo, note, String.format("%,.0f", amount));
     }
-
-    // ─── Mapping helpers ──────────────────────────
 
     private Teacher getCurrentTeacher() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -417,75 +379,64 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher profile not found"));
     }
 
-    private SubscriptionPlanResponse mapPlan(SubscriptionPlan plan) {
+    // ═══════════════════════════════════════════════════════════════
+    // Mapping
+    // ═══════════════════════════════════════════════════════════════
+
+    private SubscriptionPlanResponse mapPlan(SubscriptionPlan p) {
         return SubscriptionPlanResponse.builder()
-                .id(plan.getId())
-                .planCode(plan.getPlanCode())
-                .planName(plan.getPlanName())
-                .price(plan.getPrice())
-                .billingCycle(plan.getBillingCycle() != null ? plan.getBillingCycle().name() : null)
-                .durationDays(plan.getDurationDays())
-                .maxClasses(plan.getMaxClasses())
-                .maxStudents(plan.getMaxStudents())
-                .maxExamsPerMonth(plan.getMaxExamsPerMonth())
-                .maxAIRequestsPerMonth(plan.getMaxAIRequestsPerMonth())
-                .description(plan.getDescription())
-                .isActive(plan.isActive())
+                .id(p.getId()).planCode(p.getPlanCode()).planName(p.getPlanName())
+                .price(p.getPrice())
+                .billingCycle(p.getBillingCycle() != null ? p.getBillingCycle().name() : null)
+                .durationDays(p.getDurationDays())
+                .maxClasses(p.getMaxClasses()).maxStudents(p.getMaxStudents())
+                .maxExamsPerMonth(p.getMaxExamsPerMonth())
+                .maxAIRequestsPerMonth(p.getMaxAIRequestsPerMonth())
+                .description(p.getDescription()).isActive(p.isActive())
                 .build();
     }
 
-    private TeacherSubscriptionResponse mapSubscription(TeacherSubscription sub) {
-        Long daysLeft = null;
-        if (sub.getEndDate() != null) {
-            daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), sub.getEndDate());
-        }
+    private TeacherSubscriptionResponse mapSubscription(TeacherSubscription s) {
+        Long daysLeft = s.getEndDate() != null
+                ? ChronoUnit.DAYS.between(LocalDate.now(), s.getEndDate()) : null;
         return TeacherSubscriptionResponse.builder()
-                .id(sub.getId())
-                .teacherId(sub.getTeacher().getTeacherId())
-                .teacherName(sub.getTeacher().getUser().getFullName())
-                .plan(mapPlan(sub.getPlan()))
-                .startDate(sub.getStartDate())
-                .endDate(sub.getEndDate())
-                .status(sub.getStatus().name())
-                .autoRenew(sub.isAutoRenew())
-                .createdAt(sub.getCreatedAt())
+                .id(s.getId())
+                .teacherId(s.getTeacher().getTeacherId())
+                .teacherName(s.getTeacher().getUser().getFullName())
+                .plan(mapPlan(s.getPlan()))
+                .startDate(s.getStartDate()).endDate(s.getEndDate())
+                .status(s.getStatus().name())
+                .autoRenew(s.isAutoRenew()).createdAt(s.getCreatedAt())
                 .daysRemaining(daysLeft)
                 .build();
     }
 
     private TeacherSubscriptionResponse buildFreeResponse(Teacher teacher) {
-        return planRepository.findByPlanCode("FREE").map(freePlan ->
-            TeacherSubscriptionResponse.builder()
-                .id(null)
-                .teacherId(teacher.getTeacherId())
-                .teacherName(teacher.getUser().getFullName())
-                .plan(mapPlan(freePlan))
-                .status(SubscriptionStatus.ACTIVE.name())
-                .daysRemaining(null)
-                .build()
+        return planRepository.findByPlanCode("FREE").map(fp ->
+                TeacherSubscriptionResponse.builder()
+                        .id(null)
+                        .teacherId(teacher.getTeacherId())
+                        .teacherName(teacher.getUser().getFullName())
+                        .plan(mapPlan(fp))
+                        .status(SubscriptionStatus.ACTIVE.name())
+                        .daysRemaining(null)
+                        .build()
         ).orElse(null);
     }
 
     private PaymentTransactionResponse mapTransaction(PaymentTransaction tx) {
-        User teacherUser = tx.getTeacher().getUser();
+        User u = tx.getTeacher().getUser();
         return PaymentTransactionResponse.builder()
-                .id(tx.getId())
-                .orderId(tx.getOrderId())
-                .teacherName(teacherUser.getFullName())
-                .teacherEmail(teacherUser.getEmail())
-                .planCode(tx.getPlan().getPlanCode())
-                .planName(tx.getPlan().getPlanName())
-                .amount(tx.getAmount())
-                .currency(tx.getCurrency())
-                .bankCode(tx.getBankCode())
-                .accountNo(tx.getAccountNo())
+                .id(tx.getId()).orderId(tx.getOrderId())
+                .teacherName(u.getFullName()).teacherEmail(u.getEmail())
+                .planCode(tx.getPlan().getPlanCode()).planName(tx.getPlan().getPlanName())
+                .amount(tx.getAmount()).currency(tx.getCurrency())
+                .bankCode(tx.getBankCode()).accountNo(tx.getAccountNo())
                 .accountName(tx.getAccountName())
-                .qrContent(tx.getQrContent())
-                .qrImageUrl(tx.getQrImageUrl())
+                .qrContent(tx.getQrContent()).qrImageUrl(tx.getQrImageUrl())
                 .paymentStatus(tx.getPaymentStatus().name())
                 .note(tx.getNote())
-                .createdAt(tx.getCreatedAt())
-                .paidAt(tx.getPaidAt())
+                .createdAt(tx.getCreatedAt()).paidAt(tx.getPaidAt())
                 .subscriptionId(tx.getSubscription() != null ? tx.getSubscription().getId() : null)
                 .build();
     }
