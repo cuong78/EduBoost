@@ -15,6 +15,7 @@ import {
   X,
   LayoutGrid,
   Crown,
+  MessageSquare,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 import { useAuth } from "../hooks/useAuth";
@@ -104,6 +105,13 @@ const TeacherLayout = () => {
             onClick={closeSidebar}
           >
             <PenTool size={20} /> Tạo đề thi
+          </Link>
+          <Link
+            to="/teacher/feedback"
+            className={`nav-item ${isActive("/teacher/feedback") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <MessageSquare size={20} /> Góp ý
           </Link>
           <Link
             to="/teacher/subscription"

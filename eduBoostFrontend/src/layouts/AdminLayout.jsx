@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Crown,
+  MessageSquare,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 
@@ -94,6 +95,13 @@ const AdminLayout = () => {
             onClick={closeSidebar}
           >
             <Crown size={20} /> Quản lý gói
+          </Link>
+          <Link
+            to="/admin/feedback"
+            className={`nav-item ${isActive("/admin/feedback") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <MessageSquare size={20} /> Feedback
           </Link>
         </nav>
 

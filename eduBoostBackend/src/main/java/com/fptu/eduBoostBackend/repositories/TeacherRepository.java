@@ -10,4 +10,5 @@ import java.util.Optional;
 
 public interface TeacherRepository extends JpaRepository<Teacher, String> {
     Optional<Teacher> findByUser(User user);
+    Optional<Teacher> findByUser_UserId(Long userId);
 }

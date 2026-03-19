@@ -72,6 +72,8 @@ import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
 import Pricing from "./pages/Pricing";
 import SubscriptionManagement from "./pages/teacher/SubscriptionManagement";
 import SubscriptionAdmin from "./pages/admin/SubscriptionAdmin";
+import FeedbackPage from "./pages/teacher/FeedbackPage";
+import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 
 const Home = () => (
   <>
@@ -190,6 +192,7 @@ function App() {
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="matrix-templates" element={<MatrixManagement />} />
               <Route path="subscription" element={<SubscriptionManagement />} />
+              <Route path="feedback" element={<FeedbackPage />} />
               <Route path="profile" element={<UserProfile />} />
             </Route>
           </Route>
@@ -226,6 +229,7 @@ function App() {
               <Route path="lesson-resources" element={<LessonResources />} />
               <Route path="question-bank" element={<QuestionBank />} />
               <Route path="subscriptions" element={<SubscriptionAdmin />} />
+              <Route path="feedback" element={<FeedbackAdmin />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>
