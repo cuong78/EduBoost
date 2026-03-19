@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +32,25 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
            "WHERE pt.paymentStatus = :status " +
            "ORDER BY pt.createdAt DESC")
     List<PaymentTransaction> findByPaymentStatus(@Param("status") PaymentStatus status);
+
+    /** Count transactions by status */
+    long countByPaymentStatus(PaymentStatus status);
+
+    /** Sum amount of SUCCESS transactions */
+    @Query("SELECT COALESCE(SUM(pt.amount), 0) FROM PaymentTransaction pt WHERE pt.paymentStatus = 'SUCCESS'")
+    BigDecimal sumSuccessRevenue();
+
+    /** Sum amount of SUCCESS transactions in date range */
+    @Query("SELECT COALESCE(SUM(pt.amount), 0) FROM PaymentTransaction pt " +
+           "WHERE pt.paymentStatus = 'SUCCESS' " +
+           "AND pt.paidAt >= :from AND pt.paidAt < :to")
+    BigDecimal sumSuccessRevenueBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /** All transactions ordered by date (admin) */
+    @Query("SELECT pt FROM PaymentTransaction pt " +
+           "JOIN FETCH pt.plan " +
+           "JOIN FETCH pt.teacher t " +
+           "JOIN FETCH t.user " +
+           "ORDER BY pt.createdAt DESC")
+    List<PaymentTransaction> findAllOrderByCreatedAtDesc();
 }

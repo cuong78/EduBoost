@@ -2,6 +2,7 @@ package com.fptu.eduBoostBackend.service.impl;
 
 import com.fptu.eduBoostBackend.dto.request.InitPaymentRequest;
 import com.fptu.eduBoostBackend.dto.response.PaymentTransactionResponse;
+import com.fptu.eduBoostBackend.dto.response.RevenueStatsResponse;
 import com.fptu.eduBoostBackend.dto.response.SubscriptionPlanResponse;
 import com.fptu.eduBoostBackend.dto.response.TeacherSubscriptionResponse;
 import com.fptu.eduBoostBackend.entities.*;
@@ -162,6 +163,70 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public List<PaymentTransactionResponse> getPendingTransactions() {
         return transactionRepository.findByPaymentStatus(PaymentStatus.PENDING)
                 .stream().map(this::mapTransaction).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaymentTransactionResponse> getAllTransactions() {
+        return transactionRepository.findAllOrderByCreatedAtDesc()
+                .stream().map(this::mapTransaction).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RevenueStatsResponse getRevenueStats() {
+        BigDecimal totalRevenue = transactionRepository.sumSuccessRevenue();
+
+        // This month & last month
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime startOfLastMonth = startOfMonth.minusMonths(1);
+
+        BigDecimal revenueThisMonth = transactionRepository.sumSuccessRevenueBetween(startOfMonth, now);
+        BigDecimal revenueLastMonth = transactionRepository.sumSuccessRevenueBetween(startOfLastMonth, startOfMonth);
+
+        // Counts
+        long successCount   = transactionRepository.countByPaymentStatus(PaymentStatus.SUCCESS);
+        long pendingCount    = transactionRepository.countByPaymentStatus(PaymentStatus.PENDING);
+        long cancelledCount  = transactionRepository.countByPaymentStatus(PaymentStatus.CANCELLED);
+        long failedCount     = transactionRepository.countByPaymentStatus(PaymentStatus.FAILED);
+        long totalTx         = successCount + pendingCount + cancelledCount + failedCount;
+
+        // Active subscriptions
+        long activeSubs = subscriptionRepository.findByStatus(SubscriptionStatus.ACTIVE).size();
+
+        // Monthly revenue (last 6 months)
+        List<RevenueStatsResponse.MonthlyRevenue> monthly = new ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            LocalDateTime from = startOfMonth.minusMonths(i);
+            LocalDateTime to = from.plusMonths(1);
+            BigDecimal amt = transactionRepository.sumSuccessRevenueBetween(from, to);
+            long cnt = 0;
+            // Count SUCCESS transactions in this month
+            for (PaymentTransaction tx : transactionRepository.findByPaymentStatus(PaymentStatus.SUCCESS)) {
+                if (tx.getPaidAt() != null && !tx.getPaidAt().isBefore(from) && tx.getPaidAt().isBefore(to)) {
+                    cnt++;
+                }
+            }
+            monthly.add(RevenueStatsResponse.MonthlyRevenue.builder()
+                    .month(from.getYear() + "-" + String.format("%02d", from.getMonthValue()))
+                    .amount(amt)
+                    .count(cnt)
+                    .build());
+        }
+
+        return RevenueStatsResponse.builder()
+                .totalRevenue(totalRevenue)
+                .revenueThisMonth(revenueThisMonth)
+                .revenueLastMonth(revenueLastMonth)
+                .totalTransactions(totalTx)
+                .successCount(successCount)
+                .pendingCount(pendingCount)
+                .cancelledCount(cancelledCount)
+                .failedCount(failedCount)
+                .activeSubscriptions(activeSubs)
+                .monthlyRevenue(monthly)
+                .build();
     }
 
     @Override

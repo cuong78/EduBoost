@@ -2,6 +2,7 @@ package com.fptu.eduBoostBackend.service;
 
 import com.fptu.eduBoostBackend.dto.request.InitPaymentRequest;
 import com.fptu.eduBoostBackend.dto.response.PaymentTransactionResponse;
+import com.fptu.eduBoostBackend.dto.response.RevenueStatsResponse;
 import com.fptu.eduBoostBackend.dto.response.SubscriptionPlanResponse;
 import com.fptu.eduBoostBackend.dto.response.TeacherSubscriptionResponse;
 
@@ -26,6 +27,12 @@ public interface SubscriptionService {
 
     /** Admin — all pending transactions */
     List<PaymentTransactionResponse> getPendingTransactions();
+
+    /** Admin — ALL transactions (all statuses) */
+    List<PaymentTransactionResponse> getAllTransactions();
+
+    /** Admin — revenue statistics */
+    RevenueStatsResponse getRevenueStats();
 
     /** Admin — confirm a payment and activate subscription */
     TeacherSubscriptionResponse confirmPayment(Long transactionId, String note);

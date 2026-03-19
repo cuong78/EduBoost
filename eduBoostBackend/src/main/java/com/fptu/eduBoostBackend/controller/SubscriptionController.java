@@ -2,6 +2,7 @@ package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.request.InitPaymentRequest;
 import com.fptu.eduBoostBackend.dto.response.PaymentTransactionResponse;
+import com.fptu.eduBoostBackend.dto.response.RevenueStatsResponse;
 import com.fptu.eduBoostBackend.dto.response.SubscriptionPlanResponse;
 import com.fptu.eduBoostBackend.dto.response.TeacherSubscriptionResponse;
 import com.fptu.eduBoostBackend.service.SubscriptionService;
@@ -25,37 +26,29 @@ public class SubscriptionController {
 
     /* ─────── Public ─────── */
 
-    /**
-     * GET /api/subscriptions/plans
-     * Public — allow unauthenticated access (added to SecurityConstants.PUBLIC_ENDPOINTS)
-     */
     @GetMapping("/plans")
     public ResponseEntity<List<SubscriptionPlanResponse>> getPlans() {
         return ResponseEntity.ok(subscriptionService.getActivePlans());
     }
 
-    /* ─────── Teacher (requires authentication — anyRequest().authenticated() handles it) ─────── */
+    /* ─────── Teacher ─────── */
 
-    /** GET /api/subscriptions/my */
     @GetMapping("/my")
     public ResponseEntity<TeacherSubscriptionResponse> getMySubscription() {
         return ResponseEntity.ok(subscriptionService.getMySubscription());
     }
 
-    /** POST /api/subscriptions/initiate */
     @PostMapping("/initiate")
     public ResponseEntity<PaymentTransactionResponse> initiatePayment(
             @RequestBody InitPaymentRequest request) {
         return ResponseEntity.ok(subscriptionService.initiatePayment(request));
     }
 
-    /** GET /api/subscriptions/transactions */
     @GetMapping("/transactions")
     public ResponseEntity<List<PaymentTransactionResponse>> getMyTransactions() {
         return ResponseEntity.ok(subscriptionService.getMyTransactions());
     }
 
-    /** GET /api/subscriptions/transactions/{id} — poll payment status */
     @GetMapping("/transactions/{id}")
     public ResponseEntity<PaymentTransactionResponse> getTransactionById(@PathVariable Long id) {
         return ResponseEntity.ok(subscriptionService.getTransactionById(id));
@@ -63,14 +56,26 @@ public class SubscriptionController {
 
     /* ─────── Admin ─────── */
 
-    /** GET /api/subscriptions/admin/pending */
     @GetMapping("/admin/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PaymentTransactionResponse>> getPendingTransactions() {
         return ResponseEntity.ok(subscriptionService.getPendingTransactions());
     }
 
-    /** POST /api/subscriptions/admin/confirm/{id} */
+    /** GET /api/subscriptions/admin/all — All transactions (all statuses) */
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PaymentTransactionResponse>> getAllTransactions() {
+        return ResponseEntity.ok(subscriptionService.getAllTransactions());
+    }
+
+    /** GET /api/subscriptions/admin/stats — Revenue statistics */
+    @GetMapping("/admin/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RevenueStatsResponse> getRevenueStats() {
+        return ResponseEntity.ok(subscriptionService.getRevenueStats());
+    }
+
     @PostMapping("/admin/confirm/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TeacherSubscriptionResponse> confirmPayment(
@@ -80,7 +85,6 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscriptionService.confirmPayment(id, note));
     }
 
-    /** POST /api/subscriptions/admin/cancel/{id} */
     @PostMapping("/admin/cancel/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PaymentTransactionResponse> cancelTransaction(
