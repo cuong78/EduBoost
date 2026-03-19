@@ -8,20 +8,20 @@ import "./Pricing.css";
 
 /* ─── Feature comparison data ─── */
 const FEATURES = [
-  { key: "classes",   label: "Số lớp học",         free: "1 lớp",        pro: "Không giới hạn" },
-  { key: "students",  label: "Số học sinh",         free: "30 học sinh",  pro: "Không giới hạn" },
-  { key: "exams",     label: "Đề thi / tháng",      free: "10 đề",        pro: "Không giới hạn" },
-  { key: "ai",        label: "Yêu cầu AI / tháng",  free: "20 lượt",      pro: "Không giới hạn" },
-  { key: "matrix",    label: "Quản lý ma trận",      free: true,           pro: true },
-  { key: "export",    label: "Xuất PDF đề thi",      free: true,           pro: true },
-  { key: "community", label: "Đề thi cộng đồng",    free: true,           pro: true },
-  { key: "priority",  label: "Hỗ trợ ưu tiên",      free: false,          pro: true },
-  { key: "noexpiry",  label: "Không giới hạn thời gian",free: false,       pro: true },
+  { key: "classes", label: "Số lớp học", free: "1 lớp", pro: "Không giới hạn" },
+  { key: "students", label: "Số học sinh", free: "30 học sinh", pro: "Không giới hạn" },
+  { key: "exams", label: "Đề thi / tháng", free: "10 đề", pro: "Không giới hạn" },
+  { key: "ai", label: "Yêu cầu AI / tháng", free: "20 lượt", pro: "Không giới hạn" },
+  { key: "matrix", label: "Quản lý ma trận", free: true, pro: true },
+  { key: "export", label: "Xuất PDF đề thi", free: true, pro: true },
+  { key: "community", label: "Đề thi cộng đồng", free: true, pro: true },
+  { key: "priority", label: "Hỗ trợ ưu tiên", free: false, pro: true },
+  { key: "noexpiry", label: "Không giới hạn thời gian", free: false, pro: true },
 ];
 
 function FeatureCell({ val }) {
-  if (val === true)  return <Check size={18} color="#10b981" className="pr-icon pr-icon--yes"/>;
-  if (val === false) return <X    size={18} color="#d1d5db" className="pr-icon pr-icon--no"/>;
+  if (val === true) return <Check size={18} color="#10b981" className="pr-icon pr-icon--yes" />;
+  if (val === false) return <X size={18} color="#d1d5db" className="pr-icon pr-icon--no" />;
   return <span className="pr-cell-text">{val}</span>;
 }
 
@@ -33,9 +33,9 @@ function fmtVND(n) {
 /* ─── VietQR Modal ─── */
 function VietQRModal({ tx, onClose }) {
   const navigate = useNavigate ? useNavigate() : null;
-  const [copied,   setCopied]   = useState(false);
+  const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes
-  const [status,   setStatus]   = useState(tx.paymentStatus || "PENDING"); // poll result
+  const [status, setStatus] = useState(tx.paymentStatus || "PENDING"); // poll result
   const [confirmed, setConfirmed] = useState(false);
 
   // Countdown timer
@@ -65,7 +65,7 @@ function VietQRModal({ tx, onClose }) {
     return () => clearInterval(poll);
   }, [tx?.id, status, navigate]);
 
-  const fmt = s => `${Math.floor(s / 60).toString().padStart(2,"0")}:${(s % 60).toString().padStart(2,"0")}`;
+  const fmt = s => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   const copyNote = () => {
     navigator.clipboard.writeText(tx.orderId);
@@ -77,10 +77,10 @@ function VietQRModal({ tx, onClose }) {
   if (confirmed) {
     return (
       <div className="pr-overlay">
-        <div className="pr-modal" style={{textAlign:"center",padding:"48px 32px"}}>
-          <div style={{fontSize:64,marginBottom:16}}>🎉</div>
-          <h2 style={{color:"#10b981",marginBottom:8}}>Thanh toán thành công!</h2>
-          <p style={{color:"#6b7280"}}>Gói Pro đã được kích hoạt. Đang chuyển hướng...</p>
+        <div className="pr-modal" style={{ textAlign: "center", padding: "48px 32px" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+          <h2 style={{ color: "#10b981", marginBottom: 8 }}>Thanh toán thành công!</h2>
+          <p style={{ color: "#6b7280" }}>Gói Pro đã được kích hoạt. Đang chuyển hướng...</p>
         </div>
       </div>
     );
@@ -96,8 +96,8 @@ function VietQRModal({ tx, onClose }) {
 
         {/* Countdown */}
         <div className={`pr-countdown ${timeLeft < 60 ? "pr-countdown--urgent" : ""}`}>
-          <Clock size={16}/> Hết hạn sau: <strong>{fmt(timeLeft)}</strong>
-          <span style={{marginLeft:12,fontSize:11,color:"#9ca3af",fontWeight:"normal"}}>
+          <Clock size={16} /> Hết hạn sau: <strong>{fmt(timeLeft)}</strong>
+          <span style={{ marginLeft: 12, fontSize: 11, color: "#9ca3af", fontWeight: "normal" }}>
             🔄 Tự kiểm tra mỗi 5 giây...
           </span>
         </div>
@@ -106,10 +106,10 @@ function VietQRModal({ tx, onClose }) {
         <div className="pr-qr-wrap">
           {tx.qrImageUrl ? (
             <img src={tx.qrImageUrl} alt="VietQR" className="pr-qr-img"
-                 onError={e => { e.target.style.display="none"; }}/>
+              onError={e => { e.target.style.display = "none"; }} />
           ) : (
             <div className="pr-qr-placeholder">
-              <CreditCard size={48} opacity={0.3}/>
+              <CreditCard size={48} opacity={0.3} />
               <p>QR Code đang tải...</p>
             </div>
           )}
@@ -126,7 +126,7 @@ function VietQRModal({ tx, onClose }) {
             <span className="pr-order-id">
               <strong>{tx.orderId}</strong>
               <button className="pr-copy-btn" onClick={copyNote} title="Sao chép">
-                {copied ? <CheckCircle size={14} color="#10b981"/> : <Copy size={14}/>}
+                {copied ? <CheckCircle size={14} color="#10b981" /> : <Copy size={14} />}
               </button>
             </span>
           </div>
@@ -134,7 +134,7 @@ function VietQRModal({ tx, onClose }) {
 
         {/* Instruction */}
         <div className="pr-instruction">
-          <AlertCircle size={15}/> Sau khi chuyển khoản, hệ thống sẽ <strong>tự động kích hoạt</strong> gói trong vòng <strong>vài giây</strong>.
+          <AlertCircle size={15} /> Sau khi chuyển khoản, hệ thống sẽ <strong>tự động kích hoạt</strong> gói trong vòng <strong>vài giây</strong>.
         </div>
 
         <div className="pr-modal-footer">
@@ -154,15 +154,15 @@ export default function Pricing() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [plans,   setPlans]   = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [paying,  setPaying]  = useState(false);
+  const [paying, setPaying] = useState(false);
   const [vietQrTx, setVietQrTx] = useState(null);
 
   useEffect(() => {
     subscriptionService.getPlans()
       .then(data => setPlans(Array.isArray(data) ? data : []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -185,22 +185,22 @@ export default function Pricing() {
     try {
       const tx = await subscriptionService.initiatePayment(plan.id);
       setVietQrTx(tx);
-    } catch(e) {
+    } catch (e) {
       showErrorToast(e?.response?.data?.message || "Không thể tạo đơn thanh toán");
     } finally {
       setPaying(false);
     }
   };
 
-  const freePlan  = plans.find(p => p.planCode === "FREE");
-  const monthly   = plans.find(p => p.planCode === "PRO_MONTHLY");
-  const yearly    = plans.find(p => p.planCode === "PRO_YEARLY");
+  const freePlan = plans.find(p => p.planCode === "FREE");
+  const monthly = plans.find(p => p.planCode === "PRO_MONTHLY");
+  const yearly = plans.find(p => p.planCode === "PRO_YEARLY");
 
   return (
     <div className="pr-page">
       {/* Hero */}
       <div className="pr-hero">
-        <div className="pr-badge"><Star size={14}/> Đơn giản, minh bạch</div>
+        <div className="pr-badge"><Star size={14} /> Đơn giản, minh bạch</div>
         <h1 className="pr-title">Chọn gói phù hợp với bạn</h1>
         <p className="pr-sub">Tất cả gói đều có đầy đủ tính năng cơ bản. Nâng cấp bất cứ lúc nào để mở khoá không giới hạn.</p>
       </div>
@@ -220,14 +220,14 @@ export default function Pricing() {
                 <p className="pr-plan-desc">{freePlan.description}</p>
               </div>
               <ul className="pr-features-list">
-                <li><Check size={15} color="#10b981"/> {freePlan.maxClasses} lớp học</li>
-                <li><Check size={15} color="#10b981"/> {freePlan.maxStudents} học sinh</li>
-                <li><Check size={15} color="#10b981"/> {freePlan.maxExamsPerMonth} đề/tháng</li>
-                <li><Check size={15} color="#10b981"/> {freePlan.maxAIRequestsPerMonth} lượt AI/tháng</li>
-                <li><Check size={15} color="#10b981"/> Quản lý ma trận đề thi</li>
-                <li><Check size={15} color="#10b981"/> Xuất PDF đề thi</li>
-                <li><X size={15} color="#d1d5db"/> Không giới hạn</li>
-                <li><X size={15} color="#d1d5db"/> Hỗ trợ ưu tiên</li>
+                <li><Check size={15} color="#10b981" /> {freePlan.maxClasses} lớp học</li>
+                <li><Check size={15} color="#10b981" /> {freePlan.maxStudents} học sinh</li>
+                <li><Check size={15} color="#10b981" /> {freePlan.maxExamsPerMonth} đề/tháng</li>
+                <li><Check size={15} color="#10b981" /> {freePlan.maxAIRequestsPerMonth} lượt AI/tháng</li>
+                <li><Check size={15} color="#10b981" /> Quản lý ma trận đề thi</li>
+                <li><Check size={15} color="#10b981" /> Xuất PDF đề thi</li>
+                <li><X size={15} color="#d1d5db" /> Không giới hạn</li>
+                <li><X size={15} color="#d1d5db" /> Hỗ trợ ưu tiên</li>
               </ul>
               <button className="pr-btn pr-btn-ghost pr-btn-full" onClick={() => handleSubscribe(freePlan)}>
                 Bắt đầu miễn phí
@@ -238,7 +238,7 @@ export default function Pricing() {
           {/* PRO MONTHLY */}
           {monthly && (
             <div className="pr-card pr-card--featured">
-              <div className="pr-popular-badge"><Zap size={12}/> Phổ biến nhất</div>
+              <div className="pr-popular-badge"><Zap size={12} /> Phổ biến nhất</div>
               <div className="pr-card-top">
                 <span className="pr-plan-icon">⚡</span>
                 <h2>{monthly.planName}</h2>
@@ -249,14 +249,14 @@ export default function Pricing() {
                 <p className="pr-plan-desc">{monthly.description}</p>
               </div>
               <ul className="pr-features-list">
-                <li><Check size={15} color="#6366f1"/> Không giới hạn lớp học</li>
-                <li><Check size={15} color="#6366f1"/> Không giới hạn học sinh</li>
-                <li><Check size={15} color="#6366f1"/> Không giới hạn đề thi</li>
-                <li><Check size={15} color="#6366f1"/> Không giới hạn AI</li>
-                <li><Check size={15} color="#6366f1"/> Quản lý ma trận đề thi</li>
-                <li><Check size={15} color="#6366f1"/> Xuất PDF đề thi</li>
-                <li><Check size={15} color="#6366f1"/> Đề thi cộng đồng</li>
-                <li><Check size={15} color="#6366f1"/> Hỗ trợ ưu tiên</li>
+                <li><Check size={15} color="#6366f1" /> Không giới hạn lớp học</li>
+                <li><Check size={15} color="#6366f1" /> Không giới hạn học sinh</li>
+                <li><Check size={15} color="#6366f1" /> Không giới hạn đề thi</li>
+                <li><Check size={15} color="#6366f1" /> Không giới hạn AI</li>
+                <li><Check size={15} color="#6366f1" /> Quản lý ma trận đề thi</li>
+                <li><Check size={15} color="#6366f1" /> Xuất PDF đề thi</li>
+                <li><Check size={15} color="#6366f1" /> Đề thi cộng đồng</li>
+                <li><Check size={15} color="#6366f1" /> Hỗ trợ ưu tiên</li>
               </ul>
               <button className="pr-btn pr-btn-primary pr-btn-full" disabled={paying}
                 onClick={() => handleSubscribe(monthly)}>
@@ -268,7 +268,7 @@ export default function Pricing() {
           {/* PRO YEARLY */}
           {yearly && (
             <div className="pr-card pr-card--best">
-              <div className="pr-popular-badge pr-popular-badge--best"><Crown size={12}/> Tiết kiệm nhất</div>
+              <div className="pr-popular-badge pr-popular-badge--best"><Crown size={12} /> Tiết kiệm nhất</div>
               <div className="pr-card-top">
                 <span className="pr-plan-icon">👑</span>
                 <h2>{yearly.planName}</h2>
@@ -282,10 +282,10 @@ export default function Pricing() {
                 <p className="pr-plan-desc">{yearly.description}</p>
               </div>
               <ul className="pr-features-list">
-                <li><Check size={15} color="#f59e0b"/> Tất cả tính năng Pro Tháng</li>
-                <li><Check size={15} color="#f59e0b"/> Tiết kiệm hơn 2 tháng</li>
-                <li><Check size={15} color="#f59e0b"/> Không lo gia hạn mỗi tháng</li>
-                <li><Check size={15} color="#f59e0b"/> Hỗ trợ ưu tiên cao nhất</li>
+                <li><Check size={15} color="#f59e0b" /> Tất cả tính năng Pro Tháng</li>
+                <li><Check size={15} color="#f59e0b" /> Tiết kiệm hơn 2 tháng</li>
+                <li><Check size={15} color="#f59e0b" /> Không lo gia hạn mỗi tháng</li>
+                <li><Check size={15} color="#f59e0b" /> Hỗ trợ ưu tiên cao nhất</li>
               </ul>
               <button className="pr-btn pr-btn-gold pr-btn-full" disabled={paying}
                 onClick={() => handleSubscribe(yearly)}>
@@ -312,8 +312,8 @@ export default function Pricing() {
               {FEATURES.map(f => (
                 <tr key={f.key}>
                   <td>{f.label}</td>
-                  <td><FeatureCell val={f.free}/></td>
-                  <td className="pr-td-pro"><FeatureCell val={f.pro}/></td>
+                  <td><FeatureCell val={f.free} /></td>
+                  <td className="pr-td-pro"><FeatureCell val={f.pro} /></td>
                 </tr>
               ))}
             </tbody>
@@ -340,7 +340,7 @@ export default function Pricing() {
       </div>
 
       {/* VietQR Modal */}
-      {vietQrTx && <VietQRModal tx={vietQrTx} onClose={() => setVietQrTx(null)}/>}
+      {vietQrTx && <VietQRModal tx={vietQrTx} onClose={() => setVietQrTx(null)} />}
     </div>
   );
 }

@@ -98,18 +98,24 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         // ─── Tạo Dynamic QR qua VietQR API ───
         String qrImageUrl = null;
+        String vietQrFullContent = orderId; // fallback nếu VietQR API fail
         String vietQrToken = fetchVietQrToken();
         if (vietQrToken != null) {
             Map<String, Object> qrResult = generateDynamicQr(vietQrToken, plan, orderId);
             if (qrResult != null) {
-                // Dynamic QR đăng ký thành công → VietQR sẽ callback khi có tiền
-                // Nhưng VietQR trả qrLink (web page) chứ không trả image → dùng static img
-                log.info("Dynamic QR registered: orderId={}", orderId);
+                // Lấy full content từ VietQR (dạng "VQRf04a9c372c EDU69C4CCF81E")
+                // Content này PHẢI được dùng làm nội dung CK để VietQR match & callback
+                String fullContent = String.valueOf(qrResult.getOrDefault("content", orderId));
+                if (fullContent != null && !fullContent.isBlank()) {
+                    vietQrFullContent = fullContent;
+                }
+                log.info("Dynamic QR registered: orderId={}, fullContent={}", orderId, vietQrFullContent);
             }
         }
-        // Luôn dùng static image cho hiển thị (img.vietqr.io luôn đúng)
-        qrImageUrl = buildStaticQrImageUrl(plan.getPrice(), orderId);
-        String qrContent = buildQrContent(plan.getPrice(), orderId);
+        // Dùng VietQR full content (VQR... EDU...) làm addInfo trong QR image
+        // Khi user quét QR → bank tự điền đúng nội dung → VietQR match → callback
+        qrImageUrl = buildStaticQrImageUrl(plan.getPrice(), vietQrFullContent);
+        String qrContent = buildQrContent(plan.getPrice(), vietQrFullContent);
 
         PaymentTransaction tx = PaymentTransaction.builder()
                 .orderId(orderId)
