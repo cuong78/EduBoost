@@ -18,5 +18,8 @@ public class AttemptSubmitResponse {
     private BigDecimal percentage;
     private Integer correctCount;
     private Integer totalQuestions;
+
+    /** When true, score fields are hidden until teacher announces (schedule policy). */
+    private Boolean scoresHidden;
 }
 

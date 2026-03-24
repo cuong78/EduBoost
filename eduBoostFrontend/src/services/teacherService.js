@@ -179,4 +179,31 @@ export const teacherService = {
         apiClient
             .post(API.TEACHER_EXAM_SCHEDULES, body)
             .then((res) => res.data?.data ?? res.data),
+
+    getExamScheduleResults: (scheduleId) => {
+        return apiClient
+            .get(`${API.TEACHER_EXAM_SCHEDULES}/${scheduleId}/results`)
+            .then((res) => res.data?.data ?? res.data);
+    },
+
+    getExamScheduleDetail: (scheduleId) =>
+        apiClient.get(API.TEACHER_EXAM_SCHEDULE_DETAIL(scheduleId)).then((res) => res.data?.data ?? res.data),
+
+    announceExamScheduleResults: (scheduleId) =>
+        apiClient.post(API.TEACHER_EXAM_SCHEDULE_ANNOUNCE(scheduleId)).then((res) => res.data),
+
+    updateExamSchedule: (scheduleId, body) =>
+        apiClient
+            .patch(API.TEACHER_EXAM_SCHEDULE_DETAIL(scheduleId), body)
+            .then((res) => res.data?.data ?? res.data),
+
+    getTeacherAttemptReview: (scheduleId, attemptCode) =>
+        apiClient
+            .get(API.TEACHER_EXAM_SCHEDULE_ATTEMPT_REVIEW(scheduleId, attemptCode))
+            .then((res) => res.data?.data ?? res.data),
+
+    gradeTeacherAttempt: (scheduleId, attemptCode, payload) =>
+        apiClient
+            .patch(API.TEACHER_EXAM_SCHEDULE_ATTEMPT_GRADE(scheduleId, attemptCode), payload)
+            .then((res) => res.data?.data ?? res.data),
 };

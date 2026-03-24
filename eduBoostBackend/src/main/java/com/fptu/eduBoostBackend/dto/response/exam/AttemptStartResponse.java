@@ -35,6 +35,8 @@ public class AttemptStartResponse {
         private Integer orderNumber;
         private String questionText;
         private List<String> options;
+        /** Question type (e.g. MULTIPLE_CHOICE / TRUE_FALSE / FILL_BLANK) to drive FE rendering. */
+        private String questionType;
         private String selectedOption;
         private String textAnswer;
         private Boolean flagged;

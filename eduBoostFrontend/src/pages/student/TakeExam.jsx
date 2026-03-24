@@ -30,13 +30,18 @@ const TakeExam = () => {
     const [timeLeft, setTimeLeft] = useState(0);
     const [answers, setAnswers] = useState({});
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [submitResult, setSubmitResult] = useState(null);
     const [showWarning, setShowWarning] = useState(false);
+    const [showViolationWarning, setShowViolationWarning] = useState(false);
     const [takeover, setTakeover] = useState(false);
+    const [initError, setInitError] = useState(null);
 
     const lastSavedVersionRef = useRef(null);
     const autosaveTimerRef = useRef(null);
     const heartbeatTimerRef = useRef(null);
     const broadcastRef = useRef(null);
+    const hiddenTimerRef = useRef(null);
+    const lastViolationSentAtRef = useRef(0);
 
     // ===== Helpers =====
 
@@ -59,18 +64,34 @@ const TakeExam = () => {
         }));
     };
 
+    const handleTextChange = (text) => {
+        if (isSubmitted || takeover) return;
+        setAnswers((prev) => ({
+            ...prev,
+            [currentQuestion]: text,
+        }));
+    };
+
     const handleSubmit = (auto = false) => {
         if (isSubmitted || !attemptCode || !activeTabToken) return;
 
         if (!auto && !window.confirm("Bạn có chắc chắn muốn nộp bài không?")) return;
 
+        // Send a final snapshot of selected answers to persist before grading.
+        const answersPayload = (questions || []).map((q, idx) => ({
+            examQuestionId: q.examQuestionId,
+            selectedOption: q.questionType === 'FILL_BLANK' ? null : answers[idx] ?? null,
+            textAnswer: q.questionType === 'FILL_BLANK' ? answers[idx] ?? null : null,
+            flagged: false,
+        }));
+
         examService
-            .submitExamAttempt(attemptCode, { activeTabToken })
+            .submitExamAttempt(attemptCode, { activeTabToken, answers: answersPayload })
             .then((res) => {
+                setSubmitResult(res);
                 setIsSubmitted(true);
                 setShowWarning(false);
                 showSuccessToast("Đã nộp bài thành công");
-                // server already graded, but we keep local result UI simple
             })
             .catch((err) => {
                 const status = err?.response?.status;
@@ -83,11 +104,8 @@ const TakeExam = () => {
     };
 
     const calculateScore = () => {
-        // This is only used for local display; server grading is authoritative
-        const total = questions.length || 1;
-        const correctCount = 0;
-        const score = 0;
-        return { correctCount, score };
+        // Fallback if we don't have server result, but we usually do
+        return { correctCount: submitResult?.correctCount || 0, score: submitResult?.score || 0 };
     };
 
     // ===== Load exam attempt on mount =====
@@ -108,6 +126,17 @@ const TakeExam = () => {
                 setExamTitle(res.examTitle);
                 setDurationMinutes(res.durationMinutes || 45);
                 setQuestions(res.questions || []);
+                
+                const loadedAnswers = {};
+                (res.questions || []).forEach((q, idx) => {
+                    if (q.questionType === 'FILL_BLANK') {
+                        if (q.textAnswer != null) loadedAnswers[idx] = q.textAnswer;
+                    } else if (q.selectedOption != null) {
+                        loadedAnswers[idx] = q.selectedOption;
+                    }
+                });
+                setAnswers(loadedAnswers);
+                
                 setCurrentQuestion(res.currentQuestionIndex || 0);
                 setTimeLeft(res.remainingSeconds ?? (res.durationMinutes || 45) * 60);
                 lastSavedVersionRef.current = res.serverVersion || null;
@@ -130,7 +159,9 @@ const TakeExam = () => {
                     });
                 }
             } catch (err) {
-                showErrorToast(err?.response?.data?.message || 'Không thể tải bài thi');
+                const msg = err?.response?.data?.message || 'Không thể tải bài thi';
+                showErrorToast(msg);
+                setInitError(msg);
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -178,8 +209,8 @@ const TakeExam = () => {
                 clientVersion: lastSavedVersionRef.current,
                 answers: (questions || []).map((q, index) => ({
                     examQuestionId: q.examQuestionId,
-                    selectedOption: answers[index] ?? null,
-                    textAnswer: null,
+                    selectedOption: q.questionType === 'FILL_BLANK' ? null : answers[index] ?? null,
+                    textAnswer: q.questionType === 'FILL_BLANK' ? answers[index] ?? null : null,
                     flagged: false,
                 })),
             };
@@ -220,6 +251,38 @@ const TakeExam = () => {
         return () => clearInterval(interval);
     }, [attemptCode, activeTabToken, isSubmitted, takeover]);
 
+    // ===== Violation Detection (tab switch) =====
+    useEffect(() => {
+        if (!attemptCode || isSubmitted || takeover) return;
+
+        const handleVisibilityChange = () => {
+            // Debounce: only report if hidden for a short threshold (avoid false positives on quick switches)
+            if (document.hidden) {
+                if (hiddenTimerRef.current) clearTimeout(hiddenTimerRef.current);
+                hiddenTimerRef.current = setTimeout(() => {
+                    const now = Date.now();
+                    // simple rate limit so we don't spam the backend
+                    if (now - lastViolationSentAtRef.current < 3000) return;
+                    lastViolationSentAtRef.current = now;
+                    if (attemptCode && !isSubmitted && !takeover) {
+                        examService.reportExamViolation(attemptCode, 'TAB_SWITCH').catch(() => {});
+                        setShowViolationWarning(true);
+                    }
+                }, 3000); // 3s hidden => violation
+            } else {
+                if (hiddenTimerRef.current) clearTimeout(hiddenTimerRef.current);
+                hiddenTimerRef.current = null;
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (hiddenTimerRef.current) clearTimeout(hiddenTimerRef.current);
+        };
+    }, [attemptCode, isSubmitted, takeover]);
+
     if (loading) {
         return (
             <div className="exam-auth-container">
@@ -229,6 +292,23 @@ const TakeExam = () => {
                     </div>
                     <h2>Đang tải bài thi...</h2>
                     <p>Vui lòng chờ trong giây lát.</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (initError) {
+        return (
+            <div className="exam-auth-container">
+                <div className="auth-card glass">
+                    <div className="auth-icon-wrapper" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                        <XCircle size={48} />
+                    </div>
+                    <h2>Không thể vào thi</h2>
+                    <p>{initError}</p>
+                    <Link to="/student/exams" className="btn btn-primary full-width" style={{ marginTop: '1.5rem' }}>
+                        Quay lại danh sách
+                    </Link>
                 </div>
             </div>
         );
@@ -253,38 +333,48 @@ const TakeExam = () => {
 
     // Results Screen
     if (isSubmitted) {
-        const { correctCount, score } = calculateScore();
-        const isPass = score >= 5;
+        const hidden = submitResult?.scoresHidden === true;
 
         return (
             <div className="exam-result-container">
                 <div className="result-card glass">
-                    <div className={`result-icon-wrapper ${isPass ? 'pass' : 'fail'}`}>
-                        {isPass ? <CheckCircle size={48} /> : <XCircle size={48} />}
+                    <div className="result-icon-wrapper pass">
+                        <CheckCircle size={48} />
                     </div>
 
                     <h2>Đã nộp bài thành công!</h2>
-                    <p className="subtitle">Hệ thống đã ghi nhận câu trả lời của bạn.</p>
+                    <p className="subtitle">
+                        {hidden
+                            ? 'Bài đã nộp. Điểm sẽ hiển thị khi giáo viên công bố kết quả.'
+                            : 'Hệ thống đã ghi nhận câu trả lời của bạn.'}
+                    </p>
 
-                    {true && (
+                    {!hidden && (
                         <div className="score-box">
-                            <div className="score-item">
-                                <span className="label">Số câu đúng (demo)</span>
-                                <span className="value">{correctCount}/{questions.length}</span>
+                            <div className="score-box">
+                                <span className="score-label">SỐ CÂU ĐÚNG</span>
+                                <span className="score-value">
+                                    {submitResult?.correctCount ?? 0}/{submitResult?.totalQuestions || questions.length}
+                                </span>
                             </div>
-                            <div className="score-divider"></div>
-                            <div className="score-item">
-                                <span className="label">Điểm số (demo)</span>
-                                <span className={`value ${isPass ? 'text-green' : 'text-red'}`}>{score.toFixed(1)}</span>
+                            <div className="score-box">
+                                <span className="score-label">ĐIỂM SỐ</span>
+                                <span className="score-value">
+                                    {(submitResult?.score != null ? Number(submitResult.score) : 0).toFixed(1)}
+                                </span>
                             </div>
                         </div>
                     )}
 
-                    <div className="result-actions">
+                    <div className="result-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {attemptCode && (
+                            <Link to={`/student/exam-review/${attemptCode}`} className="btn btn-outline full-width">
+                                Xem lại bài làm
+                            </Link>
+                        )}
                         <Link to="/student/exams" className="btn btn-primary full-width">
                             Quay lại danh sách
                         </Link>
-                        {/* <button className="btn btn-outline full-width">Xem chi tiết đáp án</button> */}
                     </div>
                 </div>
 
@@ -372,13 +462,29 @@ const TakeExam = () => {
             {/* Warning Popup */}
             {showWarning && (
                 <div className="warning-overlay">
+                    <div className="warning-popup glass" style={{ borderColor: '#fef08a' }}>
+                        <AlertTriangle size={32} className="text-warning" style={{ color: '#ca8a04' }} />
+                        <div className="warning-content">
+                            <h3 style={{ color: '#a16207' }}>Sắp hết giờ!</h3>
+                            <p style={{ color: '#854d0e' }}>Chỉ còn dưới 5 phút. Vui lòng kiểm tra lại bài làm.</p>
+                        </div>
+                        <button onClick={() => setShowWarning(false)} className="btn-close" style={{ background: '#fef08a', color: '#854d0e' }}>
+                            Đã hiểu
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Violation Popup */}
+            {showViolationWarning && (
+                <div className="warning-overlay">
                     <div className="warning-popup glass">
                         <AlertTriangle size={32} className="text-warning" />
                         <div className="warning-content">
-                            <h3>Sắp hết giờ!</h3>
-                            <p>Chỉ còn dưới 5 phút. Vui lòng kiểm tra lại bài làm.</p>
+                            <h3>Vi phạm nội quy thi!</h3>
+                            <p>Phát hiện chuyển tab hoặc rời khỏi trang. Hệ thống đã ghi nhận vi phạm.</p>
                         </div>
-                        <button onClick={() => setShowWarning(false)} className="btn-close">
+                        <button onClick={() => setShowViolationWarning(false)} className="btn-close">
                             Đã hiểu
                         </button>
                     </div>
@@ -410,17 +516,29 @@ const TakeExam = () => {
                     </div>
 
                     <div className="options-list">
-                        {questions[currentQuestion]?.options?.map((option, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleSelect(option)}
-                                className={`option-btn ${answers[currentQuestion] === option ? 'selected' : ''}`}
-                            >
-                                <span className="option-label">{String.fromCharCode(65 + idx)}</span>
-                                <span className="option-text">{option}</span>
-                                {answers[currentQuestion] === option && <CheckCircle size={20} className="check-icon" />}
-                            </button>
-                        ))}
+                        {questions[currentQuestion]?.questionType === 'FILL_BLANK' ? (
+                            <div style={{ width: '100%' }}>
+                                <input
+                                    type="text"
+                                    value={answers[currentQuestion] ?? ''}
+                                    onChange={(e) => handleTextChange(e.target.value)}
+                                    placeholder="Nhập đáp án của bạn..."
+                                    className="fillblank-input"
+                                />
+                            </div>
+                        ) : (
+                            questions[currentQuestion]?.options?.map((option, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleSelect(option)}
+                                    className={`option-btn ${answers[currentQuestion] === option ? 'selected' : ''}`}
+                                >
+                                    <span className="option-label">{String.fromCharCode(65 + idx)}</span>
+                                    <span className="option-text">{option}</span>
+                                    {answers[currentQuestion] === option && <CheckCircle size={20} className="check-icon" />}
+                                </button>
+                            ))
+                        )}
                     </div>
 
                     <div className="navigation-controls">

@@ -22,6 +22,11 @@ export const API = {
     // Teacher exam schedules
     TEACHER_EXAM_SCHEDULES: `${BASE_URL}/teacher/exam-schedules`,
     TEACHER_EXAM_SCHEDULES_CLASS: (classId) => `${BASE_URL}/teacher/exam-schedules/classes/${classId}`,
+    TEACHER_EXAM_SCHEDULE_DETAIL: (scheduleId) => `${BASE_URL}/teacher/exam-schedules/${scheduleId}`,
+    TEACHER_EXAM_SCHEDULE_CANCEL: (scheduleId) => `${BASE_URL}/teacher/exam-schedules/${scheduleId}/cancel`,
+    // Student exams
+    STUDENT_EXAMS_UPCOMING: `${BASE_URL}/student/exams/upcoming`,
+    STUDENT_EXAM_VIOLATION: (attemptCode) => `${BASE_URL}/student/exams/attempts/${attemptCode}/violations`,
     // Parent (public validate uses BASE)
     PARENT_VALIDATE_INVITATION: `${BASE_URL}/parent/validate-invitation`,
     PARENT_LINK_STUDENT: `${BASE_URL}/parent/link-student`,
@@ -96,4 +101,12 @@ export const API = {
     STUDENT_EXAM_ATTEMPT_AUTO_SAVE: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/auto-save`,
     STUDENT_EXAM_ATTEMPT_SUBMIT: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/submit`,
     STUDENT_EXAM_ATTEMPT_HEARTBEAT: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/heartbeat`,
+    STUDENT_EXAM_ATTEMPT_REVIEW: (attemptCode) => `${BASE_URL}/student/exam-attempts/${attemptCode}/review`,
+
+    TEACHER_EXAM_SCHEDULE_ANNOUNCE: (scheduleId) => `${BASE_URL}/teacher/exam-schedules/${scheduleId}/announce-results`,
+    // Teacher attempt review + grading
+    TEACHER_EXAM_SCHEDULE_ATTEMPT_REVIEW: (scheduleId, attemptCode) =>
+        `${BASE_URL}/teacher/exam-schedules/${scheduleId}/attempts/${attemptCode}/review`,
+    TEACHER_EXAM_SCHEDULE_ATTEMPT_GRADE: (scheduleId, attemptCode) =>
+        `${BASE_URL}/teacher/exam-schedules/${scheduleId}/attempts/${attemptCode}/grade`,
 };

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -48,6 +49,19 @@ public class ExamAttemptAnswer {
 
     @Column(name = "answered_at")
     private LocalDateTime answeredAt;
+
+    /**
+     * Teacher manual override for grading (used for FILL_BLANK / essay-like questions).
+     * If null, the system uses the auto-grading logic.
+     */
+    @Column(name = "teacher_points_override", precision = 5, scale = 2)
+    private BigDecimal teacherPointsOverride;
+
+    @Column(name = "teacher_comment", columnDefinition = "TEXT")
+    private String teacherComment;
+
+    @Column(name = "teacher_graded_at")
+    private LocalDateTime teacherGradedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

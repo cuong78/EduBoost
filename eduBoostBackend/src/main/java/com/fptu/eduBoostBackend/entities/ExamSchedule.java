@@ -5,6 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.fptu.eduBoostBackend.entities.enums.ScoreRevealMode;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -58,6 +60,25 @@ public class ExamSchedule {
 
     @Column(name = "status", length = 20)
     private String status;
+
+    /**
+     * JSON blob for lockdown/anti-cheat settings.
+     * Example: {"maxTabSwitches":3,"requireFullscreen":true,"autoSubmitOnViolation":false}
+     */
+    @Column(name = "settings", columnDefinition = "TEXT")
+    private String settings;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "score_reveal_mode", length = 30)
+    @Builder.Default
+    private ScoreRevealMode scoreRevealMode = ScoreRevealMode.IMMEDIATE;
+
+    @Column(name = "results_announced_at")
+    private LocalDateTime resultsAnnouncedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "results_announced_by_teacher_id")
+    private Teacher resultsAnnouncedBy;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

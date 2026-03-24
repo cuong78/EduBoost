@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Clock,
     AlertCircle,
@@ -8,9 +8,11 @@ import {
     Search,
     Filter,
     BookOpen,
-    Trophy
+    Trophy,
+    Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { examService } from '../../services/examService';
 
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     <div className="stat-card glass">
@@ -24,7 +26,7 @@ const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     </div>
 );
 
-const ExamCard = ({ title, course, duration, deadline, status, id }) => {
+const ExamCard = ({ title, course, duration, deadline, status, id, examId, submittedAttemptCode }) => {
     const statusConfig = {
         'Available': {
             class: 'status-available',
@@ -37,7 +39,14 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
             class: 'status-completed',
             icon: CheckCircle,
             label: 'Đã hoàn thành',
-            action: 'Xem kết quả',
+            action: 'Xem lại bài',
+            btnClass: 'btn-secondary'
+        },
+        'SubmittedPending': {
+            class: 'status-completed',
+            icon: CheckCircle,
+            label: 'Đã nộp — chờ công bố điểm',
+            action: 'Xem lại bài',
             btnClass: 'btn-secondary'
         },
         'Missed': {
@@ -51,6 +60,7 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
 
     const config = statusConfig[status] || statusConfig['Available'];
     const Icon = config.icon;
+    const reviewTo = submittedAttemptCode ? `/student/exam-review/${submittedAttemptCode}` : null;
 
     return (
         <div className={`exam-card glass ${status}`}>
@@ -82,12 +92,22 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
 
             <div className="exam-actions">
                 {status === 'Available' ? (
-                    <Link to={`/student/exam/${id}`} className={`btn ${config.btnClass} full-width`}>
+                    <Link to={`/student/exam/${examId}?scheduleId=${id}`} className={`btn ${config.btnClass} full-width`}>
                         {config.action} <ArrowRight size={18} />
                     </Link>
+                ) : status === 'Completed' || status === 'SubmittedPending' ? (
+                    reviewTo ? (
+                        <Link to={reviewTo} className={`btn ${config.btnClass} full-width`}>
+                            {config.action} <ArrowRight size={18} />
+                        </Link>
+                    ) : (
+                        <button className={`btn ${config.btnClass} full-width`} disabled>
+                            {config.action}
+                        </button>
+                    )
                 ) : (
-                    <button className={`btn ${config.btnClass} full-width`} disabled={status === 'Missed'}>
-                        {config.action} {status === 'Completed' && <ArrowRight size={16} />}
+                    <button className={`btn ${config.btnClass} full-width`} disabled={true}>
+                        {status === 'Missed' ? 'Kỳ thi đã qua' : status === 'Late' ? 'Bạn đã trễ kì thi' : config.action}
                     </button>
                 )}
             </div>
@@ -97,32 +117,82 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
 
 const ExamList = () => {
     const [filter, setFilter] = useState('All');
+    const [allExams, setAllExams] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Mock Data
+    useEffect(() => {
+        setLoading(true);
+        examService.getUpcomingExams()
+            .then((data) => {
+                // Map API schedule response to ExamCard props
+                const mapped = (data || []).map((schedule) => {
+                    const now = new Date();
+                    const start = new Date(schedule.startTime);
+                    const end = new Date(schedule.endTime);
+                    const allowLateMinutes = schedule.allowLateMinutes || 0;
+                    const latestStart = new Date(start.getTime() + allowLateMinutes * 60000);
+                    const isDemo = (schedule.title || schedule.examTitle || '').includes('Demo');
+
+                    let status;
+                    if (schedule.studentSubmitted) {
+                        status = schedule.scoresPendingAnnouncement ? 'SubmittedPending' : 'Completed';
+                    } else if (now > end) {
+                        status = 'Missed';
+                    } else if (now >= start && now <= end) {
+                        if (!isDemo && allowLateMinutes > 0 && now > latestStart) {
+                            status = 'Late';
+                        } else {
+                            status = 'Available';
+                        }
+                    } else {
+                        status = 'Upcoming';
+                    }
+                    return {
+                        id: schedule.id,
+                        examId: schedule.examId,
+                        title: schedule.title || schedule.examTitle,
+                        course: schedule.className || 'Lớp học',
+                        duration: schedule.durationMinutes,
+                        deadline: new Intl.DateTimeFormat('vi-VN', {
+                            day: '2-digit', month: '2-digit',
+                            hour: '2-digit', minute: '2-digit'
+                        }).format(end),
+                        status,
+                        submittedAttemptCode: schedule.submittedAttemptCode,
+                    };
+                });
+                setAllExams(mapped);
+            })
+            .catch((err) => {
+                console.error('Failed to load upcoming exams:', err);
+                setError('Không thể tải danh sách bài kiểm tra.');
+            })
+            .finally(() => setLoading(false));
+    }, []);
+
+    const available = allExams.filter(e => e.status === 'Available').length;
+    const completed = allExams.filter(e => e.status === 'Completed' || e.status === 'SubmittedPending').length;
+
     const stats = [
-        { label: 'Bài tập đang chờ', value: '3', icon: Clock, colorClass: 'text-green' },
-        { label: 'Đã hoàn thành', value: '12', icon: CheckCircle, colorClass: 'text-indigo' },
-        { label: 'Điểm trung bình', value: '8.5', icon: Trophy, colorClass: 'text-yellow' },
-    ];
-
-    const allExams = [
-        { id: 1, title: 'Kiểm tra giữa kỳ Giải tích 1', course: 'Toán học', duration: 60, deadline: 'Tối nay, 23:59', status: 'Available' },
-        { id: 2, title: 'Vật lý Đại cương: Điện xoay chiều', course: 'Vật lý', duration: 45, deadline: 'Ngày mai, 12:00', status: 'Available' },
-        { id: 3, title: 'Quiz: Từ vựng tiếng Anh chuyên ngành', course: 'Tiếng Anh', duration: 30, deadline: '20/01', status: 'Completed' },
-        { id: 4, title: 'An toàn phòng thí nghiệm', course: 'Hóa học', duration: 15, deadline: '15/01', status: 'Missed' },
-        { id: 5, title: 'Lập trình C++ cơ bản', course: 'Tin học', duration: 90, deadline: 'CN tuần này', status: 'Available' },
-        { id: 6, title: 'Lịch sử Đảng CSVN', course: 'Triết học', duration: 60, deadline: '01/01', status: 'Completed' },
+        { label: 'Bài tập đang mở', value: String(available), icon: Clock, colorClass: 'text-green' },
+        { label: 'Đã hoàn thành', value: String(completed), icon: CheckCircle, colorClass: 'text-indigo' },
+        { label: 'Tổng lịch thi', value: String(allExams.length), icon: Trophy, colorClass: 'text-yellow' },
     ];
 
     const filteredExams = filter === 'All'
         ? allExams
-        : allExams.filter(exam => exam.status === filter);
+        : allExams.filter(exam => {
+            if (filter === 'Missed') return exam.status === 'Missed' || exam.status === 'Late';
+            if (filter === 'Completed') return exam.status === 'Completed' || exam.status === 'SubmittedPending';
+            return exam.status === filter;
+        });
 
     const tabs = [
         { id: 'All', label: 'Tất cả' },
         { id: 'Available', label: 'Đang mở' },
-        { id: 'Completed', label: 'Đã xong' },
-        { id: 'Missed', label: 'Bỏ lỡ' },
+        { id: 'Upcoming', label: 'Sắp tới' },
+        { id: 'Missed', label: 'Đã qua' },
     ];
 
     return (
@@ -169,7 +239,18 @@ const ExamList = () => {
             </div>
 
             {/* Exam Grid */}
-            {filteredExams.length > 0 ? (
+            {loading ? (
+                <div className="empty-state">
+                    <Loader2 size={32} className="spin" />
+                    <p>Đang tải bài kiểm tra...</p>
+                </div>
+            ) : error ? (
+                <div className="empty-state">
+                    <AlertCircle size={32} />
+                    <h3>Lỗi</h3>
+                    <p>{error}</p>
+                </div>
+            ) : filteredExams.length > 0 ? (
                 <div className="exam-grid">
                     {filteredExams.map(exam => (
                         <ExamCard key={exam.id} {...exam} />

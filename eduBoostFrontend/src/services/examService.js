@@ -447,4 +447,25 @@ export const examService = {
                 skipErrorToast: true,
             })
             .then((res) => res.data),
+
+    /**
+     * Get the list of upcoming exam schedules for the current student's class.
+     */
+    getUpcomingExams: () =>
+        apiClient.get(API.STUDENT_EXAMS_UPCOMING).then((res) => res.data),
+
+    /**
+     * Report a lockdown violation to the backend.
+     * @param {string} attemptCode
+     * @param {string} violationType - e.g. 'TAB_SWITCH', 'FULLSCREEN_EXIT'
+     */
+    reportExamViolation: (attemptCode, violationType) =>
+        apiClient
+            .post(API.STUDENT_EXAM_VIOLATION(attemptCode), { violationType }, {
+                skipErrorToast: true,
+            })
+            .then((res) => res.data),
+
+    getExamAttemptReview: (attemptCode) =>
+        apiClient.get(API.STUDENT_EXAM_ATTEMPT_REVIEW(attemptCode)).then((res) => res.data),
 };

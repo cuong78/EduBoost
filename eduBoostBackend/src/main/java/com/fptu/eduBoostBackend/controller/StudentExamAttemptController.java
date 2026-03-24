@@ -6,6 +6,7 @@ import com.fptu.eduBoostBackend.dto.request.exam.AttemptStartRequest;
 import com.fptu.eduBoostBackend.dto.request.exam.AttemptSubmitRequest;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptStartResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptStateResponse;
+import com.fptu.eduBoostBackend.dto.response.exam.AttemptReviewResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptSubmitResponse;
 import com.fptu.eduBoostBackend.service.ExamAttemptService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -71,6 +72,13 @@ public class StudentExamAttemptController {
                                           @Valid @RequestBody AttemptHeartbeatRequest request) {
         examAttemptService.heartbeat(attemptCode, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{attemptCode}/review")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Review submitted answers; answer key only when scores are visible")
+    public ResponseEntity<AttemptReviewResponse> getReview(@PathVariable String attemptCode) {
+        return ResponseEntity.ok(examAttemptService.getAttemptReview(attemptCode));
     }
 }
 

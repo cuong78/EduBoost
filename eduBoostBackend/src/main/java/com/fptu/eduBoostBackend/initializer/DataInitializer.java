@@ -36,6 +36,8 @@ public class DataInitializer implements CommandLineRunner {
     // EnglishInitializer removed as subject no longer initialized
     private final ClassStudentInitializer classStudentInitializer;
     private final ParentStudentInitializer parentStudentInitializer;
+    private final QuestionBankAndMatrixSeedInitializer questionBankAndMatrixSeedInitializer;
+    private final ExamScheduleSeedInitializer examScheduleSeedInitializer;
 
     @Override
     public void run(String... args) throws Exception {
@@ -64,5 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         // English initialization removed
         classStudentInitializer.init();
         parentStudentInitializer.init();
+        questionBankAndMatrixSeedInitializer.init();
+        examScheduleSeedInitializer.init();
     }
 }

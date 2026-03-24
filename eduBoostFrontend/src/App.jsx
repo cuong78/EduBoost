@@ -34,6 +34,7 @@ import AIChat from "./pages/student/AIChat";
 import Forum from "./pages/student/Forum";
 import ExamList from "./pages/student/ExamList";
 import TakeExam from "./pages/student/TakeExam";
+import ExamAttemptReview from "./pages/student/ExamAttemptReview";
 
 // Teacher Pages
 
@@ -143,6 +144,7 @@ function App() {
             <Route path="chat" element={<AIChat />} />
             <Route path="forum" element={<Forum />} />
             <Route path="exams" element={<ExamList />} />
+            <Route path="exam-review/:attemptCode" element={<ExamAttemptReview />} />
             <Route path="profile" element={<UserProfile />} />
           </Route>
 
