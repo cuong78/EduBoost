@@ -346,24 +346,24 @@ export default function ClassStudents() {
                 
                 /* Button Styles */
                 .btn-download {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    background: linear-gradient(135deg, var(--ds-success) 0%, var(--ds-success-text) 100%);
                     color: white;
                     border: none;
                     font-weight: 500;
                 }
                 .btn-download:hover {
-                    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+                    background: linear-gradient(135deg, var(--ds-success-text) 0%, #047857 100%);
                     transform: translateY(-1px);
                     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
                 }
                 .btn-import {
-                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    background: linear-gradient(135deg, var(--ds-warning) 0%, var(--ds-warning-text) 100%);
                     color: white;
                     border: none;
                     font-weight: 500;
                 }
                 .btn-import:hover {
-                    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+                    background: linear-gradient(135deg, var(--ds-warning-text) 0%, #b45309 100%);
                     transform: translateY(-1px);
                     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
                 }

@@ -16,11 +16,11 @@ const RELATIONSHIP_ICONS = {
     grandmother: '👵', guardian: '🤝', other: '👤',
 };
 const AVATAR_COLORS = [
-    'linear-gradient(135deg, #6c3fff, #a78bfa)',
+    'linear-gradient(135deg, var(--ds-primary), #a78bfa)',
     'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-    'linear-gradient(135deg, #f59e0b, #fbbf24)',
-    'linear-gradient(135deg, #10b981, #34d399)',
-    'linear-gradient(135deg, #ef4444, #f87171)',
+    'linear-gradient(135deg, var(--ds-warning), #fbbf24)',
+    'linear-gradient(135deg, var(--ds-success), #34d399)',
+    'linear-gradient(135deg, var(--ds-error), #f87171)',
 ];
 
 export default function MyStudents() {
@@ -254,7 +254,7 @@ export default function MyStudents() {
                 .ms-header-icon {
                     width: 52px; height: 52px;
                     border-radius: 16px;
-                    background: linear-gradient(135deg, #6c3fff, #a78bfa);
+                    background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
                     display: flex; align-items: center; justify-content: center;
                     color: white;
                     box-shadow: 0 6px 16px rgba(108, 63, 255, 0.28);
@@ -263,7 +263,7 @@ export default function MyStudents() {
                 .ms-header-left h1 {
                     font-size: 1.6rem; font-weight: 800;
                     margin: 0 0 0.2rem 0;
-                    background: linear-gradient(135deg, #6c3fff, #a78bfa);
+                    background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                 }
@@ -272,7 +272,7 @@ export default function MyStudents() {
                 .ms-add-btn {
                     display: inline-flex; align-items: center; gap: 8px;
                     padding: 0.65rem 1.25rem; border-radius: 12px;
-                    background: linear-gradient(135deg, #6c3fff, #a78bfa);
+                    background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
                     color: white; font-weight: 700; font-size: 0.9rem;
                     text-decoration: none; border: none; cursor: pointer;
                     transition: all 0.25s;
@@ -298,7 +298,7 @@ export default function MyStudents() {
                 .ms-count-badge {
                     display: inline-flex; align-items: center; gap: 6px;
                     background: rgba(108, 63, 255, 0.1);
-                    color: #6c3fff;
+                    color: var(--ds-primary);
                     border: 1px solid rgba(108, 63, 255, 0.2);
                     padding: 4px 12px; border-radius: 99px;
                     font-size: 0.82rem; font-weight: 700;
@@ -346,7 +346,7 @@ export default function MyStudents() {
                 .ms-primary-badge {
                     display: inline-flex; align-items: center; gap: 3px;
                     font-size: 0.72rem; font-weight: 700;
-                    background: rgba(245, 158, 11, 0.12); color: #d97706;
+                    background: rgba(245, 158, 11, 0.12); color: var(--ds-warning-text);
                     border: 1px solid rgba(245, 158, 11, 0.25);
                     padding: 2px 8px; border-radius: 99px;
                     white-space: nowrap; flex-shrink: 0;
@@ -358,7 +358,7 @@ export default function MyStudents() {
                     border-radius: 11px; border: 1px solid rgba(108, 63, 255, 0.08);
                 }
                 .ms-info-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--color-text-secondary); }
-                .ms-info-icon { color: #7c3aed; flex-shrink: 0; }
+                .ms-info-icon { color: var(--ds-secondary-hover); flex-shrink: 0; }
                 .rel-icon { font-size: 1rem; line-height: 1; }
                 .ms-info-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                 .ms-info-value strong { color: var(--color-text); font-weight: 700; }
@@ -367,7 +367,7 @@ export default function MyStudents() {
                     display: flex; align-items: center; justify-content: space-between;
                     padding-top: 0.5rem; border-top: 1px solid var(--glass-border);
                 }
-                .ms-view-detail { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; font-weight: 600; color: #7c3aed; }
+                .ms-view-detail { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; font-weight: 600; color: var(--ds-secondary-hover); }
                 .ms-chevron { color: #a78bfa; transition: transform 0.2s; }
                 .ms-card:hover .ms-chevron { transform: translateX(4px); }
 
@@ -381,7 +381,7 @@ export default function MyStudents() {
                 }
                 .ms-empty-icon {
                     width: 72px; height: 72px; border-radius: 20px;
-                    background: linear-gradient(135deg, #6c3fff, #a78bfa);
+                    background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
                     display: flex; align-items: center; justify-content: center;
                     color: white; margin: 0 auto 1.25rem;
                     box-shadow: 0 8px 24px rgba(108, 63, 255, 0.28);
@@ -395,7 +395,7 @@ export default function MyStudents() {
                     display: flex; align-items: center; justify-content: center;
                     margin: 0 auto 1rem;
                 }
-                .ms-spinner { color: #7c3aed; animation: ms-spin 1s linear infinite; }
+                .ms-spinner { color: var(--ds-secondary-hover); animation: ms-spin 1s linear infinite; }
                 @keyframes ms-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
                 /* SIDEBAR */
@@ -414,7 +414,7 @@ export default function MyStudents() {
                 .ms-side-card-title {
                     display: flex; align-items: center; gap: 7px;
                     font-size: 0.875rem; font-weight: 700;
-                    color: #6c3fff; margin-bottom: 1rem;
+                    color: var(--ds-primary); margin-bottom: 1rem;
                     padding-bottom: 0.6rem;
                     border-bottom: 1px solid rgba(108, 63, 255, 0.12);
                 }
@@ -430,14 +430,14 @@ export default function MyStudents() {
                 .ms-stat-num {
                     display: block;
                     font-size: 1.5rem; font-weight: 800;
-                    color: #6c3fff; line-height: 1;
+                    color: var(--ds-primary); line-height: 1;
                     margin-bottom: 4px;
                 }
                 .ms-stat-label { font-size: 0.72rem; color: var(--color-text-secondary); font-weight: 600; }
                 .ms-side-desc { font-size: 0.875rem; color: var(--color-text-secondary); margin: 0 0 1rem 0; line-height: 1.6; }
                 .ms-side-action {
                     display: inline-flex; align-items: center; gap: 6px;
-                    font-size: 0.85rem; font-weight: 700; color: #6c3fff;
+                    font-size: 0.85rem; font-weight: 700; color: var(--ds-primary);
                     background: rgba(108, 63, 255, 0.1);
                     border: 1px solid rgba(108, 63, 255, 0.2);
                     padding: 0.5rem 0.9rem; border-radius: 10px;
@@ -445,7 +445,7 @@ export default function MyStudents() {
                 }
                 .ms-side-action:hover {
                     background: rgba(108, 63, 255, 0.18);
-                    color: #6c3fff;
+                    color: var(--ds-primary);
                 }
                 .ms-tips-list {
                     list-style: none; padding: 0; margin: 0;

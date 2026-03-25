@@ -1,65 +1,128 @@
-import { Save, Bell, Lock, Globe } from 'lucide-react';
+import { Save, Lock, Globe } from 'lucide-react';
 
 const Settings = () => {
     return (
-        <div className="p-4 md:p-8 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-800 mb-8">System Settings</h1>
+        <div>
+            <div className="ds-page-header">
+                <div className="ds-page-header-left">
+                    <div className="ds-page-icon"><Globe size={22} /></div>
+                    <div>
+                        <h1 className="ds-page-title">System Settings</h1>
+                        <p className="ds-page-subtitle">Cấu hình hệ thống EduBoost</p>
+                    </div>
+                </div>
+            </div>
 
-            <div className="space-y-6">
+            <div className="ds-flex-col ds-gap-lg">
                 {/* General Settings */}
-                <div className="glass rounded-xl p-6">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Globe size={20} className="text-indigo-600" /> General Information
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-600">Platform Name</label>
-                            <input type="text" defaultValue="EduBoost" className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-600">Support Email</label>
-                            <input type="email" defaultValue="support@eduboost.com" className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <div className="ds-card">
+                    <div className="ds-card-header">
+                        <span className="ds-flex ds-items-center ds-gap-sm"><Globe size={18} color="var(--ds-primary)" /> General Information</span>
+                    </div>
+                    <div className="ds-card-body">
+                        <div className="settings-grid">
+                            <div className="ds-form-group">
+                                <label className="ds-label">Platform Name</label>
+                                <input type="text" defaultValue="EduBoost" className="ds-input" />
+                            </div>
+                            <div className="ds-form-group">
+                                <label className="ds-label">Support Email</label>
+                                <input type="email" defaultValue="support@eduboost.com" className="ds-input" />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Notifications & Security */}
-                <div className="glass rounded-xl p-6">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Lock size={20} className="text-indigo-600" /> Security & Access
-                    </h2>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center p-4 bg-gray-50/50 rounded-lg">
+                {/* Security */}
+                <div className="ds-card">
+                    <div className="ds-card-header">
+                        <span className="ds-flex ds-items-center ds-gap-sm"><Lock size={18} color="var(--ds-primary)" /> Security & Access</span>
+                    </div>
+                    <div className="ds-card-body ds-flex-col ds-gap-md">
+                        <div className="settings-toggle-row">
                             <div>
-                                <h4 className="font-bold text-gray-700">Maintenance Mode</h4>
-                                <p className="text-sm text-gray-500">Disable access for all non-admin users</p>
+                                <div className="ds-text-bold">Maintenance Mode</div>
+                                <div className="ds-text-sub">Disable access for all non-admin users</div>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <label className="toggle">
+                                <input type="checkbox" />
+                                <span className="toggle-slider"></span>
                             </label>
                         </div>
 
-                        <div className="flex justify-between items-center p-4 bg-gray-50/50 rounded-lg">
+                        <div className="settings-toggle-row">
                             <div>
-                                <h4 className="font-bold text-gray-700">Allow New Registrations</h4>
-                                <p className="text-sm text-gray-500">If disabled, only admins can add new users</p>
+                                <div className="ds-text-bold">Allow New Registrations</div>
+                                <div className="ds-text-sub">If disabled, only admins can add new users</div>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" defaultChecked />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <label className="toggle">
+                                <input type="checkbox" defaultChecked />
+                                <span className="toggle-slider"></span>
                             </label>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-4 mt-8">
-                    <button className="px-6 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-bold">Cancel</button>
-                    <button className="btn btn-primary flex items-center gap-2">
-                        <Save size={18} /> Save Changes
+                <div className="ds-flex ds-gap-sm" style={{ justifyContent: 'flex-end' }}>
+                    <button className="ds-btn ds-btn-secondary">Cancel</button>
+                    <button className="ds-btn ds-btn-primary">
+                        <Save size={16} /> Save Changes
                     </button>
                 </div>
             </div>
+
+            <style>{`
+                .settings-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: var(--ds-space-lg);
+                }
+                @media (max-width: 640px) {
+                    .settings-grid { grid-template-columns: 1fr; }
+                }
+                .settings-toggle-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: var(--ds-space-md);
+                    background: var(--ds-bg-subtle);
+                    border-radius: var(--ds-radius-sm);
+                }
+                .toggle {
+                    position: relative;
+                    display: inline-block;
+                    width: 44px;
+                    height: 24px;
+                    flex-shrink: 0;
+                }
+                .toggle input { opacity: 0; width: 0; height: 0; }
+                .toggle-slider {
+                    position: absolute;
+                    cursor: pointer;
+                    inset: 0;
+                    background: var(--ds-border);
+                    border-radius: var(--ds-radius-full);
+                    transition: var(--ds-transition);
+                }
+                .toggle-slider::before {
+                    content: "";
+                    position: absolute;
+                    height: 18px;
+                    width: 18px;
+                    left: 3px;
+                    bottom: 3px;
+                    background: white;
+                    border-radius: 50%;
+                    transition: var(--ds-transition);
+                    box-shadow: var(--ds-shadow-xs);
+                }
+                .toggle input:checked + .toggle-slider {
+                    background: var(--ds-primary);
+                }
+                .toggle input:checked + .toggle-slider::before {
+                    transform: translateX(20px);
+                }
+            `}</style>
         </div>
     );
 };

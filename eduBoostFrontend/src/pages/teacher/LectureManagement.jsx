@@ -212,7 +212,7 @@ const LectureManagement = () => {
                     text-align: left;
                     padding: 1rem 1.5rem;
                     background: rgba(243, 244, 246, 0.5);
-                    border-bottom: 1px solid #e5e7eb;
+                    border-bottom: 1px solid var(--ds-border);
                     color: var(--color-text-secondary);
                     font-weight: 600;
                     font-size: 0.9rem;
@@ -220,7 +220,7 @@ const LectureManagement = () => {
 
                 .lectures-table td {
                     padding: 1.25rem 1.5rem;
-                    border-bottom: 1px solid #f3f4f6;
+                    border-bottom: 1px solid var(--ds-border-light);
                     vertical-align: middle;
                 }
 
@@ -255,12 +255,12 @@ const LectureManagement = () => {
                 }
 
                 .status-badge.published {
-                    background: #d1fae5;
+                    background: var(--ds-success-bg);
                     color: #047857;
                 }
                 
                 .status-badge.draft {
-                    background: #fef3c7;
+                    background: var(--ds-warning-bg);
                     color: #b45309;
                 }
 
@@ -275,7 +275,7 @@ const LectureManagement = () => {
                     align-items: center;
                 }
                 .icon-btn:hover {
-                    background: #f3f4f6;
+                    background: var(--ds-border-light);
                     color: var(--color-text-primary);
                 }
 
@@ -315,7 +315,7 @@ const LectureManagement = () => {
                     border-radius: 50%;
                     transition: all 0.2s;
                 }
-                .close-btn:hover { background: #f1f5f9; color: #ef4444; }
+                .close-btn:hover { background: #f1f5f9; color: var(--ds-error); }
 
                 .modal-title {
                     font-size: 1.5rem;
@@ -364,7 +364,7 @@ const LectureManagement = () => {
                     justify-content: center;
                     margin: 0 auto 1.5rem;
                 }
-                .icon-box.blue { background: #e0e7ff; color: #6366f1; }
+                .icon-box.blue { background: #e0e7ff; color: var(--ds-primary); }
                 .icon-box.orange { background: #ffedd5; color: #f97316; }
 
                 .option-card h3 {

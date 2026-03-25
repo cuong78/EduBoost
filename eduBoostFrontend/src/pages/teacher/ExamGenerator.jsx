@@ -832,7 +832,7 @@ const ExamGenerator = () => {
                 </div>
               )}
               {matrixTemplates.length > 0 && !matrixTemplateId && (
-                <p style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "0.5rem" }}>⚠️ Vui lòng chọn một ma trận để tiếp tục</p>
+                <p style={{ color: "var(--ds-error)", fontSize: "0.85rem", marginTop: "0.5rem" }}>⚠️ Vui lòng chọn một ma trận để tiếp tục</p>
               )}
             </div>
           ) : (
@@ -990,7 +990,7 @@ const ExamGenerator = () => {
                     style={{
                       background: "rgba(16,185,129,0.08)",
                       fontWeight: 700,
-                      color: "#10b981",
+                      color: "var(--ds-success)",
                       cursor: "not-allowed",
                     }}
                   />
@@ -1052,7 +1052,7 @@ const ExamGenerator = () => {
               <div className="dist-footer muted">
                 Tổng: {stats.sumLevel} / {stats.sumLesson} câu
                 {stats.sumLevel !== stats.sumLesson && stats.sumLesson > 0 && (
-                  <span style={{ color: "#ef4444", marginLeft: "0.5rem" }}>
+                  <span style={{ color: "var(--ds-error)", marginLeft: "0.5rem" }}>
                     (phải bằng tổng số câu)
                   </span>
                 )}
@@ -1095,7 +1095,7 @@ const ExamGenerator = () => {
               )}
             </button>
             {!loadingPreview && stats.sumLesson > 0 && stats.sumLevel !== stats.sumLesson && (
-              <p style={{ color: "#ef4444", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
+              <p style={{ color: "var(--ds-error)", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
                 ⚠️ Phân bổ theo mức độ ({stats.sumLevel} câu) phải bằng tổng số câu ({stats.sumLesson} câu) để tạo đề.
               </p>
             )}
@@ -1123,7 +1123,7 @@ const ExamGenerator = () => {
                     padding: "2px 10px",
                     borderRadius: 999,
                     background: currentExam.status === "PUBLISHED" ? "rgba(59,130,246,0.12)" : "rgba(107,114,128,0.12)",
-                    color: currentExam.status === "PUBLISHED" ? "#3b82f6" : "#6b7280",
+                    color: currentExam.status === "PUBLISHED" ? "var(--ds-info)" : "var(--ds-text-secondary)",
                     fontSize: "0.78rem",
                     fontWeight: 700,
                   }}>{currentExam.status}</span>
@@ -1155,7 +1155,7 @@ const ExamGenerator = () => {
                     : <><Sparkles size={16} /> Công bố</>}
                 </button>
               ) : (
-                <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "#3b82f6", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
+                <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "var(--ds-info)", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
                   ✓ Đã công bố
                 </span>
               )}
@@ -1230,7 +1230,7 @@ const ExamGenerator = () => {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: "6px" }}
                     >
-                      {currentExam?.status === "DRAFT" && <GripVertical size={18} style={{ color: "#9ca3af" }} />}
+                      {currentExam?.status === "DRAFT" && <GripVertical size={18} style={{ color: "var(--ds-text-muted)" }} />}
                       <span className="q-num">Câu {q.orderNumber || idx + 1}</span>
                     </div>
                     {q.cognitiveLevelName && (
@@ -1412,7 +1412,7 @@ const ExamGenerator = () => {
             background: "#fff", padding: "24px", borderRadius: "16px", width: "400px", maxWidth: "90%",
             boxShadow: "0 10px 25px rgba(0,0,0,0.1)", textAlign: "center"
           }}>
-            <h3 style={{ marginTop: 0, marginBottom: "12px", color: "#1f2937" }}>Tùy chọn Câu hỏi</h3>
+            <h3 style={{ marginTop: 0, marginBottom: "12px", color: "var(--ds-text)" }}>Tùy chọn Câu hỏi</h3>
             <p style={{ color: "#4b5563", fontSize: "0.95rem", marginBottom: "20px" }}>
               Bạn muốn xử lý câu hỏi này như thế nào?
             </p>
@@ -1469,7 +1469,7 @@ const ExamGenerator = () => {
               
               <button 
                 className="btn"
-                style={{ justifyContent: "center", marginTop: "5px", background: "transparent", color: "#6b7280" }}
+                style={{ justifyContent: "center", marginTop: "5px", background: "transparent", color: "var(--ds-text-secondary)" }}
                 onClick={() => setReplacingQuestion(null)}
               >
                 Hủy bỏ
@@ -1503,13 +1503,13 @@ const ExamGenerator = () => {
         .matrix-select-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; margin-bottom: 0.5rem; }
         .matrix-card { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.07); cursor: pointer; transition: all 0.18s; position: relative; }
         .matrix-card:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
-        .matrix-card.selected { border-color: #6366f1; background: rgba(99,102,241,0.08); }
-        .mc-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; }
+        .matrix-card.selected { border-color: var(--ds-primary); background: rgba(99,102,241,0.08); }
+        .mc-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: var(--ds-primary); color: white; display: flex; align-items: center; justify-content: center; }
         .mc-name { font-weight: 700; margin-bottom: 4px; font-size: 0.95rem; }
         .mc-meta { font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .mc-levels { display: flex; flex-wrap: wrap; gap: 4px; }
         .mc-level-tag { padding: 2px 8px; border-radius: 999px; background: rgba(99,102,241,0.1); color: #4338ca; font-size: 0.75rem; font-weight: 600; }
-        .badge-default { padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.1); color: #059669; font-size: 0.72rem; font-weight: 700; }
+        .badge-default { padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.1); color: var(--ds-success-text); font-size: 0.72rem; font-weight: 700; }
         .matrix-empty-notice { padding: 2rem; border-radius: 14px; background: rgba(255,255,255,0.45); border: 1px dashed rgba(0,0,0,0.12); text-align: center; color: var(--color-text-secondary); }
         .matrix-empty-notice p { margin: 0.75rem 0 1rem; }
 
@@ -1557,7 +1557,7 @@ const ExamGenerator = () => {
         .q-text { font-size: 0.98rem; }
         .q-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
         .btn-xs { padding: 6px 8px; border-radius: 10px; }
-        .danger { border-color: rgba(239,68,68,0.35); color: #ef4444; }
+        .danger { border-color: rgba(239,68,68,0.35); color: var(--ds-error); }
 
         .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
         .badge.ai { background: rgba(99,102,241,0.12); color: var(--color-accent-1); }
@@ -1593,7 +1593,7 @@ const ExamGenerator = () => {
         .pdf-exporting .exam-option.correct-marked { font-weight: bold !important; }
         .pdf-exporting .exam-option.correct-marked .option-label,
         .pdf-exporting .exam-option.correct-marked .option-content * { 
-          color: #d97706 !important; 
+          color: var(--ds-warning-text) !important; 
           font-weight: bold !important; 
           text-decoration: underline !important; 
         }
@@ -1616,7 +1616,7 @@ const ExamGenerator = () => {
         .exam-option.correct-marked { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.4); }
         .option-label { font-weight: 700; color: var(--color-accent-1); min-width: 20px; flex-shrink: 0; }
         .option-content { flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; }
-        .correct-icon { color: #10b981; font-weight: 700; margin-left: auto; }
+        .correct-icon { color: var(--ds-success); font-weight: 700; margin-left: auto; }
         .toggle-label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
         .toggle-label input { width: auto; cursor: pointer; }
 

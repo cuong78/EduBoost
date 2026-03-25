@@ -3,48 +3,35 @@ import { feedbackService } from "../../services/feedbackService";
 import { showSuccessToast, showErrorToast } from "../../utils/show-toast";
 import {
   MessageSquare, Star, CheckCircle, Clock, AlertTriangle,
-  RefreshCw, Filter, Eye, Send, X, BarChart3, Inbox, Loader
+  RefreshCw, Filter, Eye, Send, X, Inbox, Loader2
 } from "lucide-react";
 
 const CATEGORIES = {
-  SUGGESTION: { label: "Góp ý", emoji: "💡" },
-  BUG_REPORT: { label: "Báo lỗi", emoji: "🐛" },
-  FEATURE_REQUEST: { label: "Yêu cầu tính năng", emoji: "✨" },
-  OTHER: { label: "Khác", emoji: "💬" },
+  SUGGESTION: { label: "Góp ý", icon: AlertTriangle },
+  BUG_REPORT: { label: "Báo lỗi", icon: AlertTriangle },
+  FEATURE_REQUEST: { label: "Yêu cầu tính năng", icon: Star },
+  OTHER: { label: "Khác", icon: MessageSquare },
 };
 
 const STATUS_CFG = {
-  SUBMITTED:   { label: "Mới",          color: "#6366f1", bg: "#eef2ff" },
-  IN_PROGRESS: { label: "Đang xử lý",  color: "#f59e0b", bg: "#fef3c7" },
-  RESPONDED:   { label: "Đã phản hồi",  color: "#10b981", bg: "#d1fae5" },
-  CLOSED:      { label: "Đã đóng",      color: "#6b7280", bg: "#f3f4f6" },
+  SUBMITTED:   { label: "Mới",          cls: "ds-badge-primary" },
+  IN_PROGRESS: { label: "Đang xử lý",  cls: "ds-badge-warning" },
+  RESPONDED:   { label: "Đã phản hồi",  cls: "ds-badge-success" },
+  CLOSED:      { label: "Đã đóng",      cls: "ds-badge-neutral" },
 };
 
 function StatusPill({ status }) {
-  const cfg = STATUS_CFG[status] || { label: status, color: "#6b7280", bg: "#f3f4f6" };
-  return <span style={{ background: cfg.bg, color: cfg.color, padding: "3px 10px", borderRadius: 99, fontSize: "0.78rem", fontWeight: 700 }}>{cfg.label}</span>;
+  const cfg = STATUS_CFG[status] || { label: status, cls: "ds-badge-neutral" };
+  return <span className={`ds-badge ${cfg.cls}`}>{cfg.label}</span>;
 }
 
 function StarDisplay({ value }) {
-  if (!value) return <span style={{ color: "#d1d5db", fontSize: "0.8rem" }}>—</span>;
+  if (!value) return <span style={{ color: "var(--ds-text-muted)", fontSize: "var(--ds-text-sm)" }}>—</span>;
   return (
-    <div style={{ display: "flex", gap: 2 }}>
+    <div className="ds-flex ds-gap-xs">
       {[1, 2, 3, 4, 5].map(i => (
-        <Star key={i} size={13} fill={i <= value ? "#f59e0b" : "none"} color={i <= value ? "#f59e0b" : "#d1d5db"} />
+        <Star key={i} size={13} fill={i <= value ? "var(--ds-warning)" : "none"} color={i <= value ? "var(--ds-warning)" : "var(--ds-border)"} />
       ))}
-    </div>
-  );
-}
-
-function KpiCard({ icon: Icon, iconColor, borderColor, label, value, subText }) {
-  return (
-    <div style={{ background: "#fff", borderRadius: 14, padding: "1.1rem", border: "1px solid #e5e7eb", borderLeft: `4px solid ${borderColor}`, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ color: "#9ca3af", fontWeight: 600, fontSize: "0.82rem" }}>{label}</span>
-        <Icon size={18} color={iconColor} />
-      </div>
-      <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#1f2937" }}>{value}</div>
-      {subText && <div style={{ fontSize: "0.76rem", color: "#9ca3af", marginTop: 3 }}>{subText}</div>}
     </div>
   );
 }
@@ -57,14 +44,10 @@ export default function FeedbackAdmin() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
-
-  // Respond modal
   const [respondModal, setRespondModal] = useState(null);
   const [responseText, setResponseText] = useState("");
   const [responseStatus, setResponseStatus] = useState("RESPONDED");
   const [responding, setResponding] = useState(false);
-
-  // Detail modal
   const [detailModal, setDetailModal] = useState(null);
 
   const load = async () => {
@@ -86,7 +69,7 @@ export default function FeedbackAdmin() {
     setResponding(true);
     try {
       await feedbackService.respond(respondModal.id, { adminResponse: responseText, status: responseStatus });
-      showSuccessToast("✅ Đã phản hồi feedback");
+      showSuccessToast("Đã phản hồi feedback");
       setRespondModal(null); setResponseText(""); setResponseStatus("RESPONDED");
       load();
     } catch (e) {
@@ -103,31 +86,28 @@ export default function FeedbackAdmin() {
   const filteredFbs = statusFilter === "ALL" ? feedbacks : feedbacks.filter(f => f.status === statusFilter);
 
   return (
-    <div style={{ padding: "1.5rem 2rem" }}>
+    <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#1f2937", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <MessageSquare size={22} color="#6366f1" /> Quản lý Feedback
-          </h1>
-          <p style={{ color: "#9ca3af", margin: "4px 0 0", fontSize: "0.9rem" }}>Xem, phản hồi góp ý từ giáo viên</p>
+      <div className="ds-page-header">
+        <div className="ds-page-header-left">
+          <div className="ds-page-icon"><MessageSquare size={22} /></div>
+          <div>
+            <h1 className="ds-page-title">Quản lý Feedback</h1>
+            <p className="ds-page-subtitle">Xem, phản hồi góp ý từ giáo viên</p>
+          </div>
         </div>
-        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.5rem 1rem", background: "#f3f4f6", border: "none", borderRadius: 10, fontWeight: 600, cursor: "pointer", color: "#374151" }}>
-          <RefreshCw size={15} /> Làm mới
+        <button onClick={load} className="ds-btn ds-btn-secondary">
+          <RefreshCw size={16} /> Làm mới
         </button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "#fff", borderRadius: 12, padding: 4, width: "fit-content", marginBottom: "1.5rem", border: "1px solid #e5e7eb" }}>
-        {[["overview", "📊 Tổng quan"], ["all", "📋 Tất cả feedback"]].map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} style={{
-            padding: "0.5rem 1.2rem", borderRadius: 9, border: "none", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer",
-            background: tab === k ? "linear-gradient(135deg,#6366f1,#7c3aed)" : "transparent",
-            color: tab === k ? "#fff" : "#6b7280",
-          }}>
+      <div className="ds-tab-bar">
+        {[["overview", "Tổng quan"], ["all", "Tất cả feedback"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} className={`ds-tab ${tab === k ? "active" : ""}`}>
             {label}
             {k === "all" && stats?.submittedCount > 0 && (
-              <span style={{ marginLeft: 6, background: "#ef4444", color: "#fff", borderRadius: 99, padding: "1px 7px", fontSize: "0.72rem", fontWeight: 800 }}>
+              <span className="ds-badge ds-badge-error" style={{ marginLeft: 6 }}>
                 {stats.submittedCount}
               </span>
             )}
@@ -136,89 +116,109 @@ export default function FeedbackAdmin() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
-          <RefreshCw size={24} style={{ animation: "spin 1s linear infinite" }} />
+        <div className="ds-loading">
+          <Loader2 size={24} className="ds-spinner" />
         </div>
 
       ) : tab === "overview" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div className="ds-flex-col ds-gap-lg">
           {/* KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
-            <KpiCard icon={Inbox} iconColor="#6366f1" borderColor="#6366f1" label="Tổng feedback" value={stats?.totalFeedback || 0} />
-            <KpiCard icon={AlertTriangle} iconColor="#f59e0b" borderColor="#f59e0b" label="Chờ xử lý" value={(stats?.submittedCount || 0) + (stats?.inProgressCount || 0)} subText={`Mới: ${stats?.submittedCount || 0} | Đang xử lý: ${stats?.inProgressCount || 0}`} />
-            <KpiCard icon={CheckCircle} iconColor="#10b981" borderColor="#10b981" label="Đã phản hồi" value={(stats?.respondedCount || 0) + (stats?.closedCount || 0)} />
-            <KpiCard icon={Star} iconColor="#f59e0b" borderColor="#f59e0b" label="Rating TB" value={stats?.averageRating ? stats.averageRating.toFixed(1) + " ⭐" : "—"} />
+          <div className="ds-kpi-grid">
+            <div className="ds-kpi-card ds-kpi-accent-primary">
+              <div className="ds-kpi-card-header">
+                <span className="ds-kpi-card-label">Tổng feedback</span>
+                <Inbox size={18} color="var(--ds-primary)" />
+              </div>
+              <div className="ds-kpi-card-value">{stats?.totalFeedback || 0}</div>
+            </div>
+            <div className="ds-kpi-card ds-kpi-accent-warning">
+              <div className="ds-kpi-card-header">
+                <span className="ds-kpi-card-label">Chờ xử lý</span>
+                <AlertTriangle size={18} color="var(--ds-warning)" />
+              </div>
+              <div className="ds-kpi-card-value">{(stats?.submittedCount || 0) + (stats?.inProgressCount || 0)}</div>
+              <div className="ds-kpi-card-sub">Mới: {stats?.submittedCount || 0} | Đang xử lý: {stats?.inProgressCount || 0}</div>
+            </div>
+            <div className="ds-kpi-card ds-kpi-accent-success">
+              <div className="ds-kpi-card-header">
+                <span className="ds-kpi-card-label">Đã phản hồi</span>
+                <CheckCircle size={18} color="var(--ds-success)" />
+              </div>
+              <div className="ds-kpi-card-value">{(stats?.respondedCount || 0) + (stats?.closedCount || 0)}</div>
+            </div>
+            <div className="ds-kpi-card ds-kpi-accent-warning">
+              <div className="ds-kpi-card-header">
+                <span className="ds-kpi-card-label">Rating TB</span>
+                <Star size={18} color="var(--ds-warning)" />
+              </div>
+              <div className="ds-kpi-card-value">{stats?.averageRating ? stats.averageRating.toFixed(1) : "—"}</div>
+            </div>
           </div>
 
           {/* Recent feedbacks */}
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", overflow: "hidden" }}>
-            <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #f3f4f6", fontWeight: 700, fontSize: "0.95rem", color: "#374151" }}>
-              📩 Feedback mới nhất
-            </div>
-            {feedbacks.slice(0, 5).map(fb => (
-              <div key={fb.id} onClick={() => setDetailModal(fb)} style={{ padding: "0.85rem 1.25rem", borderBottom: "1px solid #f9fafb", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", transition: "background 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <span style={{ fontSize: "1.1rem" }}>{CATEGORIES[fb.category]?.emoji || "💬"}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "#1f2937", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fb.title}</div>
-                  <div style={{ fontSize: "0.76rem", color: "#9ca3af" }}>{fb.teacherName} — {fmtDate(fb.createdAt)}</div>
+          <div className="ds-card">
+            <div className="ds-card-header">Feedback mới nhất</div>
+            <div className="ds-card-body-compact">
+              {feedbacks.slice(0, 5).map(fb => (
+                <div key={fb.id} onClick={() => setDetailModal(fb)} className="fb-row">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="ds-text-bold ds-truncate">{fb.title}</div>
+                    <div className="ds-text-sub">{fb.teacherName} — {fmtDate(fb.createdAt)}</div>
+                  </div>
+                  <StarDisplay value={fb.rating} />
+                  <StatusPill status={fb.status} />
                 </div>
-                <StarDisplay value={fb.rating} />
-                <StatusPill status={fb.status} />
-              </div>
-            ))}
-            {feedbacks.length === 0 && <div style={{ padding: "2rem", textAlign: "center", color: "#9ca3af" }}>Chưa có feedback nào</div>}
+              ))}
+              {feedbacks.length === 0 && <div className="ds-empty-state"><p>Chưa có feedback nào</p></div>}
+            </div>
           </div>
         </div>
 
       ) : (
-        /* ─── All feedbacks tab ─── */
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", overflow: "hidden" }}>
+        /* All feedbacks tab */
+        <div className="ds-card">
           {/* Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0.85rem 1rem", borderBottom: "1px solid #f3f4f6", flexWrap: "wrap" }}>
-            <Filter size={15} color="#9ca3af" />
+          <div className="ds-filter-bar">
+            <Filter size={15} color="var(--ds-text-muted)" />
             {["ALL", "SUBMITTED", "IN_PROGRESS", "RESPONDED", "CLOSED"].map(s => (
-              <button key={s} onClick={() => setStatusFilter(s)} style={{
-                padding: "3px 12px", borderRadius: 99, border: `1.5px solid ${statusFilter === s ? "#6366f1" : "#e5e7eb"}`,
-                background: statusFilter === s ? "#eef2ff" : "#fff",
-                color: statusFilter === s ? "#6366f1" : "#6b7280", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer"
-              }}>
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`ds-filter-chip ${statusFilter === s ? "active" : ""}`}>
                 {s === "ALL" ? "Tất cả" : STATUS_CFG[s]?.label} ({s === "ALL" ? feedbacks.length : feedbacks.filter(f => f.status === s).length})
               </button>
             ))}
           </div>
 
           {filteredFbs.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem", color: "#9ca3af" }}>
+            <div className="ds-empty-state">
               <MessageSquare size={40} opacity={0.25} />
               <p>Không có feedback nào</p>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-              <thead style={{ background: "#f9fafb" }}>
-                <tr>{["Loại", "Tiêu đề", "Giáo viên", "Rating", "Trạng thái", "Ngày gửi", ""].map(h => (
-                  <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", color: "#6b7280", fontWeight: 600, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
-                ))}</tr>
+            <table className="ds-table">
+              <thead>
+                <tr>
+                  {["Loại", "Tiêu đề", "Giáo viên", "Rating", "Trạng thái", "Ngày gửi", ""].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
               </thead>
               <tbody>
                 {filteredFbs.map(fb => (
-                  <tr key={fb.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "0.7rem 1rem" }}>{CATEGORIES[fb.category]?.emoji} {CATEGORIES[fb.category]?.label}</td>
-                    <td style={{ padding: "0.7rem 1rem", fontWeight: 600, color: "#1f2937", maxWidth: 250, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fb.title}</td>
-                    <td style={{ padding: "0.7rem 1rem" }}>
-                      <div style={{ fontWeight: 600 }}>{fb.teacherName}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{fb.teacherEmail}</div>
+                  <tr key={fb.id}>
+                    <td>{CATEGORIES[fb.category]?.label || fb.category}</td>
+                    <td><span className="ds-text-bold ds-truncate" style={{ maxWidth: 250, display: 'inline-block' }}>{fb.title}</span></td>
+                    <td>
+                      <div className="ds-text-bold">{fb.teacherName}</div>
+                      <div className="ds-text-sub">{fb.teacherEmail}</div>
                     </td>
-                    <td style={{ padding: "0.7rem 1rem" }}><StarDisplay value={fb.rating} /></td>
-                    <td style={{ padding: "0.7rem 1rem" }}><StatusPill status={fb.status} /></td>
-                    <td style={{ padding: "0.7rem 1rem", color: "#9ca3af", fontSize: "0.82rem" }}>{fmtDate(fb.createdAt)}</td>
-                    <td style={{ padding: "0.7rem 1rem" }}>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => setDetailModal(fb)} title="Xem" style={{ padding: "4px 8px", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 6, cursor: "pointer" }}>
-                          <Eye size={13} color="#6b7280" />
-                        </button>
-                        <button onClick={() => openRespond(fb)} title="Phản hồi" style={{ padding: "4px 8px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 6, cursor: "pointer" }}>
-                          <Send size={13} color="#6366f1" />
+                    <td><StarDisplay value={fb.rating} /></td>
+                    <td><StatusPill status={fb.status} /></td>
+                    <td className="ds-text-sub">{fmtDate(fb.createdAt)}</td>
+                    <td>
+                      <div className="ds-flex ds-gap-xs">
+                        <button onClick={() => setDetailModal(fb)} title="Xem" className="ds-btn-icon"><Eye size={14} /></button>
+                        <button onClick={() => openRespond(fb)} title="Phản hồi" className="ds-btn-icon" style={{ background: 'var(--ds-primary-bg)', borderColor: 'var(--ds-primary-bg-hover)' }}>
+                          <Send size={14} color="var(--ds-primary)" />
                         </button>
                       </div>
                     </td>
@@ -232,32 +232,29 @@ export default function FeedbackAdmin() {
 
       {/* Detail Modal */}
       {detailModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setDetailModal(null)}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.5rem", maxWidth: 500, width: "90%", maxHeight: "80vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>{CATEGORIES[detailModal.category]?.emoji} {detailModal.title}</h3>
-              <button onClick={() => setDetailModal(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={18} color="#9ca3af" /></button>
+        <div className="ds-modal-overlay" onClick={() => setDetailModal(null)}>
+          <div className="ds-modal ds-modal-md" onClick={e => e.stopPropagation()}>
+            <div className="ds-modal-header">
+              <h3 className="ds-modal-title">{detailModal.title}</h3>
+              <button onClick={() => setDetailModal(null)} className="ds-modal-close"><X size={18} /></button>
             </div>
-            <div style={{ fontSize: "0.82rem", color: "#9ca3af", marginBottom: 8 }}>
+            <div className="ds-text-sub" style={{ marginBottom: 8 }}>
               {detailModal.teacherName} ({detailModal.teacherEmail}) — {fmtDate(detailModal.createdAt)}
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: "1rem" }}>
+            <div className="ds-flex ds-gap-sm ds-items-center" style={{ marginBottom: 'var(--ds-space-md)' }}>
               <StatusPill status={detailModal.status} />
               <StarDisplay value={detailModal.rating} />
             </div>
-            <p style={{ color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap", margin: "0 0 1rem", padding: "0.85rem", background: "#f9fafb", borderRadius: 10 }}>{detailModal.content}</p>
+            <p style={{ color: 'var(--ds-text)', lineHeight: 1.6, whiteSpace: 'pre-wrap', padding: 'var(--ds-space-md)', background: 'var(--ds-bg-subtle)', borderRadius: 'var(--ds-radius-sm)', marginBottom: 'var(--ds-space-md)' }}>{detailModal.content}</p>
 
             {detailModal.adminResponse && (
-              <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "0.85rem", borderLeft: "4px solid #10b981", marginBottom: "1rem" }}>
-                <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#065f46", marginBottom: 4 }}>✅ Phản hồi Admin</div>
-                <p style={{ margin: 0, fontSize: "0.88rem", color: "#374151", whiteSpace: "pre-wrap" }}>{detailModal.adminResponse}</p>
+              <div style={{ background: 'var(--ds-success-bg)', borderRadius: 'var(--ds-radius-sm)', padding: 'var(--ds-space-md)', borderLeft: '4px solid var(--ds-success)', marginBottom: 'var(--ds-space-md)' }}>
+                <div style={{ fontWeight: 700, fontSize: 'var(--ds-text-sm)', color: 'var(--ds-success-text)', marginBottom: 4 }}>Phản hồi Admin</div>
+                <p style={{ margin: 0, fontSize: 'var(--ds-text-base)', color: 'var(--ds-text)', whiteSpace: 'pre-wrap' }}>{detailModal.adminResponse}</p>
               </div>
             )}
 
-            <button onClick={() => { setDetailModal(null); openRespond(detailModal); }} style={{
-              padding: "0.6rem 1.2rem", background: "linear-gradient(135deg,#6366f1,#7c3aed)", color: "#fff",
-              border: "none", borderRadius: 9, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6
-            }}>
+            <button onClick={() => { setDetailModal(null); openRespond(detailModal); }} className="ds-btn ds-btn-primary">
               <Send size={14} /> Phản hồi
             </button>
           </div>
@@ -266,39 +263,35 @@ export default function FeedbackAdmin() {
 
       {/* Respond Modal */}
       {respondModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 2001, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setRespondModal(null)}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.5rem", maxWidth: 480, width: "90%" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700 }}>Phản hồi: {respondModal.title}</h3>
-              <button onClick={() => setRespondModal(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={18} color="#9ca3af" /></button>
+        <div className="ds-modal-overlay" onClick={() => setRespondModal(null)}>
+          <div className="ds-modal ds-modal-md" onClick={e => e.stopPropagation()}>
+            <div className="ds-modal-header">
+              <h3 className="ds-modal-title">Phản hồi: {respondModal.title}</h3>
+              <button onClick={() => setRespondModal(null)} className="ds-modal-close"><X size={18} /></button>
             </div>
 
-            <div style={{ marginBottom: "1rem" }}>
-              <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#374151", marginBottom: 6, display: "block" }}>Nội dung phản hồi</label>
+            <div className="ds-form-group">
+              <label className="ds-label">Nội dung phản hồi</label>
               <textarea value={responseText} onChange={e => setResponseText(e.target.value)} rows={4} placeholder="Nhập phản hồi cho giáo viên..."
-                style={{ width: "100%", padding: "0.7rem 1rem", border: "1.5px solid #e5e7eb", borderRadius: 10, fontSize: "0.9rem", outline: "none", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }} />
+                className="ds-textarea" />
             </div>
 
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "#374151", marginBottom: 6, display: "block" }}>Trạng thái</label>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div className="ds-form-group">
+              <label className="ds-label">Trạng thái</label>
+              <div className="ds-flex ds-gap-sm" style={{ flexWrap: 'wrap' }}>
                 {["IN_PROGRESS", "RESPONDED", "CLOSED"].map(s => (
-                  <button key={s} onClick={() => setResponseStatus(s)} style={{
-                    padding: "5px 14px", borderRadius: 99, border: `1.5px solid ${responseStatus === s ? STATUS_CFG[s].color : "#e5e7eb"}`,
-                    background: responseStatus === s ? STATUS_CFG[s].bg : "#fff",
-                    color: responseStatus === s ? STATUS_CFG[s].color : "#6b7280", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer"
-                  }}>{STATUS_CFG[s].label}</button>
+                  <button key={s} onClick={() => setResponseStatus(s)}
+                    className={`ds-filter-chip ${responseStatus === s ? "active" : ""}`}>
+                    {STATUS_CFG[s].label}
+                  </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setRespondModal(null)} style={{ padding: "0.6rem 1.2rem", background: "#f3f4f6", border: "none", borderRadius: 9, fontWeight: 600, cursor: "pointer", color: "#6b7280" }}>Hủy</button>
-              <button onClick={handleRespond} disabled={responding} style={{
-                padding: "0.6rem 1.2rem", background: "linear-gradient(135deg,#6366f1,#7c3aed)", color: "#fff",
-                border: "none", borderRadius: 9, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, opacity: responding ? 0.6 : 1
-              }}>
-                {responding ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={14} />}
+            <div className="ds-modal-footer">
+              <button onClick={() => setRespondModal(null)} className="ds-btn ds-btn-secondary">Hủy</button>
+              <button onClick={handleRespond} disabled={responding} className="ds-btn ds-btn-primary">
+                {responding ? <Loader2 size={14} className="ds-spinner" /> : <Send size={14} />}
                 Gửi phản hồi
               </button>
             </div>
@@ -306,7 +299,18 @@ export default function FeedbackAdmin() {
         </div>
       )}
 
-      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        .fb-row {
+          padding: 0.75rem var(--ds-space-lg);
+          border-bottom: 1px solid var(--ds-border-light);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: background var(--ds-transition-fast);
+        }
+        .fb-row:hover { background: var(--ds-bg-subtle); }
+      `}</style>
     </div>
   );
 }

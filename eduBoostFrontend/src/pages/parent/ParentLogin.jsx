@@ -214,7 +214,7 @@ const ParentLogin = () => {
         /* ── LEFT HERO PANEL ── */
         .parent-hero-panel {
           position: relative;
-          background: linear-gradient(135deg, #6c3fff 0%, #a78bfa 50%, #c084fc 100%);
+          background: linear-gradient(135deg, var(--ds-primary) 0%, #a78bfa 50%, #c084fc 100%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -341,7 +341,7 @@ const ParentLogin = () => {
           width: 64px;
           height: 64px;
           border-radius: 20px;
-          background: linear-gradient(135deg, #6c3fff, #a78bfa);
+          background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -483,7 +483,7 @@ const ParentLogin = () => {
           width: 100%;
           padding: 0.85rem;
           border-radius: 12px;
-          background: linear-gradient(135deg, #6c3fff, #a78bfa);
+          background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
           color: white;
           font-size: 1rem;
           font-weight: 700;

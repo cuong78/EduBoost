@@ -15,9 +15,9 @@ import "./ExamManagement.css";
 
 /* ─────────────────────────── constants ─────────────────────────── */
 const EXAM_STATUS = {
-  DRAFT:     { label: "Nháp",       color: "#6b7280", bg: "#f3f4f6", icon: <Clock     size={13}/> },
-  USED:      { label: "Đã dùng",    color: "#f59e0b", bg: "#fef3c7", icon: <CheckCircle size={13}/> },
-  PUBLISHED: { label: "Đã xuất bản",color: "#3b82f6", bg: "#dbeafe", icon: <Globe    size={13}/> },
+  DRAFT:     { label: "Nháp",       color: "var(--ds-text-secondary)", bg: "var(--ds-border-light)", icon: <Clock     size={13}/> },
+  USED:      { label: "Đã dùng",    color: "var(--ds-warning)", bg: "var(--ds-warning-bg)", icon: <CheckCircle size={13}/> },
+  PUBLISHED: { label: "Đã xuất bản",color: "var(--ds-info)", bg: "#dbeafe", icon: <Globe    size={13}/> },
 };
 const GRADE_OPTIONS = [6,7,8,9,10,11,12];
 
@@ -408,7 +408,7 @@ const ExamManagement = () => {
                         <td className="em-code">{exam.examCode}</td>
                         <td className="em-name">
                           <span>{exam.examTitle}</span>
-                          {exam.matrixTemplateName && <span className="em-matrix-chip">📊 {exam.matrixTemplateName}</span>}
+                          {exam.matrixTemplateName && <span className="em-matrix-chip"> {exam.matrixTemplateName}</span>}
                         </td>
                         <td>{exam.subjectCode} / Khối {exam.gradeLevel}</td>
                         <td>{exam.examTypeName || exam.examTypeCode}</td>
@@ -428,11 +428,11 @@ const ExamManagement = () => {
                               {exportMenuId === exam.id && (
                                 <div className="em-export-menu">
                                   <button onClick={() => handleExport(exam, "pdf")}>
-                                    <Download size={14} color="#6366f1"/>
+                                    <Download size={14} color="var(--ds-primary)"/>
                                     <span><strong>Đề thi</strong><small>Không kèm đáp án</small></span>
                                   </button>
                                   <button onClick={() => handleExport(exam, "answer-key")}>
-                                    <FileText size={14} color="#10b981"/>
+                                    <FileText size={14} color="var(--ds-success)"/>
                                     <span><strong>Đáp án &amp; đề</strong><small>Kèm đáp án đúng</small></span>
                                   </button>
                                 </div>
@@ -563,7 +563,7 @@ const ExamManagement = () => {
           <div className="em-modal" onClick={e => e.stopPropagation()}>
             <div className="em-modal-header">
               <div>
-                <h2>📊 Thống kê — {selectedExam?.examTitle}</h2>
+                <h2> Thống kê — {selectedExam?.examTitle}</h2>
                 <p className="em-modal-meta">{selectedExam?.examCode}</p>
               </div>
               <button className="em-close" onClick={() => setShowStats(false)}><X size={20}/></button>
@@ -615,7 +615,7 @@ const ExamManagement = () => {
       {showDeleteConfirm && (
         <div className="em-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="em-confirm" onClick={e => e.stopPropagation()}>
-            <AlertTriangle size={40} color="#ef4444"/>
+            <AlertTriangle size={40} color="var(--ds-error)"/>
             <h3>Xác nhận xóa đề thi?</h3>
             <p><strong>{deletingExam?.examTitle}</strong> ({deletingExam?.examCode})</p>
             <p className="em-warn">Hành động này không thể hoàn tác.</p>
@@ -657,7 +657,7 @@ const ExamManagement = () => {
                     </div>
                   ))}
                 </div>
-                <h3 className="em-section-title">📋 Danh sách câu hỏi ({commDetail.questions?.length ?? 0}) — Chỉ xem</h3>
+                <h3 className="em-section-title"> Danh sách câu hỏi ({commDetail.questions?.length ?? 0}) — Chỉ xem</h3>
                 {!commDetail.questions?.length ? (
                   <p className="em-empty-msg">Đề chưa có câu hỏi hiển thị.</p>
                 ) : (
@@ -708,7 +708,7 @@ const ExamManagement = () => {
             .pdf-exporting .option-label { font-weight: bold !important; }
             .pdf-exporting .exam-option.correct-marked { font-weight: bold !important; }
             .pdf-exporting .exam-option.correct-marked .option-label,
-            .pdf-exporting .exam-option.correct-marked .option-content * { color: #d97706 !important; font-weight: bold !important; text-decoration: underline !important; }
+            .pdf-exporting .exam-option.correct-marked .option-content * { color: var(--ds-warning-text) !important; font-weight: bold !important; text-decoration: underline !important; }
             .pdf-exporting .option-content {
               min-width: 0 !important;
               word-break: break-word !important;
