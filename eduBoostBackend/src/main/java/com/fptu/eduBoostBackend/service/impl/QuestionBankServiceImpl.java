@@ -23,6 +23,8 @@ import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -72,6 +74,18 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         return questions.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<QuestionBankResponse> getQuestionsPaged(Long lessonId, Long cognitiveLevelId, 
+            QuestionSourceType sourceType, Long chapterId, Pageable pageable) {
+        log.info("Fetching questions paged - lessonId: {}, cognitiveLevelId: {}, sourceType: {}, chapterId: {}, page: {}, size: {}",
+                lessonId, cognitiveLevelId, sourceType, chapterId, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<QuestionBank> questions = questionBankRepository.findWithFiltersPaged(
+                lessonId, cognitiveLevelId, sourceType, chapterId, pageable);
+        return questions.map(this::mapToResponse);
     }
 
     @Override

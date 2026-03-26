@@ -78,6 +78,12 @@ const QuestionBankManagement = () => {
   const [questions, setQuestions] = useState([]);
   const [cognitiveLevels, setCognitiveLevels] = useState([]);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const PAGE_SIZE = 20;
+
   // Stats
   const [stats, setStats] = useState(null);
 
@@ -158,27 +164,30 @@ const QuestionBankManagement = () => {
     }
   };
 
-  const loadQuestions = async () => {
+  const loadQuestions = async (page = currentPage) => {
     setLoadingQuestions(true);
     try {
-      const filters = {};
+      const filters = {
+        page,
+        size: PAGE_SIZE,
+      };
       if (lessonId) filters.lessonId = Number(lessonId);
       if (cognitiveLevelFilter)
         filters.cognitiveLevelId = Number(cognitiveLevelFilter);
       if (sourceTypeFilter) filters.sourceType = sourceTypeFilter;
+      if (chapterId && !lessonId) filters.chapterId = Number(chapterId);
 
       const data = await questionBankService.getQuestions(filters);
-      let list = Array.isArray(data) ? data : (data?.data ?? []);
-
-      // Client-side filter by chapter if no lesson selected
-      if (chapterId && !lessonId && list.length > 0) {
-        const lessonIdsInChapter = lessons.map((l) => l.id);
-        list = list.filter((q) => lessonIdsInChapter.includes(q.lessonId));
-      }
+      const list = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
 
       setQuestions(list);
+      setTotalPages(data?.totalPages ?? 1);
+      setTotalElements(data?.totalElements ?? list.length);
+      setCurrentPage(page);
     } catch (e) {
       setQuestions([]);
+      setTotalPages(0);
+      setTotalElements(0);
       showErrorToast("Không tải được danh sách câu hỏi");
     } finally {
       setLoadingQuestions(false);
@@ -226,8 +235,9 @@ const QuestionBankManagement = () => {
   }, [chapterId]);
 
   useEffect(() => {
-    loadQuestions();
-  }, [lessonId, cognitiveLevelFilter, sourceTypeFilter]);
+    setCurrentPage(0);
+    loadQuestions(0);
+  }, [lessonId, chapterId, cognitiveLevelFilter, sourceTypeFilter]);
 
   useEffect(() => {
     loadStats();
@@ -466,7 +476,7 @@ const QuestionBankManagement = () => {
       {/* Questions list */}
       <div className="questions-section glass">
         <h3>
-          <BookOpen size={18} /> Danh sách câu hỏi ({questions.length})
+          <BookOpen size={18} /> Danh sách câu hỏi ({totalElements})
         </h3>
 
         {loadingQuestions ? (
@@ -542,6 +552,52 @@ const QuestionBankManagement = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage <= 0}
+              onClick={() => loadQuestions(currentPage - 1)}
+            >
+              ← Trước
+            </button>
+            <div className="pagination-pages">
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 7) {
+                  pageNum = i;
+                } else if (currentPage < 4) {
+                  pageNum = i;
+                } else if (currentPage > totalPages - 4) {
+                  pageNum = totalPages - 7 + i;
+                } else {
+                  pageNum = currentPage - 3 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    className={`btn btn-sm ${pageNum === currentPage ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => loadQuestions(pageNum)}
+                  >
+                    {pageNum + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => loadQuestions(currentPage + 1)}
+            >
+              Sau →
+            </button>
+            <span className="pagination-info">
+              Trang {currentPage + 1}/{totalPages} · {totalElements} câu hỏi
+            </span>
           </div>
         )}
       </div>
@@ -1023,6 +1079,27 @@ const QuestionBankManagement = () => {
                 }
                 .btn:hover { transform: translateY(-1px); }
                 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+                .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+
+                .pagination-controls {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    margin-top: 1.5rem;
+                    padding-top: 1rem;
+                    border-top: 1px solid rgba(0,0,0,0.08);
+                    flex-wrap: wrap;
+                }
+                .pagination-pages {
+                    display: flex;
+                    gap: 0.25rem;
+                }
+                .pagination-info {
+                    font-size: 0.85rem;
+                    color: var(--color-text-secondary);
+                    margin-left: 0.75rem;
+                }
             `}</style>
     </div>
   );

@@ -2,6 +2,8 @@ package com.fptu.eduBoostBackend.repositories;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +14,27 @@ import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 
 @Repository
 public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long> {
+
+    @Query(value = "SELECT q FROM QuestionBank q " +
+           "LEFT JOIN FETCH q.lesson l " +
+           "LEFT JOIN FETCH q.cognitiveLevel " +
+           "LEFT JOIN FETCH q.createdBy " +
+           "WHERE (:lessonId IS NULL OR l.id = :lessonId) " +
+           "AND (:cognitiveLevelId IS NULL OR q.cognitiveLevel.id = :cognitiveLevelId) " +
+           "AND (:sourceType IS NULL OR q.sourceType = :sourceType) " +
+           "AND (:chapterId IS NULL OR l.chapter.id = :chapterId)",
+           countQuery = "SELECT COUNT(q) FROM QuestionBank q " +
+           "LEFT JOIN q.lesson l " +
+           "WHERE (:lessonId IS NULL OR l.id = :lessonId) " +
+           "AND (:cognitiveLevelId IS NULL OR q.cognitiveLevel.id = :cognitiveLevelId) " +
+           "AND (:sourceType IS NULL OR q.sourceType = :sourceType) " +
+           "AND (:chapterId IS NULL OR l.chapter.id = :chapterId)")
+    Page<QuestionBank> findWithFiltersPaged(
+            @Param("lessonId") Long lessonId,
+            @Param("cognitiveLevelId") Long cognitiveLevelId,
+            @Param("sourceType") QuestionSourceType sourceType,
+            @Param("chapterId") Long chapterId,
+            Pageable pageable);
     
     List<QuestionBank> findByLessonId(Long lessonId);
     

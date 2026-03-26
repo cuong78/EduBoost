@@ -24,6 +24,9 @@ export const questionBankService = {
         if (filters.lessonId) params.append('lessonId', filters.lessonId);
         if (filters.cognitiveLevelId) params.append('cognitiveLevelId', filters.cognitiveLevelId);
         if (filters.sourceType) params.append('sourceType', filters.sourceType);
+        if (filters.chapterId) params.append('chapterId', filters.chapterId);
+        params.append('page', filters.page != null ? filters.page : 0);
+        params.append('size', filters.size != null ? filters.size : 20);
 
         const response = await axios.get(`${API.QUESTION_BANK}?${params.toString()}`, {
             headers: getAuthHeaders()

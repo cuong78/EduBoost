@@ -15,6 +15,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,14 +39,16 @@ public class QuestionBankController {
     private final QuestionBankService questionBankService;
 
     @GetMapping("/question-bank")
-    @Operation(summary = "Get questions with filters",
-            description = "Returns a list of questions filtered by lessonId, cognitiveLevelId, and sourceType")
-    public ResponseEntity<List<QuestionBankResponse>> getQuestions(
+    @Operation(summary = "Get questions with filters (paginated)",
+            description = "Returns a paginated list of questions filtered by lessonId, cognitiveLevelId, sourceType, and chapterId. Default page size is 20.")
+    public ResponseEntity<Page<QuestionBankResponse>> getQuestions(
             @Parameter(description = "Lesson ID") @RequestParam(required = false) Long lessonId,
             @Parameter(description = "Cognitive Level ID") @RequestParam(required = false) Long cognitiveLevelId,
-            @Parameter(description = "Source type") @RequestParam(required = false) QuestionSourceType sourceType) {
-        log.info("Fetching questions with filters");
-        List<QuestionBankResponse> questions = questionBankService.getQuestions(lessonId, cognitiveLevelId, sourceType);
+            @Parameter(description = "Source type") @RequestParam(required = false) QuestionSourceType sourceType,
+            @Parameter(description = "Chapter ID") @RequestParam(required = false) Long chapterId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        log.info("Fetching questions with filters (paged)");
+        Page<QuestionBankResponse> questions = questionBankService.getQuestionsPaged(lessonId, cognitiveLevelId, sourceType, chapterId, pageable);
         return ResponseEntity.ok(questions);
     }
 
