@@ -483,7 +483,7 @@ const UserManagement = () => {
           background: white;
           padding: 1.5rem;
           border-radius: 16px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--ds-border);
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
           transition: all 0.3s ease;
         }
@@ -508,7 +508,7 @@ const UserManagement = () => {
 
         .stat-label {
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--ds-text-muted);
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -518,7 +518,7 @@ const UserManagement = () => {
         .stat-value {
           font-size: 2.25rem;
           font-weight: 700;
-          color: #1f2937;
+          color: var(--ds-text);
           margin: 0;
           line-height: 1;
         }
@@ -535,15 +535,15 @@ const UserManagement = () => {
         }
 
         .bg-indigo {
-          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          background: linear-gradient(135deg, var(--ds-secondary) 0%, var(--ds-secondary-hover) 100%);
         }
 
         .bg-green {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          background: linear-gradient(135deg, var(--ds-success) 0%, var(--ds-success-text) 100%);
         }
 
         .bg-red {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          background: linear-gradient(135deg, var(--ds-error) 0%, var(--ds-error-text) 100%);
         }
 
         .stat-footer {
@@ -551,7 +551,7 @@ const UserManagement = () => {
           align-items: center;
           gap: 0.5rem;
           padding-top: 0.75rem;
-          border-top: 1px solid #f3f4f6;
+          border-top: 1px solid var(--ds-border-light);
         }
 
         .stat-indicator {
@@ -563,11 +563,11 @@ const UserManagement = () => {
         }
 
         .stat-indicator.positive {
-          color: #10b981;
+          color: var(--ds-success);
         }
 
         .stat-description {
-          color: #6b7280;
+          color: var(--ds-text-secondary);
           font-size: 0.875rem;
         }
 
@@ -641,7 +641,7 @@ const UserManagement = () => {
         }
 
         .users-table thead {
-          background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+          background: linear-gradient(135deg, var(--ds-primary-bg), #f5f3ff);
         }
 
         .users-table th {
@@ -683,14 +683,14 @@ const UserManagement = () => {
           height: 48px;
           border-radius: 50%;
           object-fit: cover;
-          border: 2px solid #eef2ff;
+          border: 2px solid var(--ds-primary-bg);
         }
 
         .user-avatar-placeholder {
           width: 48px;
           height: 48px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           display: flex;
           align-items: center;
           justify-content: center;
@@ -703,7 +703,7 @@ const UserManagement = () => {
           position: absolute;
           bottom: -2px;
           right: -2px;
-          background: #8b5cf6;
+          background: var(--ds-secondary);
           border-radius: 50%;
           padding: 4px;
           border: 2px solid white;
@@ -758,25 +758,25 @@ const UserManagement = () => {
 
         .role-admin {
           background: rgba(139, 92, 246, 0.1);
-          color: #7c3aed;
+          color: var(--ds-secondary-hover);
           border-color: rgba(139, 92, 246, 0.3);
         }
 
         .role-teacher {
           background: rgba(59, 130, 246, 0.1);
-          color: #2563eb;
+          color: var(--ds-info);
           border-color: rgba(59, 130, 246, 0.3);
         }
 
         .role-student {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
           border-color: rgba(16, 185, 129, 0.3);
         }
 
         .role-parent {
           background: rgba(245, 158, 11, 0.1);
-          color: #d97706;
+          color: var(--ds-warning-text);
           border-color: rgba(245, 158, 11, 0.3);
         }
 
@@ -797,13 +797,13 @@ const UserManagement = () => {
 
         .status-active {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
           border-color: rgba(16, 185, 129, 0.3);
         }
 
         .status-inactive {
           background: rgba(239, 68, 68, 0.1);
-          color: #dc2626;
+          color: var(--ds-error-text);
           border-color: rgba(239, 68, 68, 0.3);
         }
 
@@ -820,12 +820,12 @@ const UserManagement = () => {
 
         .verify-badge.verified {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
         }
 
         .verify-badge.unverified {
           background: rgba(245, 158, 11, 0.1);
-          color: #d97706;
+          color: var(--ds-warning-text);
         }
 
         /* Roles Container */
@@ -859,13 +859,13 @@ const UserManagement = () => {
 
         .class-badge.teaching {
           background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
-          color: #4f46e5;
+          color: var(--ds-primary-hover);
           border: 1px solid rgba(99, 102, 241, 0.2);
         }
 
         .class-badge.studying {
           background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
-          color: #059669;
+          color: var(--ds-success-text);
           border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
@@ -915,7 +915,7 @@ const UserManagement = () => {
         }
 
         .modal-header {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           color: white;
           padding: 1.5rem;
           display: flex;
@@ -970,7 +970,7 @@ const UserManagement = () => {
         }
 
         .required {
-          color: #ef4444;
+          color: var(--ds-error);
         }
 
         .form-group input,

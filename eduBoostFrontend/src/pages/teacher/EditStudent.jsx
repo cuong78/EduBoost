@@ -239,10 +239,10 @@ export default function EditStudent() {
                     font-family: inherit;
                     background: transparent;
                 }
-                .form-group input.error, .form-group select.error { border-color: #dc2626; }
+                .form-group input.error, .form-group select.error { border-color: var(--ds-error-text); }
                 .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
-                .required { color: #dc2626; }
-                .error-message { font-size: 0.875rem; color: #dc2626; margin-top: 0.25rem; display: block; }
+                .required { color: var(--ds-error-text); }
+                .error-message { font-size: 0.875rem; color: var(--ds-error-text); margin-top: 0.25rem; display: block; }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </div>

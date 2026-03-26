@@ -275,9 +275,9 @@ const ClassManagement = () => {
                   value={editingClass.classCode || ""}
                   disabled
                   className="form-input"
-                  style={{ background: "#f3f4f6", cursor: "not-allowed" }}
+                  style={{ background: "var(--ds-border-light)", cursor: "not-allowed" }}
                 />
-                <small style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                <small style={{ color: "var(--ds-text-secondary)", fontSize: "0.875rem" }}>
                   Mã lớp không thể thay đổi
                 </small>
               </div>
@@ -405,7 +405,7 @@ const ClassManagement = () => {
           gap: 0.75rem;
           font-size: 2rem;
           font-weight: 800;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           margin-bottom: 0.5rem;
@@ -443,12 +443,12 @@ const ClassManagement = () => {
         }
 
         .stat-icon-wrapper.primary {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           color: white;
         }
 
         .stat-icon-wrapper.secondary {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, var(--ds-success), var(--ds-success-text));
           color: white;
         }
 
@@ -459,7 +459,7 @@ const ClassManagement = () => {
         .stat-value {
           font-size: 2rem;
           font-weight: 800;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           line-height: 1;
@@ -493,7 +493,7 @@ const ClassManagement = () => {
           padding: 0.75rem 1rem;
           background: white;
           border-radius: 12px;
-          border: 2px solid #e5e7eb;
+          border: 2px solid var(--ds-border);
           transition: all 0.3s;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
@@ -538,7 +538,7 @@ const ClassManagement = () => {
           padding: 0.625rem 1rem;
           padding-right: 2.5rem;
           border-radius: 10px;
-          border: 2px solid #e5e7eb;
+          border: 2px solid var(--ds-border);
           background: white;
           color: var(--color-text);
           font-size: 0.875rem;
@@ -619,7 +619,7 @@ const ClassManagement = () => {
 
         .grade-badge[class*="grade-"] {
           background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
-          color: #4f46e5;
+          color: var(--ds-primary-hover);
           border: 1px solid rgba(99, 102, 241, 0.2);
         }
 
@@ -658,13 +658,13 @@ const ClassManagement = () => {
 
         .btn-danger-outline {
           background: transparent;
-          color: #dc2626;
+          color: var(--ds-error-text);
           border: 2px solid rgba(239, 68, 68, 0.3);
         }
 
         .btn-danger-outline:hover {
           background: rgba(239, 68, 68, 0.1);
-          border-color: #dc2626;
+          border-color: var(--ds-error-text);
         }
 
         /* Empty State */
@@ -790,7 +790,7 @@ const ClassManagement = () => {
           justify-content: space-between;
           align-items: center;
           padding: 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--ds-border);
         }
 
         .modal-header h2 {
@@ -814,7 +814,7 @@ const ClassManagement = () => {
         }
 
         .modal-close:hover {
-          background: #f3f4f6;
+          background: var(--ds-border-light);
           color: var(--color-text);
         }
 
@@ -839,7 +839,7 @@ const ClassManagement = () => {
         .form-textarea {
           width: 100%;
           padding: 0.75rem 1rem;
-          border: 2px solid #e5e7eb;
+          border: 2px solid var(--ds-border);
           border-radius: 10px;
           font-size: 0.9375rem;
           color: var(--color-text);
@@ -865,16 +865,16 @@ const ClassManagement = () => {
           justify-content: flex-end;
           gap: 1rem;
           padding: 1.5rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--ds-border);
         }
 
         .btn-secondary {
-          background: #f3f4f6;
+          background: var(--ds-border-light);
           color: var(--color-text);
         }
 
         .btn-secondary:hover {
-          background: #e5e7eb;
+          background: var(--ds-border);
         }
       `}</style>
     </div>

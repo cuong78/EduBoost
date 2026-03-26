@@ -259,7 +259,7 @@ const linkStudentStyles = `
 
   /* LEFT GRADIENT PANEL */
   .ls-panel-left {
-    background: linear-gradient(145deg, #6c3fff 0%, #a78bfa 55%, #c084fc 100%);
+    background: linear-gradient(145deg, var(--ds-primary) 0%, #a78bfa 55%, #c084fc 100%);
     padding: 2.5rem 2rem;
     display: flex;
     flex-direction: column;
@@ -362,7 +362,7 @@ const linkStudentStyles = `
   }
 
   .ls-right-sub {
-    color: #6b7280;
+    color: var(--ds-text-secondary);
     font-size: 0.9rem;
     margin: 0;
     line-height: 1.6;
@@ -383,11 +383,11 @@ const linkStudentStyles = `
   .ls-field label {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--ds-text);
   }
 
   .ls-required {
-    color: #ef4444;
+    color: var(--ds-error);
   }
 
   .ls-input-wrap {
@@ -398,7 +398,7 @@ const linkStudentStyles = `
     position: absolute;
     left: 14px;
     top: 50%; transform: translateY(-50%);
-    color: #9ca3af;
+    color: var(--ds-text-muted);
     pointer-events: none;
   }
 
@@ -406,7 +406,7 @@ const linkStudentStyles = `
     width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.75rem;
     border-radius: 12px;
-    border: 1.5px solid #e5e7eb;
+    border: 1.5px solid var(--ds-border);
     background: white;
     font-family: inherit;
     font-size: 0.95rem;
@@ -417,12 +417,12 @@ const linkStudentStyles = `
 
   .ls-input:focus {
     outline: none;
-    border-color: #7c3aed;
+    border-color: var(--ds-secondary-hover);
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
   }
 
   .ls-input.error {
-    border-color: #ef4444;
+    border-color: var(--ds-error);
   }
 
   .ls-select-wrap {
@@ -433,7 +433,7 @@ const linkStudentStyles = `
     width: 100%;
     padding: 0.75rem 1rem;
     border-radius: 12px;
-    border: 1.5px solid #e5e7eb;
+    border: 1.5px solid var(--ds-border);
     background: white;
     font-family: inherit;
     font-size: 0.95rem;
@@ -446,7 +446,7 @@ const linkStudentStyles = `
 
   .ls-select:focus {
     outline: none;
-    border-color: #7c3aed;
+    border-color: var(--ds-secondary-hover);
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
   }
 
@@ -458,7 +458,7 @@ const linkStudentStyles = `
     background: #fef2f2;
     border: 1px solid #fecaca;
     border-radius: 10px;
-    color: #dc2626;
+    color: var(--ds-error-text);
     font-size: 0.875rem;
     font-weight: 500;
   }
@@ -471,7 +471,7 @@ const linkStudentStyles = `
     width: 100%;
     padding: 0.85rem;
     border-radius: 12px;
-    background: linear-gradient(135deg, #6c3fff, #a78bfa);
+    background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
     color: white;
     font-size: 0.95rem;
     font-weight: 700;
@@ -506,7 +506,7 @@ const linkStudentStyles = `
   .ls-back-link {
     text-align: center;
     font-size: 0.85rem;
-    color: #7c3aed;
+    color: var(--ds-secondary-hover);
     font-weight: 600;
     text-decoration: none;
     transition: opacity 0.2s;
@@ -517,7 +517,7 @@ const linkStudentStyles = `
   .ls-note {
     text-align: center;
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: var(--ds-text-muted);
     margin: 0;
   }
 
@@ -546,7 +546,7 @@ const linkStudentStyles = `
     justify-content: space-between;
     padding: 0.75rem 1rem;
     border-radius: 12px;
-    border: 1.5px solid #e5e7eb;
+    border: 1.5px solid var(--ds-border);
     background: white;
     font-family: inherit;
     font-size: 0.95rem;
@@ -559,7 +559,7 @@ const linkStudentStyles = `
   .ls-dropdown-trigger:focus,
   .ls-dropdown-trigger.open {
     outline: none;
-    border-color: #7c3aed;
+    border-color: var(--ds-secondary-hover);
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
   }
 
@@ -569,14 +569,14 @@ const linkStudentStyles = `
   }
 
   .ls-dropdown-chevron {
-    color: #9ca3af;
+    color: var(--ds-text-muted);
     flex-shrink: 0;
     transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .ls-dropdown-chevron.rotated {
     transform: rotate(180deg);
-    color: #7c3aed;
+    color: var(--ds-secondary-hover);
   }
 
   .ls-dropdown-menu {
@@ -614,7 +614,7 @@ const linkStudentStyles = `
     background: transparent;
     font-family: inherit;
     font-size: 0.92rem;
-    color: #374151;
+    color: var(--ds-text);
     cursor: pointer;
     text-align: left;
     transition: background 0.15s;
@@ -627,17 +627,17 @@ const linkStudentStyles = `
 
   .ls-dropdown-item:hover {
     background: rgba(108, 63, 255, 0.06);
-    color: #6c3fff;
+    color: var(--ds-primary);
   }
 
   .ls-dropdown-item.selected {
     background: rgba(108, 63, 255, 0.08);
-    color: #6c3fff;
+    color: var(--ds-primary);
     font-weight: 700;
   }
 
   .ls-dropdown-check {
-    color: #7c3aed;
+    color: var(--ds-secondary-hover);
     flex-shrink: 0;
   }
 `;

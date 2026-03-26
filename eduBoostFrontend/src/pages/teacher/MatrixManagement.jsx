@@ -738,7 +738,7 @@ const MatrixManagement = () => {
                               <th key={cl.id} style={{ textAlign: "center", verticalAlign: "middle" }}>
                                 <div>{cl.level || cl.name}</div>
                                 <div style={{ fontSize: "0.85em", marginTop: "4px", fontWeight: "normal", ...colorStyle }}>
-                                  (Đã chia: {current}/{target}) {isExact && "✅"}
+                                  (Đã chia: {current}/{target}) {isExact && ""}
                                 </div>
                               </th>
                             );
@@ -921,7 +921,7 @@ const MatrixManagement = () => {
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-body" style={{ padding: "2rem", textAlign: "center" }}>
-              <Trash2 size={48} color="#ef4444" />
+              <Trash2 size={48} color="var(--ds-error)" />
               <h3 style={{ margin: "1rem 0 0.5rem" }}>Xác nhận xóa</h3>
               <p style={{ color: "var(--color-text-secondary)" }}>
                 Bạn có chắc muốn xóa ma trận <strong>"{deleteTarget.templateName}"</strong>?
@@ -956,17 +956,17 @@ const MatrixManagement = () => {
         .template-name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
         .expand-btn { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 2px; display: flex; align-items: center; }
         .center { text-align: center; }
-        .badge-default { padding: 3px 10px; border-radius: 999px; background: rgba(99,102,241,0.1); color: #6366f1; font-size: 0.75rem; font-weight: 700; }
+        .badge-default { padding: 3px 10px; border-radius: 999px; background: rgba(99,102,241,0.1); color: var(--ds-primary); font-size: 0.75rem; font-weight: 700; }
 
         .expand-row td { background: rgba(99,102,241,0.03); padding: 0.5rem 1rem 0.75rem 2.5rem; }
         .expand-content { font-size: 0.9rem; }
         .level-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-        .level-pill { padding: 4px 12px; border-radius: 999px; background: rgba(99,102,241,0.1); color: #6366f1; font-size: 0.8rem; font-weight: 600; }
+        .level-pill { padding: 4px 12px; border-radius: 999px; background: rgba(99,102,241,0.1); color: var(--ds-primary); font-size: 0.8rem; font-weight: 600; }
 
         .action-buttons { display: flex; gap: 4px; }
         .btn-icon { width: 30px; height: 30px; border-radius: 8px; border: none; background: rgba(0,0,0,0.04); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
         .btn-icon:hover { background: rgba(99,102,241,0.12); color: var(--color-accent-1); }
-        .btn-icon.danger:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .btn-icon.danger:hover { background: rgba(239,68,68,0.1); color: var(--ds-error); }
 
         .empty-state { padding: 3rem; text-align: center; color: var(--color-text-secondary); }
         .empty-state h3 { margin: 0.75rem 0 0.25rem; }
@@ -986,7 +986,7 @@ const MatrixManagement = () => {
 
         /* Form */
         .form-section { margin-bottom: 1.75rem; }
-        .form-section h3 { font-size: 0.95rem; font-weight: 700; color: #4338ca; margin: 0 0 1rem; background: rgba(99,102,241,0.05); padding: 0.5rem 0.75rem; border-radius: 8px; border-left: 3px solid #6366f1; }
+        .form-section h3 { font-size: 0.95rem; font-weight: 700; color: #4338ca; margin: 0 0 1rem; background: rgba(99,102,241,0.05); padding: 0.5rem 0.75rem; border-radius: 8px; border-left: 3px solid var(--ds-primary); }
         .row3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
         .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
         .field { display: flex; flex-direction: column; gap: 4px; }
@@ -1001,7 +1001,7 @@ const MatrixManagement = () => {
         .matrix-input-table td { padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .level-name { font-weight: 600; }
         .num-input { width: 70px; padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); text-align: center; }
-        .total-cell { font-weight: 700; color: #6366f1; }
+        .total-cell { font-weight: 700; color: var(--ds-primary); }
         .total-row { background: rgba(99,102,241,0.04); }
         .part2-table th, .part2-table td { text-align: center; }
         .part2-table th:first-child, .part2-table td:first-child, .part2-table th:nth-child(2), .part2-table td:nth-child(2) { text-align: left; }
@@ -1010,7 +1010,7 @@ const MatrixManagement = () => {
         /* Lesson picks */
         .lesson-checks { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
         .lesson-check-pill { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; font-size: 0.85rem; transition: all 0.15s; background: rgba(255,255,255,0.8); }
-        .lesson-check-pill.on { background: rgba(99,102,241,0.1); border-color: #6366f1; color: #4338ca; font-weight: 600; }
+        .lesson-check-pill.on { background: rgba(99,102,241,0.1); border-color: var(--ds-primary); color: #4338ca; font-weight: 600; }
         .lesson-check-pill input { display: none; }
 
         /* Detail view */
@@ -1019,8 +1019,8 @@ const MatrixManagement = () => {
         .detail-item.full { grid-column: span 3; }
         .detail-item label { font-size: 0.75rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; }
 
-        .btn-danger { background: #ef4444; color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 600; cursor: pointer; }
-        .btn-danger:hover { background: #dc2626; }
+        .btn-danger { background: var(--ds-error); color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .btn-danger:hover { background: var(--ds-error-text); }
 
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

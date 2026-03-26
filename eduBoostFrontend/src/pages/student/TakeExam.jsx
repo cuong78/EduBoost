@@ -183,7 +183,7 @@ const TakeExam = () => {
                         width: 100%;
                         padding: 1rem;
                         border-radius: 0.75rem;
-                        border: 1px solid #e5e7eb;
+                        border: 1px solid var(--ds-border);
                         margin-bottom: 1rem;
                         font-size: 1rem;
                         outline: none;
@@ -193,7 +193,7 @@ const TakeExam = () => {
                         border-color: var(--color-accent-1);
                     }
                     .error-message {
-                        color: #ef4444;
+                        color: var(--ds-error);
                         font-size: 0.875rem;
                         display: flex;
                         align-items: center;
@@ -273,14 +273,14 @@ const TakeExam = () => {
                         margin: 0 auto 1.5rem;
                     }
                     .pass { background: #dcfce7; color: #16a34a; }
-                    .fail { background: #fee2e2; color: #dc2626; }
+                    .fail { background: var(--ds-error-bg); color: var(--ds-error-text); }
                     
                     .result-card h2 { margin-bottom: 0.5rem; }
                     .subtitle { color: var(--color-text-secondary); margin-bottom: 2rem; }
                     
                     .score-box {
                         display: flex;
-                        background: #f9fafb;
+                        background: var(--ds-bg-subtle);
                         border-radius: 1rem;
                         padding: 1.5rem;
                         margin-bottom: 2rem;
@@ -307,10 +307,10 @@ const TakeExam = () => {
                     .score-divider {
                         width: 1px;
                         height: 40px;
-                        background: #e5e7eb;
+                        background: var(--ds-border);
                     }
                     .text-green { color: #16a34a; }
-                    .text-red { color: #dc2626; }
+                    .text-red { color: var(--ds-error-text); }
                     
                     .result-actions {
                         display: flex;
@@ -437,7 +437,7 @@ const TakeExam = () => {
             <style>{`
                 .exam-screen {
                     min-height: 100vh;
-                    background: #f3f4f6;
+                    background: var(--ds-border-light);
                     padding: 1.5rem;
                     position: relative;
                 }
@@ -461,11 +461,11 @@ const TakeExam = () => {
                     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
                     border: 1px solid #fecaca;
                 }
-                .text-warning { color: #dc2626; }
+                .text-warning { color: var(--ds-error-text); }
                 .warning-content h3 { font-size: 1rem; margin: 0; color: #991b1b; }
                 .warning-content p { font-size: 0.85rem; margin: 0; color: #b91c1c; }
                 .btn-close {
-                    background: #fee2e2;
+                    background: var(--ds-error-bg);
                     color: #b91c1c;
                     border: none;
                     padding: 0.5rem 1rem;
@@ -507,7 +507,7 @@ const TakeExam = () => {
                     font-weight: 700;
                 }
                 .timer-normal { background: #e0e7ff; color: #4338ca; }
-                .timer-warning { background: #fee2e2; color: #dc2626; animation: pulse 1s infinite; }
+                .timer-warning { background: var(--ds-error-bg); color: var(--ds-error-text); animation: pulse 1s infinite; }
 
                 @keyframes pulse {
                     0% { opacity: 1; }
@@ -568,7 +568,7 @@ const TakeExam = () => {
                     align-items: center;
                     padding: 1.25rem;
                     border: 2px solid transparent;
-                    background: #f9fafb;
+                    background: var(--ds-bg-subtle);
                     border-radius: 1rem;
                     cursor: pointer;
                     transition: all 0.2s;
@@ -577,10 +577,10 @@ const TakeExam = () => {
                     font-family: inherit;
                     color: var(--color-text-secondary);
                 }
-                .option-btn:hover { background: #f3f4f6; }
+                .option-btn:hover { background: var(--ds-border-light); }
                 .option-btn.selected {
                     background: #e0e7ff;
-                    border-color: #6366f1;
+                    border-color: var(--ds-primary);
                     color: #4338ca;
                     font-weight: 500;
                 }
@@ -604,7 +604,7 @@ const TakeExam = () => {
                 .navigation-controls {
                     display: flex;
                     justify-content: space-between;
-                    border-top: 1px solid #e5e7eb;
+                    border-top: 1px solid var(--ds-border);
                     padding-top: 2rem;
                 }
                 .nav-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; }
@@ -622,15 +622,15 @@ const TakeExam = () => {
                 .palette-btn {
                     aspect-ratio: 1;
                     border-radius: 0.5rem;
-                    background: #f3f4f6;
+                    background: var(--ds-border-light);
                     border: none;
                     cursor: pointer;
                     font-weight: 600;
-                    color: #6b7280;
+                    color: var(--ds-text-secondary);
                     transition: all 0.2s;
                 }
-                .palette-btn:hover { background: #e5e7eb; }
-                .palette-btn.current { background: #4f46e5; color: white; }
+                .palette-btn:hover { background: var(--ds-border); }
+                .palette-btn.current { background: var(--ds-primary-hover); color: white; }
                 .palette-btn.answered { background: #e0e7ff; color: #4338ca; }
 
                 .legend-item {
@@ -638,11 +638,11 @@ const TakeExam = () => {
                     align-items: center;
                     gap: 0.5rem;
                     font-size: 0.85rem;
-                    color: #6b7280;
+                    color: var(--ds-text-secondary);
                     margin-bottom: 0.5rem;
                 }
-                .dot { width: 10px; height: 10px; border-radius: 2px; background: #f3f4f6; }
-                .dot.current { background: #4f46e5; }
+                .dot { width: 10px; height: 10px; border-radius: 2px; background: var(--ds-border-light); }
+                .dot.current { background: var(--ds-primary-hover); }
                 .dot.answered { background: #e0e7ff; }
 
                 @media (max-width: 1024px) {

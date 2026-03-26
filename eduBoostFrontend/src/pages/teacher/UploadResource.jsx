@@ -233,14 +233,14 @@
 //         >
 //           <h3
 //             style={{
-//               color: "#f59e0b",
+//               color: "var(--ds-warning)",
 //               marginBottom: "0.5rem",
 //               fontSize: "1.25rem",
 //             }}
 //           >
 //             ⚠️ Chưa có lớp học
 //           </h3>
-//           <p style={{ color: "#d97706", fontSize: "1rem" }}>
+//           <p style={{ color: "var(--ds-warning-text)", fontSize: "1rem" }}>
 //             Vui lòng tạo lớp học trước khi upload tài nguyên.
 //           </p>
 //         </div>
@@ -258,7 +258,7 @@
 //           </div>
 //           <div className="field">
 //             <label>
-//               Lớp học <span style={{ color: "#dc2626" }}>*</span>
+//               Lớp học <span style={{ color: "var(--ds-error-text)" }}>*</span>
 //             </label>
 //             <select
 //               value={classId}

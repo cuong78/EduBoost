@@ -350,13 +350,13 @@ export default function CreateStudentPage() {
                     font-family: inherit;
                     background: transparent;
                 }
-                .form-group input.error, .form-group select.error { border-color: #dc2626; }
+                .form-group input.error, .form-group select.error { border-color: var(--ds-error-text); }
                 .checkbox-group { margin-top: 1rem; }
                 .checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; }
                 .invitation-options { margin-left: 1.5rem; margin-top: 0.5rem; padding: 1rem; background: rgba(99,102,241,0.06); border-radius: 12px; }
                 .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
-                .required { color: #dc2626; }
-                .error-message { font-size: 0.875rem; color: #dc2626; margin-top: 0.25rem; display: block; }
+                .required { color: var(--ds-error-text); }
+                .error-message { font-size: 0.875rem; color: var(--ds-error-text); margin-top: 0.25rem; display: block; }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </div>

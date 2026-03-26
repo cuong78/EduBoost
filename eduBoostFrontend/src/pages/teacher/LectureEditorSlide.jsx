@@ -169,7 +169,7 @@ const LectureEditorSlide = () => {
                 .add-slide-btn {
                     flex: 1;
                     background: #e0e7ff;
-                    color: #4f46e5;
+                    color: var(--ds-primary-hover);
                     border: none;
                     padding: 0.5rem;
                     border-radius: 6px;
@@ -209,7 +209,7 @@ const LectureEditorSlide = () => {
                 .thumbnail-card:hover { opacity: 1; }
                 .thumbnail-card.active { opacity: 1; }
                 .thumbnail-card.active .slide-mini-preview {
-                    border-color: #6366f1;
+                    border-color: var(--ds-primary);
                     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
                 }
 
@@ -276,9 +276,9 @@ const LectureEditorSlide = () => {
                     justify-content: center;
                     gap: 20px;
                 }
-                .bar { width: 40px; background: #6366f1; border-radius: 4px 4px 0 0; opacity: 0.8; }
+                .bar { width: 40px; background: var(--ds-primary); border-radius: 4px 4px 0 0; opacity: 0.8; }
                 .bar:nth-child(2) { background: #a855f7; }
-                .bar:nth-child(3) { background: #f59e0b; }
+                .bar:nth-child(3) { background: var(--ds-warning); }
 
                 .slide-controls {
                     position: absolute;
@@ -295,7 +295,7 @@ const LectureEditorSlide = () => {
                     background: none;
                     border: none;
                     font-weight: 600;
-                    color: #6366f1;
+                    color: var(--ds-primary);
                     cursor: pointer;
                 }
                 .slide-controls button:disabled { color: #cbd5e1; cursor: not-allowed; }
