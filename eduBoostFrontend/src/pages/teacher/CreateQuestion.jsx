@@ -1104,7 +1104,7 @@ const CreateQuestion = () => {
                               >
                                 <small
                                   style={{
-                                    color: "#10b981",
+                                    color: "var(--ds-success)",
                                     fontWeight: "600",
                                   }}
                                 >
@@ -1248,7 +1248,7 @@ const CreateQuestion = () => {
                               <span
                                 style={{
                                   fontSize: "0.75rem",
-                                  color: "#f59e0b",
+                                  color: "var(--ds-warning)",
                                   padding: "2px 8px",
                                   background: "rgba(245,158,11,0.1)",
                                   borderRadius: "4px",
@@ -1956,7 +1956,7 @@ const CreateQuestion = () => {
                                         >
                                           <small
                                             style={{
-                                              color: "#10b981",
+                                              color: "var(--ds-success)",
                                               fontWeight: "600",
                                             }}
                                           >
@@ -2310,7 +2310,7 @@ const CreateQuestion = () => {
                     gap: 0.5rem;
                 }
                 .file-info span:first-child {
-                    color: #10b981;
+                    color: var(--ds-success);
                     font-weight: 500;
                 }
                 .file-size {
@@ -2541,7 +2541,7 @@ const CreateQuestion = () => {
                     display: inline-block;
                     padding: 4px 10px;
                     background: rgba(16, 185, 129, 0.1);
-                    color: #10b981;
+                    color: var(--ds-success);
                     border-radius: 6px;
                     font-size: 0.8rem;
                     font-weight: 600;
@@ -2643,11 +2643,11 @@ const CreateQuestion = () => {
                 }
                 .source-badge.manual {
                     background: rgba(59, 130, 246, 0.1);
-                    color: #3b82f6;
+                    color: var(--ds-info);
                 }
                 .source-badge.imported {
                     background: rgba(245, 158, 11, 0.1);
-                    color: #f59e0b;
+                    color: var(--ds-warning);
                 }
                 .source-badge.ai_generated {
                     background: rgba(168, 85, 247, 0.1);

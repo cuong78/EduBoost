@@ -985,13 +985,13 @@ const QuestionBank = () => {
           justify-content: center;
         }
         .bg-indigo {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
         }
         .bg-green {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, var(--ds-success), var(--ds-success-text));
         }
         .bg-orange {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
+          background: linear-gradient(135deg, var(--ds-warning), var(--ds-warning-text));
         }
         .filters-section {
           padding: 1.5rem;
@@ -1098,19 +1098,19 @@ const QuestionBank = () => {
         }
         .badge-primary {
           background: rgba(99, 102, 241, 0.1);
-          color: #6366f1;
+          color: var(--ds-primary);
         }
         .badge-manual {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
         }
         .badge-excel_import {
           background: rgba(245, 158, 11, 0.1);
-          color: #d97706;
+          color: var(--ds-warning-text);
         }
         .badge-verified {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
           display: flex;
           align-items: center;
           gap: 0.25rem;
@@ -1147,7 +1147,7 @@ const QuestionBank = () => {
           flex-shrink: 0;
         }
         .answer-label.correct {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, var(--ds-success), var(--ds-success-text));
           color: white;
         }
         .question-meta {
@@ -1174,18 +1174,18 @@ const QuestionBank = () => {
         }
         .btn-edit {
           background: rgba(99, 102, 241, 0.1);
-          color: #6366f1;
+          color: var(--ds-primary);
         }
         .btn-edit:hover {
-          background: #6366f1;
+          background: var(--ds-primary);
           color: white;
         }
         .btn-delete {
           background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
+          color: var(--ds-error);
         }
         .btn-delete:hover {
-          background: #ef4444;
+          background: var(--ds-error);
           color: white;
         }
         .modal-overlay {
@@ -1221,7 +1221,7 @@ const QuestionBank = () => {
           justify-content: space-between;
           padding: 1.5rem;
           border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           color: white;
           border-radius: 16px 16px 0 0;
         }
@@ -1231,7 +1231,7 @@ const QuestionBank = () => {
           margin: 0;
         }
         .modal-header-danger {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
+          background: linear-gradient(135deg, var(--ds-error), var(--ds-error-text));
         }
         .modal-header-icon {
           display: inline-flex;
@@ -1257,7 +1257,7 @@ const QuestionBank = () => {
           line-height: 1.6;
         }
         .warning-text {
-          color: #ef4444;
+          color: var(--ds-error);
           font-weight: 600;
           font-size: 0.875rem;
         }
@@ -1305,7 +1305,7 @@ const QuestionBank = () => {
           gap: 1rem;
         }
         .required {
-          color: #ef4444;
+          color: var(--ds-error);
         }
         .form-hint {
           font-size: 0.75rem;
@@ -1315,14 +1315,14 @@ const QuestionBank = () => {
         .link-button {
           background: none;
           border: none;
-          color: #6366f1;
+          color: var(--ds-primary);
           text-decoration: underline;
           cursor: pointer;
           padding: 0;
           font: inherit;
         }
         .link-button:hover {
-          color: #4f46e5;
+          color: var(--ds-primary-hover);
         }
         .import-loading {
           text-align: center;
@@ -1342,7 +1342,7 @@ const QuestionBank = () => {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 1rem;
-          color: #6366f1;
+          color: var(--ds-primary);
         }
         .preview-list {
           display: flex;

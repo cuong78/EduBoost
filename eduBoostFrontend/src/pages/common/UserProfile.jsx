@@ -538,7 +538,7 @@ const UserProfile = () => {
                     align-items: center;
                     justify-content: center;
                 }
-                .bg-indigo { background: #6366f1; }
+                .bg-indigo { background: var(--ds-primary); }
                 .bg-orange { background: #f97316; }
 
                 .history-info { 

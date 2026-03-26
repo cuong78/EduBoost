@@ -321,9 +321,9 @@ export default function ClassList() {
                     font-family: inherit;
                     background: var(--glass-bg);
                 }
-                .modal .error { border-color: #dc2626; }
+                .modal .error { border-color: var(--ds-error-text); }
                 .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
-                .required { color: #dc2626; }
+                .required { color: var(--ds-error-text); }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
     </div>

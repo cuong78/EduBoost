@@ -91,11 +91,11 @@ export default function ParentStudentDetail() {
     };
 
     const getScoreColor = (score, maxScore) => {
-        if (!maxScore) return '#6c3fff';
+        if (!maxScore) return 'var(--ds-primary)';
         const pct = (score / maxScore) * 100;
-        if (pct >= 80) return '#10b981';
-        if (pct >= 60) return '#f59e0b';
-        return '#ef4444';
+        if (pct >= 80) return 'var(--ds-success)';
+        if (pct >= 60) return 'var(--ds-warning)';
+        return 'var(--ds-error)';
     };
 
     const getScoreBg = (score, maxScore) => {
@@ -326,7 +326,7 @@ export default function ParentStudentDetail() {
                                     <div className="psd-sum-item teal"><span className="psd-sum-val">{Math.round(passedCount / scores.length * 100)}%</span><span className="psd-sum-lab">Tỷ lệ đạt</span></div>
                                 </div>
                                 <div className="psd-side-stat-row"><span>Tổng bài thi</span><strong>{scores.length}</strong></div>
-                                <div className="psd-side-stat-row"><span>Bài đạt</span><strong style={{ color: '#10b981' }}>{passedCount}</strong></div>
+                                <div className="psd-side-stat-row"><span>Bài đạt</span><strong style={{ color: 'var(--ds-success)' }}>{passedCount}</strong></div>
                             </>
                         )}
                     </div>
@@ -363,7 +363,7 @@ export default function ParentStudentDetail() {
                 }
                 .psd-side-title {
                     display: flex; align-items: center; gap: 6px;
-                    font-size: 0.85rem; font-weight: 700; color: #6c3fff;
+                    font-size: 0.85rem; font-weight: 700; color: var(--ds-primary);
                     margin-bottom: 0.9rem;
                     padding-bottom: 0.6rem;
                     border-bottom: 1px solid rgba(108,63,255,0.12);
@@ -402,10 +402,10 @@ export default function ParentStudentDetail() {
                     background: rgba(108,63,255,0.08);
                     border: 1px solid rgba(108,63,255,0.18);
                     border-radius: 12px;
-                    font-size: 0.85rem; font-weight: 700; color: #6c3fff;
+                    font-size: 0.85rem; font-weight: 700; color: var(--ds-primary);
                     text-decoration: none; transition: all 0.2s;
                 }
-                .psd-back-side:hover { background: rgba(108,63,255,0.15); color: #6c3fff; }
+                .psd-back-side:hover { background: rgba(108,63,255,0.15); color: var(--ds-primary); }
 
                 @media (max-width: 900px) {
                     .psd-body-layout { grid-template-columns: 1fr; }
@@ -426,7 +426,7 @@ export default function ParentStudentDetail() {
                     display: flex;
                     align-items: center;
                     gap: 5px;
-                    color: #7c3aed;
+                    color: var(--ds-secondary-hover);
                     font-weight: 600;
                     text-decoration: none;
                     transition: opacity 0.2s;
@@ -456,7 +456,7 @@ export default function ParentStudentDetail() {
                 .psd-hero-bg {
                     position: absolute;
                     inset: 0;
-                    background: linear-gradient(135deg, #6c3fff 0%, #a78bfa 60%, #c084fc 100%);
+                    background: linear-gradient(135deg, var(--ds-primary) 0%, #a78bfa 60%, #c084fc 100%);
                     opacity: 1;
                 }
 
@@ -553,17 +553,17 @@ export default function ParentStudentDetail() {
 
                 .psd-card-icon.purple {
                     background: rgba(108, 63, 255, 0.12);
-                    color: #6c3fff;
+                    color: var(--ds-primary);
                 }
 
                 .psd-card-icon.green {
                     background: rgba(16, 185, 129, 0.12);
-                    color: #10b981;
+                    color: var(--ds-success);
                 }
 
                 .psd-card-icon.amber {
                     background: rgba(245, 158, 11, 0.12);
-                    color: #f59e0b;
+                    color: var(--ds-warning);
                 }
 
                 /* INFO ROWS */
@@ -703,7 +703,7 @@ export default function ParentStudentDetail() {
 
                 .psd-source-badge.online {
                     background: rgba(16, 185, 129, 0.1);
-                    color: #059669;
+                    color: var(--ds-success-text);
                 }
 
                 .psd-source-badge.manual {
@@ -730,7 +730,7 @@ export default function ParentStudentDetail() {
                     border-radius: 10px;
                     border: 1.5px solid rgba(108, 63, 255, 0.25);
                     background: transparent;
-                    color: #7c3aed;
+                    color: var(--ds-secondary-hover);
                     font-size: 0.875rem;
                     font-weight: 600;
                     cursor: pointer;
@@ -771,7 +771,7 @@ export default function ParentStudentDetail() {
                     width: 72px; height: 72px;
                     border-radius: 20px;
                     background: rgba(108, 63, 255, 0.1);
-                    color: #7c3aed;
+                    color: var(--ds-secondary-hover);
                     display: flex; align-items: center; justify-content: center;
                     margin: 0 auto 1rem;
                 }
@@ -787,7 +787,7 @@ export default function ParentStudentDetail() {
                     gap: 6px;
                     padding: 0.65rem 1.25rem;
                     border-radius: 12px;
-                    background: linear-gradient(135deg, #6c3fff, #a78bfa);
+                    background: linear-gradient(135deg, var(--ds-primary), #a78bfa);
                     color: white;
                     font-weight: 700;
                     font-size: 0.9rem;
@@ -823,7 +823,7 @@ function InfoRow({ icon, label, value }) {
 
 const spinStyle = `
     .psd-spinner {
-        color: #7c3aed;
+        color: var(--ds-secondary-hover);
         animation: psd-spin 1s linear infinite;
     }
     @keyframes psd-spin {

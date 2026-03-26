@@ -20,7 +20,7 @@ const FEATURES = [
 ];
 
 function FeatureCell({ val }) {
-  if (val === true) return <Check size={18} color="#10b981" className="pr-icon pr-icon--yes" />;
+  if (val === true) return <Check size={18} color="var(--ds-success)" className="pr-icon pr-icon--yes" />;
   if (val === false) return <X size={18} color="#d1d5db" className="pr-icon pr-icon--no" />;
   return <span className="pr-cell-text">{val}</span>;
 }
@@ -79,8 +79,8 @@ function VietQRModal({ tx, onClose }) {
       <div className="pr-overlay">
         <div className="pr-modal" style={{ textAlign: "center", padding: "48px 32px" }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
-          <h2 style={{ color: "#10b981", marginBottom: 8 }}>Thanh toán thành công!</h2>
-          <p style={{ color: "#6b7280" }}>Gói Pro đã được kích hoạt. Đang chuyển hướng...</p>
+          <h2 style={{ color: "var(--ds-success)", marginBottom: 8 }}>Thanh toán thành công!</h2>
+          <p style={{ color: "var(--ds-text-secondary)" }}>Gói Pro đã được kích hoạt. Đang chuyển hướng...</p>
         </div>
       </div>
     );
@@ -97,7 +97,7 @@ function VietQRModal({ tx, onClose }) {
         {/* Countdown */}
         <div className={`pr-countdown ${timeLeft < 60 ? "pr-countdown--urgent" : ""}`}>
           <Clock size={16} /> Hết hạn sau: <strong>{fmt(timeLeft)}</strong>
-          <span style={{ marginLeft: 12, fontSize: 11, color: "#9ca3af", fontWeight: "normal" }}>
+          <span style={{ marginLeft: 12, fontSize: 11, color: "var(--ds-text-muted)", fontWeight: "normal" }}>
             🔄 Tự kiểm tra mỗi 5 giây...
           </span>
         </div>
@@ -126,7 +126,7 @@ function VietQRModal({ tx, onClose }) {
             <span className="pr-order-id">
               <strong>{tx.orderId}</strong>
               <button className="pr-copy-btn" onClick={copyNote} title="Sao chép">
-                {copied ? <CheckCircle size={14} color="#10b981" /> : <Copy size={14} />}
+                {copied ? <CheckCircle size={14} color="var(--ds-success)" /> : <Copy size={14} />}
               </button>
             </span>
           </div>
@@ -220,12 +220,12 @@ export default function Pricing() {
                 <p className="pr-plan-desc">{freePlan.description}</p>
               </div>
               <ul className="pr-features-list">
-                <li><Check size={15} color="#10b981" /> {freePlan.maxClasses} lớp học</li>
-                <li><Check size={15} color="#10b981" /> {freePlan.maxStudents} học sinh</li>
-                <li><Check size={15} color="#10b981" /> {freePlan.maxExamsPerMonth} đề/tháng</li>
-                <li><Check size={15} color="#10b981" /> {freePlan.maxAIRequestsPerMonth} lượt AI/tháng</li>
-                <li><Check size={15} color="#10b981" /> Quản lý ma trận đề thi</li>
-                <li><Check size={15} color="#10b981" /> Xuất PDF đề thi</li>
+                <li><Check size={15} color="var(--ds-success)" /> {freePlan.maxClasses} lớp học</li>
+                <li><Check size={15} color="var(--ds-success)" /> {freePlan.maxStudents} học sinh</li>
+                <li><Check size={15} color="var(--ds-success)" /> {freePlan.maxExamsPerMonth} đề/tháng</li>
+                <li><Check size={15} color="var(--ds-success)" /> {freePlan.maxAIRequestsPerMonth} lượt AI/tháng</li>
+                <li><Check size={15} color="var(--ds-success)" /> Quản lý ma trận đề thi</li>
+                <li><Check size={15} color="var(--ds-success)" /> Xuất PDF đề thi</li>
                 <li><X size={15} color="#d1d5db" /> Không giới hạn</li>
                 <li><X size={15} color="#d1d5db" /> Hỗ trợ ưu tiên</li>
               </ul>
@@ -249,14 +249,14 @@ export default function Pricing() {
                 <p className="pr-plan-desc">{monthly.description}</p>
               </div>
               <ul className="pr-features-list">
-                <li><Check size={15} color="#6366f1" /> Không giới hạn lớp học</li>
-                <li><Check size={15} color="#6366f1" /> Không giới hạn học sinh</li>
-                <li><Check size={15} color="#6366f1" /> Không giới hạn đề thi</li>
-                <li><Check size={15} color="#6366f1" /> Không giới hạn AI</li>
-                <li><Check size={15} color="#6366f1" /> Quản lý ma trận đề thi</li>
-                <li><Check size={15} color="#6366f1" /> Xuất PDF đề thi</li>
-                <li><Check size={15} color="#6366f1" /> Đề thi cộng đồng</li>
-                <li><Check size={15} color="#6366f1" /> Hỗ trợ ưu tiên</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Không giới hạn lớp học</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Không giới hạn học sinh</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Không giới hạn đề thi</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Không giới hạn AI</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Quản lý ma trận đề thi</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Xuất PDF đề thi</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Đề thi cộng đồng</li>
+                <li><Check size={15} color="var(--ds-primary)" /> Hỗ trợ ưu tiên</li>
               </ul>
               <button className="pr-btn pr-btn-primary pr-btn-full" disabled={paying}
                 onClick={() => handleSubscribe(monthly)}>
@@ -282,10 +282,10 @@ export default function Pricing() {
                 <p className="pr-plan-desc">{yearly.description}</p>
               </div>
               <ul className="pr-features-list">
-                <li><Check size={15} color="#f59e0b" /> Tất cả tính năng Pro Tháng</li>
-                <li><Check size={15} color="#f59e0b" /> Tiết kiệm hơn 2 tháng</li>
-                <li><Check size={15} color="#f59e0b" /> Không lo gia hạn mỗi tháng</li>
-                <li><Check size={15} color="#f59e0b" /> Hỗ trợ ưu tiên cao nhất</li>
+                <li><Check size={15} color="var(--ds-warning)" /> Tất cả tính năng Pro Tháng</li>
+                <li><Check size={15} color="var(--ds-warning)" /> Tiết kiệm hơn 2 tháng</li>
+                <li><Check size={15} color="var(--ds-warning)" /> Không lo gia hạn mỗi tháng</li>
+                <li><Check size={15} color="var(--ds-warning)" /> Hỗ trợ ưu tiên cao nhất</li>
               </ul>
               <button className="pr-btn pr-btn-gold pr-btn-full" disabled={paying}
                 onClick={() => handleSubscribe(yearly)}>

@@ -119,7 +119,7 @@ const UserMenu = ({ userType }) => {
                     width: 40px;
                     height: 40px;
                     border-radius: 50%;
-                    background: var(--color-accent-1, #6366f1);
+                    background: var(--color-accent-1, var(--ds-primary));
                     color: white;
                     display: flex;
                     align-items: center;
@@ -193,7 +193,7 @@ const UserMenu = ({ userType }) => {
                     cursor: pointer;
                 }
                 .menu-item:hover {
-                    background: #f3f4f6;
+                    background: var(--ds-border-light);
                     color: #1f293b;
                 }
 
@@ -203,11 +203,11 @@ const UserMenu = ({ userType }) => {
                 }
 
                 .logout-red {
-                    color: #ef4444;
+                    color: var(--ds-error);
                 }
                 .logout-red:hover {
                     background: #fef2f2;
-                    color: #dc2626;
+                    color: var(--ds-error-text);
                 }
 
                 @keyframes slideUp {

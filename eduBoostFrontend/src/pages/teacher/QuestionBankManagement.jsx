@@ -923,15 +923,15 @@ const QuestionBankManagement = () => {
                 }
                 .source-badge.ai_generated {
                     background: rgba(16, 185, 129, 0.1);
-                    color: #10b981;
+                    color: var(--ds-success);
                 }
                 .source-badge.imported {
                     background: rgba(245, 158, 11, 0.1);
-                    color: #f59e0b;
+                    color: var(--ds-warning);
                 }
                 .cognitive-badge {
                     background: rgba(59, 130, 246, 0.1);
-                    color: #3b82f6;
+                    color: var(--ds-info);
                 }
                 .question-text {
                     font-size: 0.95rem;
@@ -967,7 +967,7 @@ const QuestionBankManagement = () => {
                 }
                 .icon-btn.danger:hover {
                     background: rgba(239, 68, 68, 0.1);
-                    color: #ef4444;
+                    color: var(--ds-error);
                 }
 
                 /* Modal */
@@ -1023,7 +1023,7 @@ const QuestionBankManagement = () => {
                 }
                 .view-content.answer {
                     background: rgba(16, 185, 129, 0.1);
-                    border-left: 3px solid #10b981;
+                    border-left: 3px solid var(--ds-success);
                 }
                 .view-content.explanation {
                     background: rgba(96, 78, 255, 0.05);
@@ -1074,7 +1074,7 @@ const QuestionBankManagement = () => {
                     color: var(--color-text-secondary);
                 }
                 .btn-danger {
-                    background: #ef4444;
+                    background: var(--ds-error);
                     color: white;
                 }
                 .btn:hover { transform: translateY(-1px); }

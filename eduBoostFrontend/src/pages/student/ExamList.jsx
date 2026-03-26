@@ -227,18 +227,18 @@ const ExamList = () => {
                 /* Buttons */
                 .btn-outline {
                     background: white;
-                    border: 1px solid #e5e7eb;
+                    border: 1px solid var(--ds-border);
                     color: var(--color-text-secondary);
                     gap: 0.5rem;
                 }
                 
                 .btn-outline:hover {
-                    background: #f9fafb;
+                    background: var(--ds-bg-subtle);
                 }
 
                 .btn-secondary {
                     background: #e0e7ff; /* indigo-100 */
-                    color: #4f46e5; /* indigo-600 */
+                    color: var(--ds-primary-hover); /* indigo-600 */
                 }
                 
                 .btn-secondary:hover {
@@ -246,8 +246,8 @@ const ExamList = () => {
                 }
 
                 .btn-disabled {
-                    background: #f3f4f6;
-                    color: #9ca3af;
+                    background: var(--ds-border-light);
+                    color: var(--ds-text-muted);
                     cursor: not-allowed;
                 }
 
@@ -286,9 +286,9 @@ const ExamList = () => {
                     justify-content: center;
                 }
 
-                .text-green { color: #10b981; background: #d1fae5; }
-                .text-indigo { color: #6366f1; background: #e0e7ff; }
-                .text-yellow { color: #f59e0b; background: #fef3c7; }
+                .text-green { color: var(--ds-success); background: var(--ds-success-bg); }
+                .text-indigo { color: var(--ds-primary); background: #e0e7ff; }
+                .text-yellow { color: var(--ds-warning); background: var(--ds-warning-bg); }
 
                 .stat-label {
                     color: var(--color-text-secondary);
@@ -306,7 +306,7 @@ const ExamList = () => {
                 .tabs-container {
                     display: flex;
                     gap: 0.5rem;
-                    border-bottom: 1px solid #e5e7eb;
+                    border-bottom: 1px solid var(--ds-border);
                     margin-bottom: 2rem;
                     overflow-x: auto;
                 }
@@ -391,7 +391,7 @@ const ExamList = () => {
 
                 .status-available { background: #dcfce7; color: #15803d; }
                 .status-completed { background: #e0e7ff; color: #4338ca; }
-                .status-missed { background: #fee2e2; color: #b91c1c; }
+                .status-missed { background: var(--ds-error-bg); color: #b91c1c; }
 
                 .course-badge {
                     font-size: 0.875rem;
@@ -442,7 +442,7 @@ const ExamList = () => {
                     padding: 4rem 1rem;
                     background: rgba(255,255,255,0.4);
                     border-radius: 1.5rem;
-                    border: 2px dashed #e5e7eb;
+                    border: 2px dashed var(--ds-border);
                 }
 
                 .empty-icon {

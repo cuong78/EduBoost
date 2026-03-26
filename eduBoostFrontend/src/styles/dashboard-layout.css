@@ -1,0 +1,352 @@
+/* ═══════════════════════════════════════════════
+   Dashboard Layout — Shared by all role layouts
+   ═══════════════════════════════════════════════ */
+
+/* ── Base Layout Grid ── */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+  background: var(--ds-bg-page);
+}
+
+@media (min-width: 1024px) {
+  .dashboard-layout {
+    grid-template-columns: 260px 1fr;
+  }
+}
+
+
+/* ── Sidebar ── */
+.dl-sidebar {
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--ds-space-lg);
+  width: 260px;
+  transform: translateX(-100%);
+  transition: transform var(--ds-transition-slow);
+  z-index: 50;
+
+  /* Default: light glass (Teacher, Student, Parent) */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--ds-border);
+}
+
+.dl-sidebar.open {
+  transform: translateX(0);
+}
+
+@media (min-width: 1024px) {
+  .dl-sidebar {
+    position: sticky;
+    transform: translateX(0);
+    z-index: 10;
+  }
+}
+
+
+/* ── Sidebar Dark Variant (Admin) ── */
+.dl-sidebar.sidebar-dark {
+  background: rgba(25, 25, 35, 0.96);
+  backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+
+/* ── Mobile Overlay ── */
+.dl-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 40;
+  opacity: 0;
+  animation: dl-fadeIn 0.2s ease forwards;
+}
+
+@keyframes dl-fadeIn {
+  to { opacity: 1; }
+}
+
+@media (min-width: 1024px) {
+  .dl-overlay {
+    display: none;
+  }
+}
+
+
+/* ── Sidebar Header / Logo ── */
+.dl-sidebar-header {
+  margin-bottom: var(--ds-space-2xl);
+}
+
+.dl-logo {
+  font-size: var(--ds-text-xl);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.dl-logo img {
+  height: 32px;
+  width: auto;
+}
+
+/* Light sidebar: gradient text */
+.dl-sidebar:not(.sidebar-dark) .dl-logo span {
+  background: var(--ds-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Dark sidebar: white text */
+.dl-sidebar.sidebar-dark .dl-logo span {
+  color: #fff;
+}
+
+
+/* ── Sidebar Navigation ── */
+.dl-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.dl-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--ds-radius-sm);
+  font-weight: 500;
+  font-size: var(--ds-text-base);
+  transition: all var(--ds-transition-fast);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  color: var(--ds-text-secondary);
+  border-left: 3px solid transparent;
+}
+
+/* Light sidebar nav states */
+.dl-sidebar:not(.sidebar-dark) .dl-nav-item:hover {
+  background: rgba(99, 102, 241, 0.06);
+  color: var(--ds-primary);
+}
+
+.dl-sidebar:not(.sidebar-dark) .dl-nav-item.active {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--ds-primary);
+  font-weight: 600;
+  border-left-color: var(--ds-primary);
+}
+
+/* Dark sidebar nav states */
+.dl-sidebar.sidebar-dark .dl-nav-item {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dl-sidebar.sidebar-dark .dl-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.dl-sidebar.sidebar-dark .dl-nav-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 600;
+  border-left-color: var(--ds-primary-light);
+}
+
+
+/* ── Sidebar Footer ── */
+.dl-sidebar-footer {
+  padding-top: var(--ds-space-lg);
+  margin-top: auto;
+}
+
+.dl-sidebar:not(.sidebar-dark) .dl-sidebar-footer {
+  border-top: 1px solid var(--ds-border-light);
+}
+
+.dl-sidebar.sidebar-dark .dl-sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+/* ── Main Content Area ── */
+.dl-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+
+/* ── Topbar ── */
+.dl-topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--ds-space-md);
+  border-bottom: 1px solid var(--ds-border);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+@media (min-width: 1024px) {
+  .dl-topbar {
+    padding: 0 var(--ds-space-xl);
+  }
+}
+
+.dl-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-md);
+}
+
+.dl-topbar-title {
+  font-size: var(--ds-text-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .dl-topbar-title {
+    font-size: var(--ds-text-xl);
+  }
+}
+
+.dl-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-sm);
+}
+
+
+/* ── Menu Toggle (Mobile) ── */
+.dl-menu-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ds-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--ds-radius-sm);
+  transition: background var(--ds-transition-fast);
+}
+
+.dl-menu-toggle:hover {
+  background: var(--ds-bg-hover);
+}
+
+@media (min-width: 1024px) {
+  .dl-menu-toggle {
+    display: none;
+  }
+}
+
+
+/* ── Page Container ── */
+.dl-page {
+  padding: var(--ds-space-md);
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+@media (min-width: 768px) {
+  .dl-page {
+    padding: var(--ds-space-xl);
+  }
+}
+
+
+/* ── User Profile in Sidebar (dark variant) ── */
+.dl-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: var(--ds-space-md);
+}
+
+.dl-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--ds-text-sm);
+  flex-shrink: 0;
+  color: #fff;
+  background: var(--ds-primary);
+}
+
+.dl-sidebar.sidebar-dark .dl-avatar {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dl-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dl-user-name {
+  font-weight: 600;
+  font-size: var(--ds-text-base);
+  color: var(--ds-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dl-user-role {
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
+}
+
+.dl-sidebar.sidebar-dark .dl-user-name {
+  color: #fff;
+}
+
+.dl-sidebar.sidebar-dark .dl-user-role {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+
+/* ── Status Badge in Topbar ── */
+.dl-status-badge {
+  background: var(--ds-success);
+  color: white;
+  padding: 3px 12px;
+  border-radius: var(--ds-radius-full);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+}
