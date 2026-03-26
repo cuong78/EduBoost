@@ -1,6 +1,6 @@
 import { apiClient } from './api';
 
-const BASE = '/api/feedback';
+const BASE = '/feedback';
 
 export const feedbackService = {
     /* ─── Teacher ─── */
