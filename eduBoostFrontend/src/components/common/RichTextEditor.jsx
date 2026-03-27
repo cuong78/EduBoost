@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { questionBankService } from '../../services/questionBankService';
+import { API } from '../../constants/api';
 import { showErrorToast } from '../../utils/show-toast';
 
 const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' }) => {
@@ -38,7 +39,10 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
 
             try {
                 const response = await questionBankService.uploadImage(file);
-                const imageUrl = response.url;
+                // Backend returns { imageUrl: "images/uuid.png" } (objectKey)
+                const objectKey = response.imageUrl || response.url;
+                // Build full URL using the file serving endpoint
+                const imageUrl = `${API.BASE}/files/${objectKey}`;
 
                 const quill = quillRef.current?.getEditor();
                 if (quill) {

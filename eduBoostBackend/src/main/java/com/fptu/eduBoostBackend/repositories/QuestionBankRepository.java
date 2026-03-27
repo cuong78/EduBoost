@@ -22,18 +22,21 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
            "WHERE (:lessonId IS NULL OR l.id = :lessonId) " +
            "AND (:cognitiveLevelId IS NULL OR q.cognitiveLevel.id = :cognitiveLevelId) " +
            "AND (:sourceType IS NULL OR q.sourceType = :sourceType) " +
-           "AND (:chapterId IS NULL OR l.chapter.id = :chapterId)",
+           "AND (:chapterId IS NULL OR l.chapter.id = :chapterId) " +
+           "AND (:createdById IS NULL OR q.createdBy.userId = :createdById)",
            countQuery = "SELECT COUNT(q) FROM QuestionBank q " +
            "LEFT JOIN q.lesson l " +
            "WHERE (:lessonId IS NULL OR l.id = :lessonId) " +
            "AND (:cognitiveLevelId IS NULL OR q.cognitiveLevel.id = :cognitiveLevelId) " +
            "AND (:sourceType IS NULL OR q.sourceType = :sourceType) " +
-           "AND (:chapterId IS NULL OR l.chapter.id = :chapterId)")
+           "AND (:chapterId IS NULL OR l.chapter.id = :chapterId) " +
+           "AND (:createdById IS NULL OR q.createdBy.userId = :createdById)")
     Page<QuestionBank> findWithFiltersPaged(
             @Param("lessonId") Long lessonId,
             @Param("cognitiveLevelId") Long cognitiveLevelId,
             @Param("sourceType") QuestionSourceType sourceType,
             @Param("chapterId") Long chapterId,
+            @Param("createdById") Long createdById,
             Pageable pageable);
     
     List<QuestionBank> findByLessonId(Long lessonId);

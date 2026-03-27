@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { API } from '../../constants/api';
 
 const MathRenderer = ({ content, className = '' }) => {
     const containerRef = useRef(null);
@@ -61,7 +62,14 @@ const MathRenderer = ({ content, className = '' }) => {
             processedParts.push(processedContent.substring(lastIndex));
         }
 
-        container.innerHTML = processedParts.length > 0 ? processedParts.join('') : processedContent;
+        // Process [IMG:objectKey] placeholders
+        const imgProcessed = processedParts.length > 0 ? processedParts.join('') : processedContent;
+        const finalContent = imgProcessed.replace(/\[IMG:([^\]]+)\]/g, (match, objectKey) => {
+            const imgUrl = `${API.BASE}/files/${objectKey}`;
+            return `<img src="${imgUrl}" alt="Hình ảnh câu hỏi" style="max-width:100%;border-radius:8px;margin:8px 0" onerror="this.style.display='none'" />`;
+        });
+
+        container.innerHTML = finalContent;
     }, [content]);
 
     return (

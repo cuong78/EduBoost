@@ -32,6 +32,8 @@ public class QuestionBankResponse {
     private Long createdById;
     private String createdByName;
     private Integer usageCount;
+    private String imageUrl;
+    private String answerImageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

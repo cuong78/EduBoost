@@ -422,60 +422,87 @@ public class ExamServiceImpl implements ExamService {
         
         // Process by lesson distribution if provided
         if (request.getLessonDistribution() != null && !request.getLessonDistribution().isEmpty()) {
-            for (LessonDistributionRequest lessonDist : request.getLessonDistribution()) {
-                Long lessonId = lessonDist.getLessonId();
-                int needed = lessonDist.getNumberOfQuestions();
-                
-                // If cognitive level distribution is provided, use it
-                if (cognitiveLevelDist != null && !cognitiveLevelDist.isEmpty()) {
-                    for (Map.Entry<Long, Integer> levelEntry : cognitiveLevelDist.entrySet()) {
-                        Long cognitiveLevelId = levelEntry.getKey();
-                        int neededForLevel = levelEntry.getValue();
-                        
+            // Calculate total questions across all lessons
+            int totalQuestionsFromLessons = request.getLessonDistribution().stream()
+                    .mapToInt(LessonDistributionRequest::getNumberOfQuestions).sum();
+
+            // If cognitive level distribution is provided, distribute proportionally across lessons
+            if (cognitiveLevelDist != null && !cognitiveLevelDist.isEmpty()) {
+                for (Map.Entry<Long, Integer> levelEntry : cognitiveLevelDist.entrySet()) {
+                    Long cognitiveLevelId = levelEntry.getKey();
+                    int totalForLevel = levelEntry.getValue();
+                    if (totalForLevel <= 0) continue;
+
+                    int levelRemaining = totalForLevel;
+
+                    for (int li = 0; li < request.getLessonDistribution().size(); li++) {
+                        LessonDistributionRequest lessonDist = request.getLessonDistribution().get(li);
+                        Long lessonId = lessonDist.getLessonId();
+                        int lessonCount = lessonDist.getNumberOfQuestions();
+
+                        // Proportional share for this lesson-level cell
+                        int neededForCell;
+                        if (li == request.getLessonDistribution().size() - 1) {
+                            // Last lesson gets the remainder to avoid rounding issues
+                            neededForCell = levelRemaining;
+                        } else {
+                            neededForCell = totalQuestionsFromLessons > 0
+                                    ? Math.round((float) totalForLevel * lessonCount / totalQuestionsFromLessons)
+                                    : 0;
+                        }
+                        neededForCell = Math.min(neededForCell, levelRemaining);
+                        if (neededForCell <= 0) continue;
+
                         // Get questions from bank for this lesson and cognitive level
                         List<QuestionBank> questions = questionBankRepository.findByLessonIdAndCognitiveLevelId(lessonId, cognitiveLevelId);
-                        
-                        int addedForLevel = 0;
+
+                        int addedForCell = 0;
                         for (QuestionBank q : questions) {
-                            if (addedForLevel >= neededForLevel) break;
+                            if (addedForCell >= neededForCell) break;
                             if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
-                            
+
                             orderNumber++;
                             ExamQuestion eq = createExamQuestionFromBank(exam, q, orderNumber, pointsPerQuestion);
                             addedQuestions.add(examQuestionRepository.save(eq));
                             fromBank++;
-                            addedForLevel++;
+                            addedForCell++;
                         }
-                        
+
                         // If still need more and AI generation is enabled
-                        int stillNeeded = neededForLevel - addedForLevel;
+                        int stillNeeded = neededForCell - addedForCell;
                         if (stillNeeded > 0 && Boolean.TRUE.equals(request.getUseAiGeneration())) {
                             List<ExamQuestion> aiQuestions = generateAIQuestionsForExam(exam, lessonId, cognitiveLevelId, stillNeeded, orderNumber, pointsPerQuestion);
                             orderNumber += aiQuestions.size();
                             addedQuestions.addAll(aiQuestions);
                             aiGenerated += aiQuestions.size();
                         }
+
+                        levelRemaining -= neededForCell;
                     }
-                } else {
-                    // No cognitive level distribution - just get questions for the lesson
+                }
+            } else {
+                // No cognitive level distribution - just get questions per lesson
+                for (LessonDistributionRequest lessonDist : request.getLessonDistribution()) {
+                    Long lessonId = lessonDist.getLessonId();
+                    int needed = lessonDist.getNumberOfQuestions();
+
                     List<QuestionBank> questions = questionBankRepository.findByLessonId(lessonId);
-                    
+
                     int addedForLesson = 0;
                     for (QuestionBank q : questions) {
                         if (addedForLesson >= needed) break;
                         if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
-                        
+
                         orderNumber++;
                         ExamQuestion eq = createExamQuestionFromBank(exam, q, orderNumber, pointsPerQuestion);
                         addedQuestions.add(examQuestionRepository.save(eq));
                         fromBank++;
                         addedForLesson++;
                     }
-                    
+
                     // If still need more and AI generation is enabled
                     int stillNeeded = needed - addedForLesson;
                     if (stillNeeded > 0 && Boolean.TRUE.equals(request.getUseAiGeneration())) {
-                        // Use default cognitive level (first one)
                         CognitiveLevel defaultLevel = cognitiveLevelRepository.findAll().stream().findFirst().orElse(null);
                         if (defaultLevel != null) {
                             List<ExamQuestion> aiQuestions = generateAIQuestionsForExam(exam, lessonId, defaultLevel.getId(), stillNeeded, orderNumber, pointsPerQuestion);
@@ -600,6 +627,8 @@ public class ExamServiceImpl implements ExamService {
                         .orderNumber(orderNumber)
                         .points(points)
                         .sourceFlag(ExamQuestionSourceFlag.AI_GENERATED)
+                        .cognitiveLevel(cognitiveLevel)
+                        .lesson(lesson)
                         .build();
                 
                 generated.add(examQuestionRepository.save(eq));
@@ -1052,6 +1081,16 @@ public class ExamServiceImpl implements ExamService {
                 builder.cognitiveLevelId(eq.getQuestion().getCognitiveLevel().getId());
                 builder.cognitiveLevelName(eq.getQuestion().getCognitiveLevel().getLevel());
             }
+        }
+
+        // Fallback: use fields stored directly on ExamQuestion (for AI-generated questions)
+        if (eq.getCognitiveLevel() != null && builder.build().getCognitiveLevelId() == null) {
+            builder.cognitiveLevelId(eq.getCognitiveLevel().getId());
+            builder.cognitiveLevelName(eq.getCognitiveLevel().getLevel());
+        }
+        if (eq.getLesson() != null && builder.build().getLessonId() == null) {
+            builder.lessonId(eq.getLesson().getId());
+            builder.lessonName(eq.getLesson().getLessonName());
         }
         
         if (eq.getModifiedBy() != null) {

@@ -20,7 +20,8 @@ public class SecurityConstants {
             "/api/subscriptions/plans",   // Public pricing page — no auth needed
             "/api/token_generate",        // VietQR callback: get token
             "/bank/api/transaction-sync", // VietQR callback: payment notification
-            "/api/admin/**"  // TODO: Remove after fixing role check
+            "/api/admin/**",  // TODO: Remove after fixing role check
+            "/api/files/**"   // Public file serving from MinIO (images in questions)
     );
 
     public static final String AUTHORIZATION_HEADER = "Authorization";

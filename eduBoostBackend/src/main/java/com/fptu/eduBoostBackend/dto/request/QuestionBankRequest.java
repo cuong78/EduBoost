@@ -36,4 +36,8 @@ public class QuestionBankRequest {
     private DifficultyLevel difficultyLevel;
     
     private QuestionSourceType sourceType;
+
+    private String imageUrl;
+
+    private String answerImageUrl;
 }
