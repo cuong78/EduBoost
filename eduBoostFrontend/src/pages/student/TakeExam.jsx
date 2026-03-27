@@ -22,7 +22,6 @@ const TakeExam = () => {
     const [attemptCode, setAttemptCode] = useState(null);
     const [activeTabToken, setActiveTabToken] = useState(null);
     const [examTitle, setExamTitle] = useState('');
-    const [durationMinutes, setDurationMinutes] = useState(45);
     const [questions, setQuestions] = useState([]);
 
     // State
@@ -42,6 +41,7 @@ const TakeExam = () => {
     const broadcastRef = useRef(null);
     const hiddenTimerRef = useRef(null);
     const lastViolationSentAtRef = useRef(0);
+    const autosaveDataRef = useRef({ currentQuestion: 0, questions: [], answers: {} });
 
     // ===== Helpers =====
 
@@ -95,7 +95,9 @@ const TakeExam = () => {
             })
             .catch((err) => {
                 const status = err?.response?.status;
-                if (status === 403) {
+                const message = String(err?.response?.data?.message || '').toLowerCase();
+                const isTakeover = message.includes('taken over') || message.includes('another tab');
+                if (status === 403 && isTakeover) {
                     setTakeover(true);
                 } else {
                     showErrorToast(err?.response?.data?.message || 'Không thể nộp bài');
@@ -103,10 +105,9 @@ const TakeExam = () => {
             });
     };
 
-    const calculateScore = () => {
-        // Fallback if we don't have server result, but we usually do
-        return { correctCount: submitResult?.correctCount || 0, score: submitResult?.score || 0 };
-    };
+    useEffect(() => {
+        autosaveDataRef.current = { currentQuestion, questions, answers };
+    }, [currentQuestion, questions, answers]);
 
     // ===== Load exam attempt on mount =====
     useEffect(() => {
@@ -124,7 +125,6 @@ const TakeExam = () => {
                 setAttemptCode(res.attemptCode);
                 setActiveTabToken(res.activeTabToken);
                 setExamTitle(res.examTitle);
-                setDurationMinutes(res.durationMinutes || 45);
                 setQuestions(res.questions || []);
                 
                 const loadedAnswers = {};
@@ -203,14 +203,15 @@ const TakeExam = () => {
         if (!attemptCode || !activeTabToken || isSubmitted || takeover) return;
 
         const interval = setInterval(() => {
+            const { currentQuestion: latestQuestion, questions: latestQuestions, answers: latestAnswers } = autosaveDataRef.current;
             const payload = {
                 activeTabToken,
-                currentQuestionIndex: currentQuestion,
+                currentQuestionIndex: latestQuestion,
                 clientVersion: lastSavedVersionRef.current,
-                answers: (questions || []).map((q, index) => ({
+                answers: (latestQuestions || []).map((q, index) => ({
                     examQuestionId: q.examQuestionId,
-                    selectedOption: q.questionType === 'FILL_BLANK' ? null : answers[index] ?? null,
-                    textAnswer: q.questionType === 'FILL_BLANK' ? answers[index] ?? null : null,
+                    selectedOption: q.questionType === 'FILL_BLANK' ? null : latestAnswers[index] ?? null,
+                    textAnswer: q.questionType === 'FILL_BLANK' ? latestAnswers[index] ?? null : null,
                     flagged: false,
                 })),
             };
@@ -222,7 +223,9 @@ const TakeExam = () => {
                 })
                 .catch((err) => {
                     const status = err?.response?.status;
-                    if (status === 403) {
+                    const message = String(err?.response?.data?.message || '').toLowerCase();
+                    const isTakeover = message.includes('taken over') || message.includes('another tab');
+                    if (status === 403 && isTakeover) {
                         setTakeover(true);
                     }
                 });
@@ -230,7 +233,7 @@ const TakeExam = () => {
 
         autosaveTimerRef.current = interval;
         return () => clearInterval(interval);
-    }, [attemptCode, activeTabToken, currentQuestion, answers, questions, isSubmitted, takeover]);
+    }, [attemptCode, activeTabToken, isSubmitted, takeover]);
 
     // ===== Heartbeat every 25s =====
     useEffect(() => {
@@ -241,7 +244,9 @@ const TakeExam = () => {
                 .heartbeatExamAttempt(attemptCode, { activeTabToken })
                 .catch((err) => {
                     const status = err?.response?.status;
-                    if (status === 403) {
+                    const message = String(err?.response?.data?.message || '').toLowerCase();
+                    const isTakeover = message.includes('taken over') || message.includes('another tab');
+                    if (status === 403 && isTakeover) {
                         setTakeover(true);
                     }
                 });
@@ -255,19 +260,22 @@ const TakeExam = () => {
     useEffect(() => {
         if (!attemptCode || isSubmitted || takeover) return;
 
+        const reportViolation = () => {
+            const now = Date.now();
+            if (now - lastViolationSentAtRef.current < 3000) return;
+            lastViolationSentAtRef.current = now;
+            if (attemptCode && !isSubmitted && !takeover) {
+                examService.reportExamViolation(attemptCode, 'TAB_SWITCH').catch(() => {});
+                setShowViolationWarning(true);
+            }
+        };
+
         const handleVisibilityChange = () => {
             // Debounce: only report if hidden for a short threshold (avoid false positives on quick switches)
             if (document.hidden) {
                 if (hiddenTimerRef.current) clearTimeout(hiddenTimerRef.current);
                 hiddenTimerRef.current = setTimeout(() => {
-                    const now = Date.now();
-                    // simple rate limit so we don't spam the backend
-                    if (now - lastViolationSentAtRef.current < 3000) return;
-                    lastViolationSentAtRef.current = now;
-                    if (attemptCode && !isSubmitted && !takeover) {
-                        examService.reportExamViolation(attemptCode, 'TAB_SWITCH').catch(() => {});
-                        setShowViolationWarning(true);
-                    }
+                    reportViolation();
                 }, 3000); // 3s hidden => violation
             } else {
                 if (hiddenTimerRef.current) clearTimeout(hiddenTimerRef.current);
@@ -275,10 +283,16 @@ const TakeExam = () => {
             }
         };
 
+        const handleWindowBlur = () => {
+            reportViolation();
+        };
+
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleWindowBlur);
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleWindowBlur);
             if (hiddenTimerRef.current) clearTimeout(hiddenTimerRef.current);
         };
     }, [attemptCode, isSubmitted, takeover]);

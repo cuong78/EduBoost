@@ -105,6 +105,37 @@ export default function TeacherAttemptGradingModal({ scheduleId, attemptCode, on
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0' }}>
+                        <div className="glass" style={{ padding: '1rem', borderRadius: '1rem' }}>
+                            <div style={{ fontWeight: 700, marginBottom: 8 }}>Danh sách vi phạm</div>
+                            {(review?.violations || []).length === 0 ? (
+                                <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                                    Không ghi nhận vi phạm.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                    {(review?.violations || []).map((v, idx) => (
+                                        <div
+                                            key={`${v.violationType || 'UNKNOWN'}-${v.occurredAt || idx}-${idx}`}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                gap: '0.8rem',
+                                                padding: '0.45rem 0.6rem',
+                                                borderRadius: '0.55rem',
+                                                background: '#fff7ed',
+                                            }}
+                                        >
+                                            <span style={{ fontWeight: 600 }}>{v.violationType || 'UNKNOWN'}</span>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                                                {v.occurredAt ? new Date(v.occurredAt).toLocaleString() : '-'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {(review?.questions || []).map((q) => (
                             <div key={q.examQuestionId} className="glass" style={{ padding: '1rem', borderRadius: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>

@@ -15,7 +15,7 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
             try {
                 const data = await teacherService.getExamScheduleResults(schedule.id);
                 setResults(Array.isArray(data) ? data : []);
-            } catch (err) {
+            } catch {
                 showErrorToast('Không thể tải điểm thi');
                 setResults([]);
             } finally {
@@ -31,9 +31,33 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
             r.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             r.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const submittedCount = results.filter((r) => r.status === 'SUBMITTED').length;
+    const violationAttempts = results.filter((r) => (r.violationCount || 0) > 0).length;
 
     const resultsContent = (
         <>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '0.75rem',
+                    marginBottom: '1rem',
+                }}
+            >
+                <div className="glass" style={{ padding: '0.75rem 1rem', borderRadius: '0.8rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Tổng học sinh</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{results.length}</div>
+                </div>
+                <div className="glass" style={{ padding: '0.75rem 1rem', borderRadius: '0.8rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Đã nộp</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{submittedCount}</div>
+                </div>
+                <div className="glass" style={{ padding: '0.75rem 1rem', borderRadius: '0.8rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Có vi phạm</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{violationAttempts}</div>
+                </div>
+            </div>
+
             <div className="search-bar" style={{ marginBottom: '1rem' }}>
                 <Search size={18} />
                 <input
@@ -63,6 +87,7 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
                                 <th>Trạng thái</th>
                                 <th>Mã làm bài</th>
                                 <th>Vi phạm</th>
+                                <th>Nộp lúc</th>
                                 <th>Điểm</th>
                             </tr>
                         </thead>
@@ -100,11 +125,16 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
                                         <td>
                                             {r.violationCount > 0 ? (
                                                 <span className="text-red" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <AlertTriangle size={14} /> {r.violationCount}
+                                                    <AlertTriangle size={14} /> {r.violationCount} lần
                                                 </span>
                                             ) : (
                                                 <span className="text-secondary">0</span>
                                             )}
+                                        </td>
+                                        <td>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                                                {r.submittedAt ? new Date(r.submittedAt).toLocaleString() : '-'}
+                                            </span>
                                         </td>
                                         <td>
                                             {r.score !== null ? (

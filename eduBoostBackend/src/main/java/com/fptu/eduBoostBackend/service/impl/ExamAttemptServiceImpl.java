@@ -17,6 +17,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ExamAttemptAnswerRepository;
 import com.fptu.eduBoostBackend.repositories.ExamAttemptRepository;
+import com.fptu.eduBoostBackend.repositories.ExamAttemptViolationRepository;
 import com.fptu.eduBoostBackend.repositories.ExamQuestionRepository;
 import com.fptu.eduBoostBackend.repositories.ExamRepository;
 import com.fptu.eduBoostBackend.repositories.ExamScheduleRepository;
@@ -47,6 +48,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
     private final ExamRepository examRepository;
     private final ExamQuestionRepository examQuestionRepository;
     private final ExamAttemptRepository examAttemptRepository;
+    private final ExamAttemptViolationRepository examAttemptViolationRepository;
     private final ExamAttemptAnswerRepository examAttemptAnswerRepository;
     private final ExamScheduleRepository examScheduleRepository;
     private final StudentRepository studentRepository;
@@ -132,8 +134,11 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         ExamAttempt attempt;
         if (!inProgressAttempts.isEmpty()) {
             attempt = inProgressAttempts.get(0);
-            // Rotate active tab token for force-takeover behavior
-            attempt.setActiveTabToken(UUID.randomUUID().toString());
+            // Keep token stable when simply resuming the same in-progress attempt.
+            // Rotating on every resume can invalidate active single-tab sessions (especially in dev StrictMode).
+            if (attempt.getActiveTabToken() == null || attempt.getActiveTabToken().isBlank()) {
+                attempt.setActiveTabToken(UUID.randomUUID().toString());
+            }
             attempt.setLastActivityAt(now);
         } else {
             Integer attemptNumber;
@@ -216,7 +221,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
                 })
                 .collect(Collectors.toList());
 
-        int durationMinutes = DEFAULT_DURATION_MINUTES;
+        int durationMinutes = resolveDurationMinutes(attempt);
         int remainingSeconds = computeRemainingSeconds(attempt, durationMinutes);
 
         return AttemptStateResponse.builder()
@@ -249,9 +254,19 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
 
         Map<Long, ExamAttemptAnswer> existingAnswers = examAttemptAnswerRepository.findByAttempt(attempt).stream()
                 .collect(Collectors.toMap(a -> a.getExamQuestion().getId(), a -> a));
+        Set<Long> examQuestionIds = examQuestionRepository.findByExamIdWithDetailsOrdered(attempt.getExam().getId())
+                .stream()
+                .map(ExamQuestion::getId)
+                .collect(Collectors.toSet());
 
         LocalDateTime now = LocalDateTime.now();
         for (AttemptAutoSaveRequest.AttemptAnswerPayload payload : request.getAnswers()) {
+            if (payload == null || payload.getExamQuestionId() == null) continue;
+            if (!examQuestionIds.contains(payload.getExamQuestionId())) {
+                log.warn("Ignoring autosave answer for foreign question {} on attempt {}",
+                        payload.getExamQuestionId(), attemptCode);
+                continue;
+            }
             ExamAttemptAnswer answer = existingAnswers.get(payload.getExamQuestionId());
             if (answer == null) {
                 ExamQuestion question = examQuestionRepository.findById(payload.getExamQuestionId())
@@ -274,7 +289,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         attempt.setLastActivityAt(now);
         ExamAttempt savedAttempt = examAttemptRepository.save(attempt);
 
-        int durationMinutes = DEFAULT_DURATION_MINUTES;
+        int durationMinutes = resolveDurationMinutes(savedAttempt);
         int remainingSeconds = computeRemainingSeconds(savedAttempt, durationMinutes);
 
         return AttemptStateResponse.builder()
@@ -298,7 +313,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         validateAttemptIsActive(attempt);
 
         LocalDateTime now = LocalDateTime.now();
-        int durationMinutes = DEFAULT_DURATION_MINUTES;
+        int durationMinutes = resolveDurationMinutes(attempt);
         int remainingSeconds = computeRemainingSeconds(attempt, durationMinutes);
         if (remainingSeconds <= 0) {
             attempt.setStatus(ExamAttemptStatus.EXPIRED);
@@ -422,12 +437,22 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
             return; // silently ignore violations on finished attempts
         }
 
+        ViolationPolicy policy = resolveViolationPolicy(attempt);
         int newCount = (attempt.getViolationCount() == null ? 0 : attempt.getViolationCount()) + 1;
         attempt.setViolationCount(newCount);
-        log.info("Violation '{}' recorded for attempt {} (count={})", violationType, attemptCode, newCount);
+        examAttemptViolationRepository.save(ExamAttemptViolation.builder()
+                .attempt(attempt)
+                .violationType(violationType != null ? violationType : "UNKNOWN")
+                .build());
+        log.info("Violation '{}' recorded for attempt {} student={} (count={} threshold={} autoSubmit={})",
+                violationType,
+                attemptCode,
+                attempt.getStudent() != null ? attempt.getStudent().getStudentId() : "unknown",
+                newCount,
+                policy.maxTabSwitches(),
+                policy.autoSubmitOnViolation());
 
-        // Auto-submit after 5 violations as conservative default
-        if (newCount >= 5) {
+        if (policy.autoSubmitOnViolation() && newCount >= policy.maxTabSwitches()) {
             log.warn("Auto-submitting attempt {} due to {} violations", attemptCode, newCount);
             attempt.setStatus(ExamAttemptStatus.SUBMITTED);
             attempt.setSubmittedAt(LocalDateTime.now());
@@ -533,6 +558,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
                 .examTitle(exam.getExamTitle())
                 .answerKeyRevealed(answerKeyRevealed)
                 .totalQuestions(questions.size())
+                .violations(buildViolationDtos(attempt))
                 .correctCount(answerKeyRevealed ? correctCount : null)
                 .questions(dtos);
         if (answerKeyRevealed) {
@@ -611,6 +637,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
                 .examTitle(exam.getExamTitle())
                 .answerKeyRevealed(true)
                 .totalQuestions(questions.size())
+                .violations(buildViolationDtos(attempt))
                 .correctCount(correctCount)
                 .score(earnedPoints)
                 .maxScore(totalPoints)
@@ -793,6 +820,54 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
             return 0;
         }
         return (int) java.time.Duration.between(now, endTime).getSeconds();
+    }
+
+    private int resolveDurationMinutes(ExamAttempt attempt) {
+        if (attempt.getSchedule() != null
+                && attempt.getSchedule().getDurationMinutes() != null
+                && attempt.getSchedule().getDurationMinutes() > 0) {
+            return attempt.getSchedule().getDurationMinutes();
+        }
+        return DEFAULT_DURATION_MINUTES;
+    }
+
+    private ViolationPolicy resolveViolationPolicy(ExamAttempt attempt) {
+        int maxTabSwitches = 5;
+        boolean autoSubmitOnViolation = true;
+
+        ExamSchedule schedule = attempt.getSchedule();
+        if (schedule == null || schedule.getSettings() == null || schedule.getSettings().isBlank()) {
+            return new ViolationPolicy(maxTabSwitches, autoSubmitOnViolation);
+        }
+
+        try {
+            Map<?, ?> settings = objectMapper.readValue(schedule.getSettings(), Map.class);
+            Object maxObj = settings.get("maxTabSwitches");
+            Object autoObj = settings.get("autoSubmitOnViolation");
+
+            if (maxObj instanceof Number n && n.intValue() > 0) {
+                maxTabSwitches = n.intValue();
+            }
+            if (autoObj instanceof Boolean b) {
+                autoSubmitOnViolation = b;
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to parse schedule settings for attempt {}: {}", attempt.getAttemptCode(), ex.getMessage());
+        }
+
+        return new ViolationPolicy(maxTabSwitches, autoSubmitOnViolation);
+    }
+
+    private record ViolationPolicy(int maxTabSwitches, boolean autoSubmitOnViolation) {
+    }
+
+    private List<AttemptReviewResponse.ViolationEventDto> buildViolationDtos(ExamAttempt attempt) {
+        return examAttemptViolationRepository.findByAttemptOrderByOccurredAtDesc(attempt).stream()
+                .map(v -> AttemptReviewResponse.ViolationEventDto.builder()
+                        .violationType(v.getViolationType())
+                        .occurredAt(v.getOccurredAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private ExamAttempt getAttemptForCurrentStudent(String attemptCode) {

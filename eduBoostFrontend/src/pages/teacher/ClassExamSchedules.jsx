@@ -206,6 +206,10 @@ export default function ClassExamSchedules() {
         }
     };
 
+    const totalSchedules = schedules.length;
+    const activeSchedules = schedules.filter((s) => (s.status || 'SCHEDULED') === 'SCHEDULED').length;
+    const announcedSchedules = schedules.filter((s) => s.resultsAnnouncedAt).length;
+
     return (
         <div className="class-students-page">
             <nav className="breadcrumb">
@@ -223,8 +227,8 @@ export default function ClassExamSchedules() {
                 </div>
             </div>
 
-            <div className="glass" style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', borderRadius: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="schedule-toolbar glass">
+                <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem' }}>
                     <Calendar size={18} /> Danh sách lịch thi
                 </h3>
                 <button type="button" className="btn btn-primary" onClick={openCreateModal}>
@@ -232,9 +236,24 @@ export default function ClassExamSchedules() {
                 </button>
             </div>
 
+            <div className="schedule-stats">
+                <div className="schedule-stat-card glass">
+                    <span>Tổng lịch thi</span>
+                    <strong>{totalSchedules}</strong>
+                </div>
+                <div className="schedule-stat-card glass">
+                    <span>Đang hiệu lực</span>
+                    <strong>{activeSchedules}</strong>
+                </div>
+                <div className="schedule-stat-card glass">
+                    <span>Đã công bố điểm</span>
+                    <strong>{announcedSchedules}</strong>
+                </div>
+            </div>
+
             {isCreateModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '900px', width: '95%' }}>
+                    <div className="modal-content schedule-modal-content">
                         <div className="modal-header">
                             <h2>{scheduleModalMode === 'edit' ? 'Chỉnh sửa lịch thi' : 'Tạo lịch thi mới'}</h2>
                             <button
@@ -252,6 +271,11 @@ export default function ClassExamSchedules() {
                         </div>
 
                         <form className="exam-schedule-form" onSubmit={scheduleModalMode === 'edit' ? handleUpdate : handleCreate}>
+                            <div className="schedule-form-subtitle">
+                                {scheduleModalMode === 'edit'
+                                    ? 'Cập nhật thông tin lịch thi và thời gian làm bài cho lớp.'
+                                    : 'Thiết lập đề thi, mốc thời gian và quy định làm bài cho lịch thi mới.'}
+                            </div>
                             <div className="form-grid">
                                 <div className="form-group">
                                     <label>Đề thi</label>
@@ -350,7 +374,19 @@ export default function ClassExamSchedules() {
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            <div className="schedule-form-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={() => {
+                                        setIsCreateModalOpen(false);
+                                        setScheduleModalMode('create');
+                                        setEditingScheduleId(null);
+                                        resetFormForCreate();
+                                    }}
+                                >
+                                    Huỷ
+                                </button>
                                 <button type="submit" className="btn btn-primary" disabled={creating}>
                                     {creating ? <Loader2 size={18} className="spin" /> : <Plus size={18} />}{' '}
                                     {scheduleModalMode === 'edit' ? 'Cập nhật lịch thi' : 'Tạo lịch thi'}
@@ -372,13 +408,7 @@ export default function ClassExamSchedules() {
                     <p>Chưa có lịch thi nào cho lớp này.</p>
                 </div>
             ) : (
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                        gap: '1rem',
-                    }}
-                >
+                <div className="schedule-grid">
                     {schedules.map((s) => {
                         const scoreLabel =
                             s.scoreRevealMode === 'AFTER_ANNOUNCE'
@@ -390,13 +420,7 @@ export default function ClassExamSchedules() {
                         return (
                             <div
                                 key={s.id}
-                                className="glass"
-                                style={{
-                                    padding: '1rem',
-                                    borderRadius: '1rem',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.08s ease',
-                                }}
+                                className="glass schedule-card"
                                 onClick={() => setSelectedScheduleForDetail(s)}
                                 role="button"
                                 tabIndex={0}
@@ -404,8 +428,8 @@ export default function ClassExamSchedules() {
                                     if (e.key === 'Enter') setSelectedScheduleForDetail(s);
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div className="schedule-card-header">
+                                    <div className="schedule-card-title-group">
                                         <span style={{ fontWeight: 700 }}>{s.title || s.examTitle}</span>
                                         <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
                                             Exam ID: {s.examId}
@@ -414,7 +438,7 @@ export default function ClassExamSchedules() {
                                     <span className="status-badge">{s.status || 'SCHEDULED'}</span>
                                 </div>
 
-                                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <div className="schedule-card-body">
                                     <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
                                         <Clock size={14} style={{ marginRight: 6, display: 'inline-block' }} />
                                         {s.durationMinutes} phút
@@ -453,7 +477,7 @@ export default function ClassExamSchedules() {
                                     </button>
                                 )}
 
-                                <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                                <div className="schedule-card-footer">
                                     <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Click để xem chi tiết</span>
                                     <ListIcon size={16} />
                                 </div>
@@ -470,6 +494,107 @@ export default function ClassExamSchedules() {
                     onAnnounce={handleAnnounce}
                 />
             )}
+
+            <style>{`
+                .schedule-toolbar {
+                    padding: 1rem 1.25rem;
+                    margin-bottom: 1rem;
+                    border-radius: 1rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 1rem;
+                }
+                .schedule-stats {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 0.75rem;
+                    margin-bottom: 1.25rem;
+                }
+                .schedule-stat-card {
+                    border-radius: 0.85rem;
+                    padding: 0.85rem 1rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.2rem;
+                }
+                .schedule-stat-card span {
+                    font-size: 0.85rem;
+                    color: var(--color-text-secondary);
+                }
+                .schedule-stat-card strong {
+                    font-size: 1.35rem;
+                    line-height: 1.1;
+                }
+                .schedule-modal-content {
+                    max-width: 960px;
+                    width: 95%;
+                }
+                .schedule-form-subtitle {
+                    font-size: 0.92rem;
+                    color: var(--color-text-secondary);
+                    margin-bottom: 0.8rem;
+                    padding: 0.65rem 0.8rem;
+                    border-radius: 0.7rem;
+                    background: rgba(255, 255, 255, 0.35);
+                }
+                .schedule-form-actions {
+                    margin-top: 1rem;
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 0.65rem;
+                }
+                .schedule-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                    gap: 1rem;
+                }
+                .schedule-card {
+                    padding: 1rem;
+                    border-radius: 1rem;
+                    cursor: pointer;
+                    transition: transform 0.15s ease, box-shadow 0.15s ease;
+                }
+                .schedule-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px rgba(31, 41, 55, 0.08);
+                }
+                .schedule-card-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    gap: 0.75rem;
+                }
+                .schedule-card-title-group {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .schedule-card-body {
+                    margin-top: 0.75rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.45rem;
+                }
+                .schedule-card-footer {
+                    margin-top: 0.75rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding-top: 0.65rem;
+                    border-top: 1px dashed var(--glass-border);
+                }
+                @media (max-width: 768px) {
+                    .schedule-toolbar {
+                        flex-direction: column;
+                        align-items: stretch;
+                    }
+                    .schedule-toolbar .btn {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                }
+            `}</style>
         </div>
     );
 }

@@ -67,6 +67,27 @@ export default function ExamScheduleDetailModal({ schedule, onClose, onAnnounce 
                             </div>
                         </div>
                     </div>
+                    <div
+                        style={{
+                            marginTop: '0.9rem',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                            gap: '0.6rem',
+                        }}
+                    >
+                        <div className="glass" style={{ borderRadius: '0.7rem', padding: '0.6rem 0.8rem' }}>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Thời lượng</div>
+                            <div style={{ fontWeight: 700 }}>{schedule?.durationMinutes || 45} phút</div>
+                        </div>
+                        <div className="glass" style={{ borderRadius: '0.7rem', padding: '0.6rem 0.8rem' }}>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Cho phép trễ</div>
+                            <div style={{ fontWeight: 700 }}>{schedule?.allowLateMinutes || 0} phút</div>
+                        </div>
+                        <div className="glass" style={{ borderRadius: '0.7rem', padding: '0.6rem 0.8rem' }}>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Số lần làm</div>
+                            <div style={{ fontWeight: 700 }}>{schedule?.maxAttempts || 1}</div>
+                        </div>
+                    </div>
                 </div>
 
                 <ExamResultsModal

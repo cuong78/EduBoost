@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -24,8 +25,18 @@ public class AttemptReviewResponse {
     private BigDecimal percentage;
     private Integer correctCount;
     private Integer totalQuestions;
+    private List<ViolationEventDto> violations;
 
     private List<ReviewQuestionDto> questions;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ViolationEventDto {
+        private String violationType;
+        private LocalDateTime occurredAt;
+    }
 
     @Data
     @Builder
