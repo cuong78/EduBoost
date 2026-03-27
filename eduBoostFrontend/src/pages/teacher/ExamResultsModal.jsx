@@ -89,16 +89,12 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
                                 <th>Vi phạm</th>
                                 <th>Nộp lúc</th>
                                 <th>Điểm</th>
+                                <th>Chi tiết</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredResults.map((r) => (
-                                <tr
-                                    key={r.attemptCode}
-                                    onClick={() => onSelectAttemptCode?.(r.attemptCode)}
-                                    style={{ cursor: onSelectAttemptCode ? 'pointer' : 'default' }}
-                                    title={onSelectAttemptCode ? 'Click để xem/ chấm bài' : undefined}
-                                >
+                                <tr key={r.attemptCode}>
                                         <td>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <strong>{r.studentName}</strong>
@@ -143,6 +139,16 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
                                                 <span className="text-secondary">-</span>
                                             )}
                                         </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline"
+                                                onClick={() => onSelectAttemptCode?.(r.attemptCode)}
+                                                disabled={!onSelectAttemptCode}
+                                            >
+                                                Xem bài làm
+                                            </button>
+                                        </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -157,8 +163,8 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
     }
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '800px', width: '90%' }}>
+        <div className="ds-modal-overlay">
+            <div className="ds-modal ds-modal-lg" style={{ width: '90%' }}>
                 <div className="modal-header">
                     <h2>Kết quả: {schedule?.title || schedule?.examTitle}</h2>
                     <button className="btn-icon" onClick={onClose}>
@@ -167,6 +173,71 @@ export default function ExamResultsModal({ schedule, onClose, embedded = false, 
                 </div>
                 {resultsContent}
             </div>
+            <style>{`
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding-bottom: 0.8rem;
+                    margin-bottom: 0.8rem;
+                    border-bottom: 1px solid var(--ds-border-light);
+                }
+                .btn-icon {
+                    border: 1px solid var(--ds-border);
+                    background: var(--ds-bg-subtle);
+                    border-radius: 10px;
+                    width: 34px;
+                    height: 34px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
+                .search-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    border: 1px solid var(--ds-border);
+                    border-radius: 10px;
+                    background: var(--ds-bg-subtle);
+                    padding: 0.25rem 0.65rem;
+                }
+                .students-table-wrap {
+                    overflow-x: auto;
+                    border: 1px solid var(--ds-border);
+                    border-radius: 12px;
+                    background: #fff;
+                }
+                .students-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 0.88rem;
+                }
+                .students-table th {
+                    text-align: left;
+                    font-size: 0.78rem;
+                    color: var(--ds-text-secondary);
+                    text-transform: uppercase;
+                    border-bottom: 1px solid var(--ds-border);
+                    padding: 0.65rem 0.75rem;
+                    background: var(--ds-bg-subtle);
+                }
+                .students-table td {
+                    padding: 0.65rem 0.75rem;
+                    border-bottom: 1px solid var(--ds-border-light);
+                }
+                .students-table tbody tr:hover {
+                    background: var(--ds-bg-subtle);
+                }
+                .empty-state {
+                    text-align: center;
+                    padding: 1.2rem;
+                    color: var(--ds-text-secondary);
+                }
+                .text-red {
+                    color: var(--ds-error-text);
+                }
+            `}</style>
         </div>
     );
 }

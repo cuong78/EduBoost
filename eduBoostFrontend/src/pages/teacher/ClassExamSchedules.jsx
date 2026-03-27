@@ -211,8 +211,8 @@ export default function ClassExamSchedules() {
     const announcedSchedules = schedules.filter((s) => s.resultsAnnouncedAt).length;
 
     return (
-        <div className="class-students-page">
-            <nav className="breadcrumb">
+        <div className="schedule-page">
+            <nav className="schedule-breadcrumb">
                 <Link to="/teacher/classes">Lớp học</Link>
                 <ChevronRight size={16} />
                 <Link to={`/teacher/classes/${classId}/students`}>{classInfo?.className ?? 'Lớp'}</Link>
@@ -220,7 +220,7 @@ export default function ClassExamSchedules() {
                 <span>Lịch thi</span>
             </nav>
 
-            <div className="page-header">
+            <div className="schedule-header">
                 <div>
                     <h2>Lịch thi - {classInfo?.className ?? ''}</h2>
                     <p>Quản lý lịch kiểm tra/thi cho lớp này.</p>
@@ -496,10 +496,52 @@ export default function ClassExamSchedules() {
             )}
 
             <style>{`
+                .schedule-page {
+                    padding: 1.5rem 2rem;
+                    max-width: 1360px;
+                    margin: 0 auto;
+                }
+                .schedule-breadcrumb {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.45rem;
+                    margin-bottom: 1rem;
+                    color: var(--ds-text-secondary);
+                    font-size: 0.86rem;
+                    font-weight: 600;
+                }
+                .schedule-breadcrumb a {
+                    color: var(--ds-secondary-hover);
+                    text-decoration: none;
+                }
+                .schedule-breadcrumb a:hover {
+                    text-decoration: underline;
+                }
+                .schedule-header {
+                    margin-bottom: 1rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    gap: 0.75rem;
+                }
+                .schedule-header h2 {
+                    margin: 0;
+                    font-size: 1.5rem;
+                    color: var(--ds-text);
+                    font-weight: 800;
+                }
+                .schedule-header p {
+                    margin: 0.25rem 0 0;
+                    color: var(--ds-text-secondary);
+                    font-size: 0.9rem;
+                }
                 .schedule-toolbar {
+                    background: rgba(255,255,255,0.72);
+                    border: 1px solid rgba(255,255,255,0.85);
+                    box-shadow: 0 4px 24px rgba(0,0,0,0.05);
                     padding: 1rem 1.25rem;
                     margin-bottom: 1rem;
-                    border-radius: 1rem;
+                    border-radius: 14px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
@@ -512,7 +554,10 @@ export default function ClassExamSchedules() {
                     margin-bottom: 1.25rem;
                 }
                 .schedule-stat-card {
-                    border-radius: 0.85rem;
+                    background: rgba(255,255,255,0.72);
+                    border: 1px solid rgba(255,255,255,0.85);
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+                    border-radius: 12px;
                     padding: 0.85rem 1rem;
                     display: flex;
                     flex-direction: column;
@@ -527,8 +572,9 @@ export default function ClassExamSchedules() {
                     line-height: 1.1;
                 }
                 .schedule-modal-content {
-                    max-width: 960px;
+                    max-width: 980px;
                     width: 95%;
+                    border-radius: 16px;
                 }
                 .schedule-form-subtitle {
                     font-size: 0.92rem;
@@ -546,18 +592,21 @@ export default function ClassExamSchedules() {
                 }
                 .schedule-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
                     gap: 1rem;
                 }
                 .schedule-card {
+                    background: rgba(255,255,255,0.72);
+                    border: 1px solid rgba(255,255,255,0.85);
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
                     padding: 1rem;
-                    border-radius: 1rem;
+                    border-radius: 14px;
                     cursor: pointer;
                     transition: transform 0.15s ease, box-shadow 0.15s ease;
                 }
                 .schedule-card:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 10px 20px rgba(31, 41, 55, 0.08);
+                    box-shadow: 0 12px 26px rgba(31, 41, 55, 0.12);
                 }
                 .schedule-card-header {
                     display: flex;
@@ -584,7 +633,51 @@ export default function ClassExamSchedules() {
                     padding-top: 0.65rem;
                     border-top: 1px dashed var(--glass-border);
                 }
+                .modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.45);
+                    backdrop-filter: blur(4px);
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1rem;
+                }
+                .modal-content {
+                    background: #fff;
+                    border-radius: 16px;
+                    width: 100%;
+                    max-height: 90vh;
+                    overflow: auto;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1rem 1.2rem;
+                    border-bottom: 1px solid var(--ds-border-light);
+                }
+                .modal-header h2 {
+                    margin: 0;
+                    font-size: 1.1rem;
+                }
+                .btn-icon {
+                    border: 1px solid var(--ds-border);
+                    background: var(--ds-bg-subtle);
+                    border-radius: 10px;
+                    width: 34px;
+                    height: 34px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
                 @media (max-width: 768px) {
+                    .schedule-page {
+                        padding: 1rem;
+                    }
                     .schedule-toolbar {
                         flex-direction: column;
                         align-items: stretch;

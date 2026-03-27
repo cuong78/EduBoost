@@ -2,11 +2,12 @@ package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.request.QuestionBankImportRequest;
 import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
-import com.fptu.eduBoostBackend.dto.response.QuestionBankImportResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
 import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
+import com.fptu.eduBoostBackend.service.FileStorageService;
 import com.fptu.eduBoostBackend.service.QuestionBankService;
+import com.fptu.eduBoostBackend.service.WordImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -14,8 +15,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -34,16 +37,21 @@ import java.util.List;
 public class QuestionBankController {
 
     private final QuestionBankService questionBankService;
+    private final WordImportService wordImportService;
+    private final FileStorageService fileStorageService;
 
     @GetMapping("/question-bank")
-    @Operation(summary = "Get questions with filters",
-            description = "Returns a list of questions filtered by lessonId, cognitiveLevelId, and sourceType")
-    public ResponseEntity<List<QuestionBankResponse>> getQuestions(
+    @Operation(summary = "Get questions with filters (paginated)",
+            description = "Returns a paginated list of questions filtered by lessonId, cognitiveLevelId, sourceType, and chapterId.")
+    public ResponseEntity<Page<QuestionBankResponse>> getQuestions(
             @Parameter(description = "Lesson ID") @RequestParam(required = false) Long lessonId,
             @Parameter(description = "Cognitive Level ID") @RequestParam(required = false) Long cognitiveLevelId,
-            @Parameter(description = "Source type") @RequestParam(required = false) QuestionSourceType sourceType) {
-        log.info("Fetching questions with filters");
-        List<QuestionBankResponse> questions = questionBankService.getQuestions(lessonId, cognitiveLevelId, sourceType);
+            @Parameter(description = "Source type") @RequestParam(required = false) QuestionSourceType sourceType,
+            @Parameter(description = "Chapter ID") @RequestParam(required = false) Long chapterId,
+            @Parameter(description = "Created By User ID") @RequestParam(required = false) Long createdById,
+            @PageableDefault(size = 20) Pageable pageable) {
+        log.info("Fetching questions with filters (paged)");
+        Page<QuestionBankResponse> questions = questionBankService.getQuestionsPaged(lessonId, cognitiveLevelId, sourceType, chapterId, createdById, pageable);
         return ResponseEntity.ok(questions);
     }
 
@@ -88,15 +96,43 @@ public class QuestionBankController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(value = "/question-bank/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Import questions from Excel",
-            description = "Imports questions from an Excel file and returns parsed questions")
-    public ResponseEntity<QuestionBankImportResponse> importFromExcel(
-            @Parameter(description = "Excel file", required = true) @RequestParam("file") MultipartFile file,
-            @Parameter(description = "Lesson ID", required = true) @RequestParam("lessonId") Long lessonId) {
-        log.info("Importing questions from Excel file: {}", file.getOriginalFilename());
-        QuestionBankImportResponse response = questionBankService.importFromExcel(file, lessonId);
-        return ResponseEntity.ok(response);
+    // ====== WORD IMPORT ======
+
+    @PostMapping(value = "/question-bank/import-word", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import questions from Word (.docx) file",
+            description = "Parses a Word document to extract questions, math formulas (LaTeX), and images (MinIO). "
+                    + "Auto-detects question types: MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK.")
+    public ResponseEntity<List<QuestionBankResponse>> importFromWord(
+            @Parameter(description = "Word (.docx) file", required = true)
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Lesson ID to associate questions with", required = true)
+            @RequestParam("lessonId") Long lessonId,
+            @Parameter(description = "Use AI to auto-classify cognitive levels")
+            @RequestParam(value = "useAiClassification", defaultValue = "true") boolean useAiClassification) {
+
+        log.info("Importing questions from Word file: {}, lessonId: {}", file.getOriginalFilename(), lessonId);
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || !fileName.toLowerCase().endsWith(".docx")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<QuestionBankResponse> questions = wordImportService.importFromWord(file, lessonId, useAiClassification);
+        return ResponseEntity.status(HttpStatus.CREATED).body(questions);
+    }
+
+    // ====== IMAGE UPLOAD ======
+
+    @PostMapping(value = "/question-bank/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload an image for a question",
+            description = "Uploads an image to MinIO and returns the object key (URL)")
+    public ResponseEntity<Map<String, String>> uploadImage(
+            @Parameter(description = "Image file", required = true)
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Uploading question image: {}", file.getOriginalFilename());
+        String objectKey = fileStorageService.storeFile(file);
+        return ResponseEntity.ok(Map.of("imageUrl", objectKey));
     }
 
     @PostMapping("/question-bank/batch")
@@ -107,18 +143,6 @@ public class QuestionBankController {
         log.info("Creating {} questions in batch", request.getQuestions().size());
         List<QuestionBankResponse> questions = questionBankService.createQuestionsBatch(request.getQuestions());
         return ResponseEntity.status(HttpStatus.CREATED).body(questions);
-    }
-
-    @GetMapping("/question-bank/template")
-    @Operation(summary = "Download Excel template",
-            description = "Downloads an Excel template for importing questions")
-    public ResponseEntity<Resource> downloadTemplate() {
-        log.info("Downloading Excel template");
-        Resource resource = questionBankService.downloadTemplate();
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=question-import-template.xlsx")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource);
     }
 
     @GetMapping("/question-bank/stats")

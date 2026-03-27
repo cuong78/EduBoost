@@ -10,6 +10,8 @@ import {
   Plus,
   Download,
   RefreshCw,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
 import { questionBankService } from "../../services/questionBankService";
@@ -55,6 +57,10 @@ const QuestionBankManagement = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const handleDownloadTemplate = () => {
+    showErrorToast("Chức năng tải template đang được phát triển");
+  };
+
   // Filters
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [subjects, setSubjects] = useState([]);
@@ -78,6 +84,12 @@ const QuestionBankManagement = () => {
   const [questions, setQuestions] = useState([]);
   const [cognitiveLevels, setCognitiveLevels] = useState([]);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const PAGE_SIZE = 20;
+
   // Stats
   const [stats, setStats] = useState(null);
 
@@ -92,6 +104,20 @@ const QuestionBankManagement = () => {
 
   // Delete confirm
   const [deletingQuestionId, setDeletingQuestionId] = useState(null);
+
+  // Bulk import
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [bulkImportFile, setBulkImportFile] = useState(null);
+  const [useAiClassification, setUseAiClassification] = useState(true);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState(null);
+
+  // Word import (single file)
+  const [showWordImportModal, setShowWordImportModal] = useState(false);
+  const [wordImportFile, setWordImportFile] = useState(null);
+  const [wordImportLessonId, setWordImportLessonId] = useState("");
+  const [wordImporting, setWordImporting] = useState(false);
+  const [wordImportResult, setWordImportResult] = useState(null);
 
   const loadSubjects = async () => {
     setLoadingSubjects(true);
@@ -158,27 +184,31 @@ const QuestionBankManagement = () => {
     }
   };
 
-  const loadQuestions = async () => {
+  const loadQuestions = async (page = currentPage) => {
     setLoadingQuestions(true);
     try {
-      const filters = {};
+      const filters = {
+        page,
+        size: PAGE_SIZE,
+      };
       if (lessonId) filters.lessonId = Number(lessonId);
       if (cognitiveLevelFilter)
         filters.cognitiveLevelId = Number(cognitiveLevelFilter);
       if (sourceTypeFilter) filters.sourceType = sourceTypeFilter;
+      if (chapterId && !lessonId) filters.chapterId = Number(chapterId);
+      if (showMyQuestionsOnly && user?.userId) filters.createdById = user.userId;
 
       const data = await questionBankService.getQuestions(filters);
-      let list = Array.isArray(data) ? data : (data?.data ?? []);
-
-      // Client-side filter by chapter if no lesson selected
-      if (chapterId && !lessonId && list.length > 0) {
-        const lessonIdsInChapter = lessons.map((l) => l.id);
-        list = list.filter((q) => lessonIdsInChapter.includes(q.lessonId));
-      }
+      const list = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
 
       setQuestions(list);
+      setTotalPages(data?.totalPages ?? 1);
+      setTotalElements(data?.totalElements ?? list.length);
+      setCurrentPage(page);
     } catch (e) {
       setQuestions([]);
+      setTotalPages(0);
+      setTotalElements(0);
       showErrorToast("Không tải được danh sách câu hỏi");
     } finally {
       setLoadingQuestions(false);
@@ -226,8 +256,9 @@ const QuestionBankManagement = () => {
   }, [chapterId]);
 
   useEffect(() => {
-    loadQuestions();
-  }, [lessonId, cognitiveLevelFilter, sourceTypeFilter]);
+    setCurrentPage(0);
+    loadQuestions(0);
+  }, [lessonId, chapterId, cognitiveLevelFilter, sourceTypeFilter, showMyQuestionsOnly]);
 
   useEffect(() => {
     loadStats();
@@ -308,12 +339,49 @@ const QuestionBankManagement = () => {
     }
   };
 
-  const handleDownloadTemplate = async () => {
+  const handleBulkImport = async () => {
+    if (!bulkImportFile) {
+      showErrorToast("Vui lòng chọn file ZIP");
+      return;
+    }
+    setBulkImporting(true);
+    setBulkImportResult(null);
     try {
-      await questionBankService.downloadTemplate();
-      showSuccessToast("Đã tải template");
+      const result = await questionBankService.bulkImport(bulkImportFile, useAiClassification);
+      setBulkImportResult(result);
+      if (result.successCount > 0) {
+        showSuccessToast(`Đã import ${result.successCount} câu hỏi thành công!`);
+        loadQuestions(0);
+        loadStats();
+      }
     } catch (e) {
-      showErrorToast("Tải template thất bại");
+      showErrorToast("Import thất bại: " + (e?.response?.data?.message || e?.message || "Lỗi"));
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  const handleWordImport = async () => {
+    if (!wordImportFile) {
+      showErrorToast("Vui lòng chọn file Word (.docx)");
+      return;
+    }
+    if (!wordImportLessonId) {
+      showErrorToast("Vui lòng chọn bài học");
+      return;
+    }
+    setWordImporting(true);
+    setWordImportResult(null);
+    try {
+      const result = await questionBankService.importFromWord(wordImportFile, wordImportLessonId, useAiClassification);
+      setWordImportResult(result);
+      showSuccessToast(`Đã import ${result.length} câu hỏi từ Word!`);
+      loadQuestions(0);
+      loadStats();
+    } catch (e) {
+      showErrorToast("Import Word thất bại: " + (e?.response?.data?.message || e?.message || "Lỗi"));
+    } finally {
+      setWordImporting(false);
     }
   };
 
@@ -449,12 +517,6 @@ const QuestionBankManagement = () => {
             <RefreshCw size={16} /> Làm mới
           </button>
           <button
-            className="btn btn-secondary"
-            onClick={handleDownloadTemplate}
-          >
-            <Download size={16} /> Tải Template
-          </button>
-          <button
             className="btn btn-primary"
             onClick={() => navigate("/teacher/create-question")}
           >
@@ -463,10 +525,38 @@ const QuestionBankManagement = () => {
         </div>
       </div>
 
+      {/* My/All tabs */}
+      <div className="question-tabs glass" style={{ display: 'flex', gap: '0', marginBottom: '16px', borderRadius: '12px', overflow: 'hidden' }}>
+        <button
+          className={`tab ${showMyQuestionsOnly ? 'active' : ''}`}
+          onClick={() => { setShowMyQuestionsOnly(true); setCurrentPage(0); }}
+          style={{
+            flex: 1, padding: '12px 20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
+            background: showMyQuestionsOnly ? 'var(--primary, #6366f1)' : 'transparent',
+            color: showMyQuestionsOnly ? '#fff' : 'inherit',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📝 Câu hỏi của tôi
+        </button>
+        <button
+          className={`tab ${!showMyQuestionsOnly ? 'active' : ''}`}
+          onClick={() => { setShowMyQuestionsOnly(false); setCurrentPage(0); }}
+          style={{
+            flex: 1, padding: '12px 20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
+            background: !showMyQuestionsOnly ? 'var(--primary, #6366f1)' : 'transparent',
+            color: !showMyQuestionsOnly ? '#fff' : 'inherit',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📚 Tất cả câu hỏi
+        </button>
+      </div>
+
       {/* Questions list */}
       <div className="questions-section glass">
         <h3>
-          <BookOpen size={18} /> Danh sách câu hỏi ({questions.length})
+          <BookOpen size={18} /> Danh sách câu hỏi ({totalElements})
         </h3>
 
         {loadingQuestions ? (
@@ -493,7 +583,7 @@ const QuestionBankManagement = () => {
                   </span>
                   {q.cognitiveLevel && (
                     <span className="cognitive-badge">
-                      {q.cognitiveLevel.level || q.cognitiveLevelName}
+                      {typeof q.cognitiveLevel === 'string' ? q.cognitiveLevel : (q.cognitiveLevel?.level || q.cognitiveLevelName)}
                     </span>
                   )}
                 </div>
@@ -544,6 +634,52 @@ const QuestionBankManagement = () => {
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage <= 0}
+              onClick={() => loadQuestions(currentPage - 1)}
+            >
+              ← Trước
+            </button>
+            <div className="pagination-pages">
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 7) {
+                  pageNum = i;
+                } else if (currentPage < 4) {
+                  pageNum = i;
+                } else if (currentPage > totalPages - 4) {
+                  pageNum = totalPages - 7 + i;
+                } else {
+                  pageNum = currentPage - 3 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    className={`btn btn-sm ${pageNum === currentPage ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => loadQuestions(pageNum)}
+                  >
+                    {pageNum + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => loadQuestions(currentPage + 1)}
+            >
+              Sau →
+            </button>
+            <span className="pagination-info">
+              Trang {currentPage + 1}/{totalPages} · {totalElements} câu hỏi
+            </span>
+          </div>
+        )}
       </div>
 
       {/* View Modal */}
@@ -574,6 +710,32 @@ const QuestionBankManagement = () => {
                 </div>
               </div>
             )}
+            {viewingQuestion.imageUrl && !viewingQuestion.questionText?.includes(viewingQuestion.imageUrl) && (
+              <div className="view-section">
+                <label>Hình ảnh câu hỏi</label>
+                <div className="view-content">
+                  <img
+                    src={`${import.meta.env.VITE_API_URL}/files/${viewingQuestion.imageUrl}`}
+                    alt="Hình ảnh câu hỏi"
+                    style={{ maxWidth: '100%', borderRadius: '8px' }}
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                </div>
+              </div>
+            )}
+            {viewingQuestion.answerImageUrl && (
+              <div className="view-section">
+                <label>Hình ảnh đáp án</label>
+                <div className="view-content">
+                  <img
+                    src={`${import.meta.env.VITE_API_URL}/files/${viewingQuestion.answerImageUrl}`}
+                    alt="Hình ảnh đáp án"
+                    style={{ maxWidth: '100%', borderRadius: '8px' }}
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                </div>
+              </div>
+            )}
             <div className="view-meta">
               <span>
                 <strong>Dạng:</strong>{" "}
@@ -585,9 +747,11 @@ const QuestionBankManagement = () => {
               </span>
               <span>
                 <strong>Mức độ:</strong>{" "}
-                {viewingQuestion.cognitiveLevel?.level ||
-                  viewingQuestion.cognitiveLevelName ||
-                  "N/A"}
+                {typeof viewingQuestion.cognitiveLevel === 'string'
+                  ? viewingQuestion.cognitiveLevel
+                  : (viewingQuestion.cognitiveLevel?.level ||
+                    viewingQuestion.cognitiveLevelName ||
+                    "N/A")}
               </span>
               <span>
                 <strong>Nguồn:</strong>{" "}
@@ -764,6 +928,142 @@ const QuestionBankManagement = () => {
         </div>
       )}
 
+      {/* Bulk Import Modal */}
+      {showBulkImportModal && (
+        <div className="modal-overlay" onClick={() => !bulkImporting && setShowBulkImportModal(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <h3><Upload size={20} /> Import hàng loạt từ ZIP</h3>
+            <p className="muted" style={{ marginBottom: '1rem' }}>
+              Cấu trúc folder: <code>Lop X / Mon / Chuong N / Bai M.[docx|xlsx]</code>
+            </p>
+            <div className="field">
+              <label>File ZIP</label>
+              <input
+                type="file"
+                accept=".zip"
+                onChange={(e) => setBulkImportFile(e.target.files[0])}
+                disabled={bulkImporting}
+              />
+            </div>
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                id="aiClassify"
+                checked={useAiClassification}
+                onChange={(e) => setUseAiClassification(e.target.checked)}
+                disabled={bulkImporting}
+              />
+              <label htmlFor="aiClassify" style={{ cursor: 'pointer', margin: 0 }}>
+                AI tự đánh mức độ nhận thức (DeepSeek)
+              </label>
+            </div>
+
+            {bulkImporting && (
+              <div className="bulk-progress">
+                <div className="spinner" />
+                <span>Đang import{useAiClassification ? ' và AI đang phân loại' : ''}... Vui lòng đợi.</span>
+              </div>
+            )}
+
+            {bulkImportResult && (
+              <div className="bulk-result">
+                <div className="result-stats">
+                  <span className="result-success">✅ {bulkImportResult.successCount} câu hỏi</span>
+                  <span>{bulkImportResult.totalFiles} files</span>
+                  {bulkImportResult.aiClassifiedCount > 0 && (
+                    <span>🤖 AI phân loại: {bulkImportResult.aiClassifiedCount}</span>
+                  )}
+                </div>
+                {bulkImportResult.byGrade && Object.keys(bulkImportResult.byGrade).length > 0 && (
+                  <div className="result-by-grade">
+                    {Object.entries(bulkImportResult.byGrade).map(([grade, count]) => (
+                      <span key={grade} className="grade-badge">{grade}: {count} câu</span>
+                    ))}
+                  </div>
+                )}
+                {bulkImportResult.errors && bulkImportResult.errors.length > 0 && (
+                  <details className="result-errors">
+                    <summary>⚠️ {bulkImportResult.errors.length} lỗi</summary>
+                    <ul>
+                      {bulkImportResult.errors.map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowBulkImportModal(false)} disabled={bulkImporting}>
+                {bulkImportResult ? 'Đóng' : 'Hủy'}
+              </button>
+              {!bulkImportResult && (
+                <button className="btn btn-primary" onClick={handleBulkImport} disabled={bulkImporting || !bulkImportFile}>
+                  {bulkImporting ? 'Đang import...' : 'Bắt đầu import'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Word Import Modal */}
+      {showWordImportModal && (
+        <div className="modal-overlay" onClick={() => !wordImporting && setShowWordImportModal(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <h3><FileText size={20} /> Import từ Word (.docx)</h3>
+            <p className="muted" style={{ marginBottom: '1rem' }}>
+              Upload file Word chứa câu hỏi. Hệ thống tự nhận diện dạng câu hỏi, công thức toán (LaTeX), và hình ảnh.
+            </p>
+            <div className="field">
+              <label>Chọn bài học</label>
+              <select value={wordImportLessonId} onChange={(e) => setWordImportLessonId(e.target.value)} disabled={wordImporting}>
+                <option value="">-- Chọn bài học --</option>
+                {lessons.map((l) => (
+                  <option key={l.id} value={l.id}>Bài {l.lessonNumber}: {l.lessonName}</option>
+                ))}
+              </select>
+              {lessons.length === 0 && <p className="muted" style={{ fontSize: '0.85rem' }}>Vui lòng chọn chương ở bộ lọc trước</p>}
+            </div>
+            <div className="field">
+              <label>File Word (.docx)</label>
+              <input type="file" accept=".docx" onChange={(e) => setWordImportFile(e.target.files[0])} disabled={wordImporting} />
+            </div>
+            <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="checkbox" id="aiClassifyWord" checked={useAiClassification} onChange={(e) => setUseAiClassification(e.target.checked)} disabled={wordImporting} />
+              <label htmlFor="aiClassifyWord" style={{ cursor: 'pointer', margin: 0 }}>AI tự đánh mức độ nhận thức</label>
+            </div>
+
+            {wordImporting && (
+              <div className="bulk-progress">
+                <div className="spinner" />
+                <span>Đang import và phân tích file Word... Vui lòng đợi.</span>
+              </div>
+            )}
+
+            {wordImportResult && (
+              <div className="bulk-result">
+                <div className="result-stats">
+                  <span className="result-success">✅ {wordImportResult.length} câu hỏi đã import</span>
+                </div>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowWordImportModal(false)} disabled={wordImporting}>
+                {wordImportResult ? 'Đóng' : 'Hủy'}
+              </button>
+              {!wordImportResult && (
+                <button className="btn btn-primary" onClick={handleWordImport} disabled={wordImporting || !wordImportFile || !wordImportLessonId}>
+                  {wordImporting ? 'Đang import...' : 'Bắt đầu import'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
                 .question-bank-page { max-width: 1200px; margin: 0 auto; }
                 .page-header { margin-bottom: 1.5rem; }
@@ -867,15 +1167,15 @@ const QuestionBankManagement = () => {
                 }
                 .source-badge.ai_generated {
                     background: rgba(16, 185, 129, 0.1);
-                    color: #10b981;
+                    color: var(--ds-success);
                 }
                 .source-badge.imported {
                     background: rgba(245, 158, 11, 0.1);
-                    color: #f59e0b;
+                    color: var(--ds-warning);
                 }
                 .cognitive-badge {
                     background: rgba(59, 130, 246, 0.1);
-                    color: #3b82f6;
+                    color: var(--ds-info);
                 }
                 .question-text {
                     font-size: 0.95rem;
@@ -911,7 +1211,7 @@ const QuestionBankManagement = () => {
                 }
                 .icon-btn.danger:hover {
                     background: rgba(239, 68, 68, 0.1);
-                    color: #ef4444;
+                    color: var(--ds-error);
                 }
 
                 /* Modal */
@@ -967,7 +1267,7 @@ const QuestionBankManagement = () => {
                 }
                 .view-content.answer {
                     background: rgba(16, 185, 129, 0.1);
-                    border-left: 3px solid #10b981;
+                    border-left: 3px solid var(--ds-success);
                 }
                 .view-content.explanation {
                     background: rgba(96, 78, 255, 0.05);
@@ -1018,11 +1318,89 @@ const QuestionBankManagement = () => {
                     color: var(--color-text-secondary);
                 }
                 .btn-danger {
-                    background: #ef4444;
+                    background: var(--ds-error);
                     color: white;
                 }
                 .btn:hover { transform: translateY(-1px); }
                 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+                .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+
+                .pagination-controls {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    margin-top: 1.5rem;
+                    padding-top: 1rem;
+                    border-top: 1px solid rgba(0,0,0,0.08);
+                    flex-wrap: wrap;
+                }
+                .pagination-pages {
+                    display: flex;
+                    gap: 0.25rem;
+                }
+                .pagination-info {
+                    font-size: 0.85rem;
+                    color: var(--color-text-secondary);
+                    margin-left: 0.75rem;
+                }
+
+                .btn-accent {
+                    background: linear-gradient(135deg, #f59e0b, #d97706);
+                    color: white;
+                }
+
+                .bulk-progress {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 1rem;
+                    background: rgba(99, 102, 241, 0.08);
+                    border-radius: 8px;
+                    margin: 1rem 0;
+                }
+                .spinner {
+                    width: 20px; height: 20px;
+                    border: 3px solid rgba(99, 102, 241, 0.2);
+                    border-top-color: #6366f1;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+                @keyframes spin { to { transform: rotate(360deg); } }
+
+                .bulk-result {
+                    padding: 1rem;
+                    background: rgba(34, 197, 94, 0.08);
+                    border-radius: 8px;
+                    margin: 1rem 0;
+                }
+                .result-stats {
+                    display: flex; gap: 1rem; flex-wrap: wrap;
+                    font-weight: 500;
+                    margin-bottom: 0.5rem;
+                }
+                .result-success { color: #16a34a; font-size: 1.1rem; }
+                .result-by-grade {
+                    display: flex; gap: 0.5rem; flex-wrap: wrap;
+                    margin-top: 0.5rem;
+                }
+                .grade-badge {
+                    background: rgba(99, 102, 241, 0.1);
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 6px;
+                    font-size: 0.85rem;
+                }
+                .result-errors {
+                    margin-top: 0.75rem;
+                    font-size: 0.85rem;
+                    color: #dc2626;
+                }
+                .result-errors ul {
+                    max-height: 150px;
+                    overflow-y: auto;
+                    padding-left: 1.25rem;
+                    margin-top: 0.5rem;
+                }
             `}</style>
     </div>
   );

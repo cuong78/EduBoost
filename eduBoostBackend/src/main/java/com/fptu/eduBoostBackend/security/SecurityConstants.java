@@ -8,9 +8,20 @@ public class SecurityConstants {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/api/auth/**",
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/refresh-token",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/auth/verify",
+            "/api/auth/google-login",
+            "/api/auth/auto-login",
             "/api/parent/validate-invitation",
-            "/api/admin/**"  // TODO: Remove after fixing role check
+            "/api/subscriptions/plans",   // Public pricing page — no auth needed
+            "/api/token_generate",        // VietQR callback: get token
+            "/bank/api/transaction-sync", // VietQR callback: payment notification
+            "/api/admin/**",  // TODO: Remove after fixing role check
+            "/api/files/**"   // Public file serving from MinIO (images in questions)
     );
 
     public static final String AUTHORIZATION_HEADER = "Authorization";

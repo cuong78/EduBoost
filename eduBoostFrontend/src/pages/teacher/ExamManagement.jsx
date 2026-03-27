@@ -10,13 +10,15 @@ import { useNavigate } from "react-router-dom";
 import { examService } from "../../services/examService";
 import { knowledgeService } from "../../services/knowledgeService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
+import { exportHtmlToPdf } from "../../utils/pdfExport";
+import MathRenderer from "../../components/common/MathRenderer";
 import "./ExamManagement.css";
 
 /* ─────────────────────────── constants ─────────────────────────── */
 const EXAM_STATUS = {
-  DRAFT:     { label: "Nháp",       color: "#6b7280", bg: "#f3f4f6", icon: <Clock     size={13}/> },
-  USED:      { label: "Đã dùng",    color: "#f59e0b", bg: "#fef3c7", icon: <CheckCircle size={13}/> },
-  PUBLISHED: { label: "Đã xuất bản",color: "#3b82f6", bg: "#dbeafe", icon: <Globe    size={13}/> },
+  DRAFT:     { label: "Nháp",       color: "var(--ds-text-secondary)", bg: "var(--ds-border-light)", icon: <Clock     size={13}/> },
+  USED:      { label: "Đã dùng",    color: "var(--ds-warning)", bg: "var(--ds-warning-bg)", icon: <CheckCircle size={13}/> },
+  PUBLISHED: { label: "Đã xuất bản",color: "var(--ds-info)", bg: "#dbeafe", icon: <Globe    size={13}/> },
 };
 const GRADE_OPTIONS = [6,7,8,9,10,11,12];
 
@@ -79,6 +81,11 @@ const ExamManagement = () => {
   const [actionLoading, setActionLoading] = useState({});
   const [exportMenuId,  setExportMenuId]  = useState(null);
   const exportRef = useRef(null);
+  
+  /* pdf export */
+  const [exportingExam, setExportingExam] = useState(null);
+  const [exportFormat,   setExportFormat]   = useState(null);
+  const exportContainerRef = useRef(null);
 
   /* close export dropdown on outside click */
   useEffect(() => {
@@ -184,15 +191,7 @@ const ExamManagement = () => {
     }
   };
 
-  const handleClone = async (exam) => {
-    setActionFor(exam.id, "clone");
-    try {
-      await examService.cloneExam(exam.id);
-      showSuccessToast("Đã sao chép thành bản nháp mới");
-      loadExams();
-    } catch { showErrorToast("Không thể sao chép"); }
-    finally { setActionFor(exam.id, null); }
-  };
+
 
   const handlePublish = async (exam) => {
     setActionFor(exam.id, "publish");
@@ -230,17 +229,31 @@ const ExamManagement = () => {
     setExportMenuId(null);
     setActionFor(exam.id, "export");
     try {
-      const blob = await examService.exportExam(exam.id, format);
-      const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = format === "answer-key" ? `${exam.examCode}-dap-an.pdf` : `${exam.examCode}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      showSuccessToast("Đã xuất PDF");
-      loadExams();
-    } catch (e) { showErrorToast(e?.response?.data?.message || "Xuất PDF thất bại"); }
-    finally { setActionFor(exam.id, null); }
+      const fullExam = await examService.getExamById(exam.id);
+      setExportFormat(format);
+      setExportingExam(fullExam);
+      
+      setTimeout(async () => {
+        try {
+          if (window.MathJax) await window.MathJax.typesetPromise();
+          const filename = format === "answer-key" ? `${fullExam.examCode}-dap-an.pdf` : `${fullExam.examCode}.pdf`;
+          await exportHtmlToPdf(exportContainerRef.current, filename);
+          if (exam.status === "DRAFT") {
+            await examService.changeExamStatus(fullExam.id, { newStatus: "USED" });
+            loadExams();
+          }
+          showSuccessToast("Đã xuất PDF");
+        } catch (e) {
+          showErrorToast("Xuất PDF thất bại");
+        } finally {
+          setExportingExam(null);
+          setActionFor(exam.id, null);
+        }
+      }, 500);
+    } catch (e) { 
+      showErrorToast(e?.response?.data?.message || "Lỗi tải chi tiết đề thi"); 
+      setActionFor(exam.id, null);
+    }
   };
 
   /* ════════════════ RENDER ════════════════ */
@@ -327,9 +340,6 @@ const ExamManagement = () => {
                         <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => openCommDetail(exam)}>
                           <Eye size={14}/> Xem chi tiết
                         </button>
-                        <button className="em-btn em-btn-ghost" style={{ flex: 1 }} onClick={() => handleClone(exam)}>
-                          <Copy size={14}/> Sao chép
-                        </button>
                       </div>
                       <div className="em-comm-date">Xuất bản: {fmtDate(exam.publishedAt || exam.createdAt)}</div>
                     </div>
@@ -399,7 +409,7 @@ const ExamManagement = () => {
                         <td className="em-code">{exam.examCode}</td>
                         <td className="em-name">
                           <span>{exam.examTitle}</span>
-                          {exam.matrixTemplateName && <span className="em-matrix-chip">📊 {exam.matrixTemplateName}</span>}
+                          {exam.matrixTemplateName && <span className="em-matrix-chip"> {exam.matrixTemplateName}</span>}
                         </td>
                         <td>{exam.subjectCode} / Khối {exam.gradeLevel}</td>
                         <td>{exam.examTypeName || exam.examTypeCode}</td>
@@ -411,7 +421,6 @@ const ExamManagement = () => {
                           <div className="em-actions">
                             <button className="em-icon-btn" title="Xem chi tiết" onClick={() => openDetail(exam)}><Eye size={15}/></button>
                             <button className="em-icon-btn" title="Thống kê" onClick={() => openStats(exam)}><BarChart2 size={15}/></button>
-                            <button className="em-icon-btn" title="Sao chép" disabled={busy} onClick={() => handleClone(exam)}><Copy size={15}/></button>
                             <div className="em-export-wrapper" ref={exportMenuId === exam.id ? exportRef : null}>
                               <button className="em-icon-btn" title="Xuất PDF" disabled={busy}
                                 onClick={() => setExportMenuId(exportMenuId === exam.id ? null : exam.id)}>
@@ -420,11 +429,11 @@ const ExamManagement = () => {
                               {exportMenuId === exam.id && (
                                 <div className="em-export-menu">
                                   <button onClick={() => handleExport(exam, "pdf")}>
-                                    <Download size={14} color="#6366f1"/>
+                                    <Download size={14} color="var(--ds-primary)"/>
                                     <span><strong>Đề thi</strong><small>Không kèm đáp án</small></span>
                                   </button>
                                   <button onClick={() => handleExport(exam, "answer-key")}>
-                                    <FileText size={14} color="#10b981"/>
+                                    <FileText size={14} color="var(--ds-success)"/>
                                     <span><strong>Đáp án &amp; đề</strong><small>Kèm đáp án đúng</small></span>
                                   </button>
                                 </div>
@@ -517,7 +526,7 @@ const ExamManagement = () => {
                           </span>
                           <span className="em-q-pts">{fmtPoints(q.points)} đ</span>
                         </div>
-                        <div className="em-q-text" dangerouslySetInnerHTML={{ __html: q.questionText || "" }}/>
+                        <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
                         <div className="em-answers">
                           {["A","B","C","D"].map((lbl, idx) => {
                             const ans = [q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3][idx];
@@ -525,7 +534,7 @@ const ExamManagement = () => {
                             return (
                               <div key={lbl} className={`em-ans ${idx === 0 ? "em-ans--correct" : ""}`}>
                                 <span className="em-ans-lbl">{lbl}.</span>
-                                <span dangerouslySetInnerHTML={{ __html: ans }}/>
+                                <MathRenderer content={ans} />
                               </div>
                             );
                           })}
@@ -542,7 +551,6 @@ const ExamManagement = () => {
                   )}
                   <button className="em-btn em-btn-secondary" onClick={() => handleExport(selectedExam, "pdf")}><Download size={15}/> Xuất đề (PDF)</button>
                   <button className="em-btn em-btn-secondary" onClick={() => handleExport(selectedExam, "answer-key")}><FileText size={15}/> Xuất đáp án</button>
-                  <button className="em-btn em-btn-ghost" onClick={async () => { await handleClone(selectedExam); setShowDetail(false); }}><Copy size={15}/> Sao chép</button>
                 </div>
               </div>
             ) : null}
@@ -556,7 +564,7 @@ const ExamManagement = () => {
           <div className="em-modal" onClick={e => e.stopPropagation()}>
             <div className="em-modal-header">
               <div>
-                <h2>📊 Thống kê — {selectedExam?.examTitle}</h2>
+                <h2> Thống kê — {selectedExam?.examTitle}</h2>
                 <p className="em-modal-meta">{selectedExam?.examCode}</p>
               </div>
               <button className="em-close" onClick={() => setShowStats(false)}><X size={20}/></button>
@@ -608,7 +616,7 @@ const ExamManagement = () => {
       {showDeleteConfirm && (
         <div className="em-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="em-confirm" onClick={e => e.stopPropagation()}>
-            <AlertTriangle size={40} color="#ef4444"/>
+            <AlertTriangle size={40} color="var(--ds-error)"/>
             <h3>Xác nhận xóa đề thi?</h3>
             <p><strong>{deletingExam?.examTitle}</strong> ({deletingExam?.examCode})</p>
             <p className="em-warn">Hành động này không thể hoàn tác.</p>
@@ -650,7 +658,7 @@ const ExamManagement = () => {
                     </div>
                   ))}
                 </div>
-                <h3 className="em-section-title">📋 Danh sách câu hỏi ({commDetail.questions?.length ?? 0}) — Chỉ xem</h3>
+                <h3 className="em-section-title"> Danh sách câu hỏi ({commDetail.questions?.length ?? 0}) — Chỉ xem</h3>
                 {!commDetail.questions?.length ? (
                   <p className="em-empty-msg">Đề chưa có câu hỏi hiển thị.</p>
                 ) : (
@@ -662,7 +670,7 @@ const ExamManagement = () => {
                           {q.cognitiveLevelName && <span className="em-chip em-chip--level">{q.cognitiveLevelName}</span>}
                           <span className="em-q-pts">{fmtPoints(q.points)} đ</span>
                         </div>
-                        <div className="em-q-text" dangerouslySetInnerHTML={{ __html: q.questionText || "" }}/>
+                        <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
                         <div className="em-answers">
                           {[q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3].map((ans, idx) => {
                             if (!ans) return null;
@@ -670,7 +678,7 @@ const ExamManagement = () => {
                             return (
                               <div key={idx} className="em-ans">
                                 <span className="em-ans-lbl">{labels[idx]}.</span>
-                                <span dangerouslySetInnerHTML={{ __html: ans }}/>
+                                <MathRenderer content={ans} />
                               </div>
                             );
                           })}
@@ -680,13 +688,82 @@ const ExamManagement = () => {
                   </div>
                 )}
                 <div className="em-modal-footer">
-                  <button className="em-btn em-btn-secondary"
-                    onClick={() => { handleClone(commDetail); setShowCommDetail(false); setCommDetail(null); }}>
-                    <Copy size={14}/> Sao chép về đề của tôi
-                  </button>
                 </div>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+      {/* ════════ HIDDEN PDF EXPORT CONTAINER ════════ */}
+      {exportingExam && (
+        <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+          <style>{`
+            .pdf-only-header { display: none; }
+            .pdf-exporting .pdf-only-header { display: block !important; margin-bottom: 20px;}
+            .pdf-exporting.q-list { gap: 12px !important; padding: 20px !important; color: black !important; font-family: "Times New Roman", Times, serif; background: white; width: 800px; }
+            .pdf-exporting .q-item { border: none !important; box-shadow: none !important; background: white !important; padding: 0 !important; margin-bottom: 15px !important; page-break-inside: avoid; }
+            .pdf-exporting .q-num { font-weight: bold !important; font-size: 16px !important; color: black !important; }
+            .pdf-exporting .q-text { font-size: 16px !important; color: black !important; margin-bottom: 8px !important; }
+            .pdf-exporting .exam-answers { margin-top: 0 !important; gap: 4px !important; display: flex; flex-direction: column; }
+            .pdf-exporting .exam-option { display: flex; gap: 8px; font-size: 15px !important; color: black !important; padding: 2px 0; }
+            .pdf-exporting .option-label { font-weight: bold !important; }
+            .pdf-exporting .exam-option.correct-marked { font-weight: bold !important; }
+            .pdf-exporting .exam-option.correct-marked .option-label,
+            .pdf-exporting .exam-option.correct-marked .option-content * { color: var(--ds-warning-text) !important; font-weight: bold !important; text-decoration: underline !important; }
+            .pdf-exporting .option-content {
+              min-width: 0 !important;
+              word-break: break-word !important;
+              overflow-wrap: break-word !important;
+            }
+          `}</style>
+          
+          <div ref={exportContainerRef} className="q-list" style={{ backgroundColor: 'white' }}>
+            {/* Header only for PDF Export */}
+            <div className="pdf-only-header">
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", color: "black" }}>
+                <div style={{ textAlign: "center", fontWeight: "normal", fontSize: "16px" }}>
+                  TRƯỜNG: ...........................................<br/>
+                  HỌ TÊN: ...........................................<br/>
+                  LỚP: ...........................................
+                </div>
+                <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "16px" }}>
+                  MÃ ĐỀ: {exportingExam.examCode || "........."}
+                </div>
+              </div>
+              <h2 style={{ textAlign: "center", marginBottom: "8px", color: "black", width: "100%", justifyContent: "center", textTransform: "uppercase" }}>
+                {exportingExam.examTitle || "ĐỀ KIỂM TRA"}
+              </h2>
+              <div style={{ textAlign: "center", fontSize: "18px", marginBottom: "5px", color: "black", fontWeight: "bold" }}>
+                MÔN: {exportingExam.subjectName?.toUpperCase()}
+              </div>
+              <div style={{ textAlign: "center", fontSize: "16px", marginBottom: "20px", color: "black", fontStyle: "italic" }}>
+                Thời gian làm bài: {exportingExam.examTypeCode === "15MIN" ? "15" : exportingExam.examTypeCode === "45MIN" ? "45" : exportingExam.examTypeCode === "MIDTERM" ? "60" : exportingExam.examTypeCode === "FINAL" ? "90" : "..."} phút (không kể thời gian phát đề)
+              </div>
+              <hr style={{ borderTop: "2px solid #000", marginBottom: "20px" }} />
+            </div>
+
+            {exportingExam.questions?.map((q, idx) => (
+              <div key={q.id} className="q-item">
+                <div className="q-top" style={{ marginBottom: "2px" }}>
+                  <span className="q-num">Câu {q.orderNumber || idx + 1}: </span>
+                </div>
+                <div className="q-text"><MathRenderer content={q.questionText || ""} /></div>
+                
+                <div className="exam-answers">
+                  {["A", "B", "C", "D"].map((lbl, aIdx) => {
+                    const ans = [q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3][aIdx];
+                    if (!ans) return null;
+                    const isCorrect = aIdx === 0 && exportFormat === "answer-key";
+                    return (
+                      <div key={lbl} className={`exam-option ${isCorrect ? "correct-marked" : ""}`}>
+                        <span className="option-label">{lbl}.</span>
+                        <span className="option-content"><MathRenderer content={ans} /></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

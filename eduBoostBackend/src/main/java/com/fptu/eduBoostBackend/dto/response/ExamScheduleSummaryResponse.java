@@ -28,6 +28,7 @@ public class ExamScheduleSummaryResponse {
 
     private String scoreRevealMode;
     private LocalDateTime resultsAnnouncedAt;
+    private Boolean hasPassword;
 
     /** Populated for student upcoming list only. */
     private Boolean studentSubmitted;

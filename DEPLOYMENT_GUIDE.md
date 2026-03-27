@@ -181,6 +181,9 @@ MINIO_ROOT_PASSWORD=minioadmin123
 MINIO_BUCKET_NAME=eduboost
 AI_DEEPSEEK_API_KEY=sk-
 AI_DEEPSEEK_MODEL=deepseek-chat
+VIETQR_BANK_CODE=TPB
+VIETQR_ACCOUNT_NO=78174803882
+VIETQR_ACCOUNT_NAMECAO LE ANH CUONG
 ```
 
 **⚠️ QUAN TRỌNG**: 
@@ -266,6 +269,8 @@ sudo chmod 600 nginx/ssl/key.pem
 cd /opt/eduboost
 
 # Build và start tất cả services với docker-compose.prod.yml
+docker-compose -f docker-compose.prod.yml down -v
+
 docker-compose -f docker-compose.prod.yml up -d --build
 
 # Xem logs
@@ -601,3 +606,4 @@ docker system prune -a
 ```
 
 
+git pull && docker-compose -f docker-compose.prod.yml build frontend backend && docker-compose -f docker-compose.prod.yml up -d frontend backend

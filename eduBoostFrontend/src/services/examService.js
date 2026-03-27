@@ -394,8 +394,9 @@ export const examService = {
      * @param {number} examId
      * @param {number} [scheduleId] - optional exam schedule id to enforce start window
      */
-    startExamAttempt: (examId, scheduleId) => {
+    startExamAttempt: (examId, scheduleId, schedulePassword) => {
         const payload = scheduleId ? { examId, scheduleId } : { examId };
+        if (schedulePassword) payload.schedulePassword = schedulePassword;
         return apiClient
             .post(API.STUDENT_EXAM_ATTEMPT_START, payload)
             .then((res) => res.data);
@@ -453,6 +454,9 @@ export const examService = {
      */
     getUpcomingExams: () =>
         apiClient.get(API.STUDENT_EXAMS_UPCOMING).then((res) => res.data),
+
+    getStudentScheduleAttempts: (scheduleId) =>
+        apiClient.get(API.STUDENT_EXAM_SCHEDULE_ATTEMPTS(scheduleId)).then((res) => res.data),
 
     /**
      * Report a lockdown violation to the backend.

@@ -35,20 +35,20 @@ public class MathGrade11Initializer {
         Chapter chap2 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(2)
                 .chapterName("Dãy số, cấp số cộng và cấp số nhân")
                 .description("Chương II: Dãy số, cấp số cộng và cấp số nhân").build());
-        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(5)
                 .lessonName("Dãy số").description("Khái niệm dãy số và cách cho dãy số").build());
-        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(6)
                 .lessonName("Cấp số cộng").description("Định nghĩa và các tính chất của cấp số cộng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(7)
                 .lessonName("Cấp số nhân").description("Định nghĩa và các tính chất của cấp số nhân").build());
 
         // Chương 3: Các số đặc trưng đo xu thế trung tâm của mẫu số liệu ghép nhóm
         Chapter chap3 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(3)
                 .chapterName("Các số đặc trưng đo xu thế trung tâm của mẫu số liệu ghép nhóm")
                 .description("Chương III: Các số đặc trưng đo xu thế trung tâm của mẫu số liệu ghép nhóm").build());
-        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(8)
                 .lessonName("Mẫu số liệu ghép nhóm").description("Khái niệm mẫu số liệu ghép nhóm").build());
-        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(9)
                 .lessonName("Các số đặc trưng đo xu thế trung tâm")
                 .description("Số trung bình, trung vị và mốt của mẫu số liệu ghép nhóm").build());
 
@@ -56,42 +56,42 @@ public class MathGrade11Initializer {
         Chapter chap4 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(4)
                 .chapterName("Quan hệ song song trong không gian")
                 .description("Chương IV: Quan hệ song song trong không gian").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(10)
                 .lessonName("Đường thẳng và mặt phẳng trong không gian")
                 .description("Vị trí tương đối của đường thẳng và mặt phẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(11)
                 .lessonName("Hai đường thẳng song song")
                 .description("Điều kiện và tính chất của hai đường thẳng song song").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(12)
                 .lessonName("Đường thẳng và mặt phẳng song song")
                 .description("Điều kiện song song giữa đường thẳng và mặt phẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(4)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(13)
                 .lessonName("Hai mặt phẳng song song")
                 .description("Điều kiện và tính chất của hai mặt phẳng song song").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(5)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(14)
                 .lessonName("Phép chiếu song song").description("Khái niệm và ứng dụng của phép chiếu song song").build());
 
         // Chương 5: Giới hạn. Hàm số liên tục
         Chapter chap5 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(5)
                 .chapterName("Giới hạn. Hàm số liên tục").description("Chương V: Giới hạn. Hàm số liên tục").build());
-        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(15)
                 .lessonName("Giới hạn của dãy số").description("Khái niệm và các dạng giới hạn của dãy số").build());
-        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(16)
                 .lessonName("Giới hạn của hàm số").description("Giới hạn của hàm số tại một điểm").build());
-        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(17)
                 .lessonName("Hàm số liên tục").description("Khái niệm và tính chất của hàm số liên tục").build());
 
         // Chương 6: Hàm số mũ và hàm số lôgarit
         Chapter chap6 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(6)
                 .chapterName("Hàm số mũ và hàm số lôgarit").description("Chương VI: Hàm số mũ và hàm số lôgarit").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(18)
                 .lessonName("Lũy thừa với số mũ thực").description("Khái niệm và các tính chất của lũy thừa").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(19)
                 .lessonName("Lôgarit").description("Khái niệm và các tính chất của lôgarit").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(20)
                 .lessonName("Hàm số mũ và hàm số lôgarit")
                 .description("Đồ thị và tính chất của hàm số mũ và hàm số lôgarit").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(4)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(21)
                 .lessonName("Phương trình, bất phương trình mũ và lôgarit")
                 .description("Giải phương trình và bất phương trình mũ, lôgarit").build());
 
@@ -99,41 +99,41 @@ public class MathGrade11Initializer {
         Chapter chap7 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(7)
                 .chapterName("Quan hệ vuông góc trong không gian")
                 .description("Chương VII: Quan hệ vuông góc trong không gian").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(22)
                 .lessonName("Hai đường thẳng vuông góc").description("Điều kiện vuông góc của hai đường thẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(23)
                 .lessonName("Đường thẳng vuông góc với mặt phẳng")
                 .description("Điều kiện vuông góc giữa đường thẳng và mặt phẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(24)
                 .lessonName("Phép chiếu vuông góc. Góc giữa đường thẳng và mặt phẳng")
                 .description("Khái niệm phép chiếu vuông góc và góc trong không gian").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(4)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(25)
                 .lessonName("Hai mặt phẳng vuông góc").description("Điều kiện vuông góc của hai mặt phẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(5)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(26)
                 .lessonName("Khoảng cách").description("Khoảng cách giữa điểm, đường thẳng và mặt phẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(6)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(27)
                 .lessonName("Thể tích").description("Công thức tính thể tích các khối hình học").build());
 
         // Chương 8: Các quy tắc tính xác suất
         Chapter chap8 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(8)
                 .chapterName("Các quy tắc tính xác suất").description("Chương VIII: Các quy tắc tính xác suất").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(28)
                 .lessonName("Biến cố hợp, biến cố giao, biến cố độc lập")
                 .description("Các loại biến cố trong xác suất").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(29)
                 .lessonName("Công thức cộng xác suất").description("Công thức cộng xác suất của các biến cố").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(30)
                 .lessonName("Công thức nhân xác suất cho hai biến cố độc lập")
                 .description("Công thức nhân xác suất cho các biến cố độc lập").build());
 
         // Chương 9: Đạo hàm
         Chapter chap9 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(11).chapterNumber(9)
                 .chapterName("Đạo hàm").description("Chương IX: Đạo hàm").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(31)
                 .lessonName("Định nghĩa và ý nghĩa của đạo hàm").description("Khái niệm đạo hàm và ý nghĩa hình học").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(32)
                 .lessonName("Các quy tắc tính đạo hàm").description("Các quy tắc và công thức tính đạo hàm").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(33)
                 .lessonName("Đạo hàm cấp hai").description("Khái niệm và ứng dụng của đạo hàm cấp hai").build());
     }
 }

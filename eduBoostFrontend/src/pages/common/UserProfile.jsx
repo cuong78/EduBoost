@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { User, Lock, Camera, BookOpen, FileCheck, Save, Bell, Moon, Volume2 } from 'lucide-react';
+import { User, Lock, Camera, BookOpen, FileCheck, Save, Bell, Moon, Volume2, X, Eye, EyeOff } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { showSuccessToast } from '../../utils/show-toast';
+import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
+import { authService } from '../../services/authService';
 
 import { useAuth } from '../../hooks/useAuth';
 
@@ -13,6 +14,13 @@ const UserProfile = () => {
 
     const [activeTab, setActiveTab] = useState(initialTab);
     const [isEditing, setIsEditing] = useState(false);
+    
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [showOldPassword, setShowOldPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Initial state from authUser
     const [user, setUser] = useState({
@@ -54,6 +62,33 @@ const UserProfile = () => {
             setIsEditing(false);
             showSuccessToast('Cập nhật thông tin thành công!');
         }, 500);
+    };
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        try {
+            if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                showErrorToast('Mật khẩu mới và xác nhận mật khẩu không khớp');
+                return;
+            }
+            if (passwordForm.newPassword.length < 6) {
+                showErrorToast('Mật khẩu mới phải có ít nhất 6 ký tự');
+                return;
+            }
+            setIsChangingPassword(true);
+            await authService.changePassword(
+                passwordForm.oldPassword,
+                passwordForm.newPassword,
+                passwordForm.confirmPassword
+            );
+            showSuccessToast('Đổi mật khẩu thành công');
+            setShowPasswordModal(false);
+            setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (err) {
+            showErrorToast(err.response?.data?.message || err.message || 'Đổi mật khẩu thất bại');
+        } finally {
+            setIsChangingPassword(false);
+        }
     };
 
     return (
@@ -147,7 +182,7 @@ const UserProfile = () => {
                                     <Lock size={20} className="text-secondary" />
                                     <span>Mật khẩu</span>
                                 </div>
-                                <button className="btn-text">Đổi mật khẩu</button>
+                                <button className="btn-text" onClick={() => setShowPasswordModal(true)}>Đổi mật khẩu</button>
                             </div>
                         </div>
                     )}
@@ -223,6 +258,87 @@ const UserProfile = () => {
                     )}
                 </div>
             </div>
+
+            {showPasswordModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content glass fade-in">
+                        <div className="modal-header">
+                            <h3>Đổi mật khẩu</h3>
+                            <button className="btn-icon" onClick={() => setShowPasswordModal(false)}><X size={18} /></button>
+                        </div>
+                        <form className="profile-form" style={{ marginTop: '20px' }} onSubmit={handleChangePassword}>
+                            <div className="form-group">
+                                <label>Mật khẩu hiện tại</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showOldPassword ? "text" : "password"}
+                                        required
+                                        value={passwordForm.oldPassword}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                                        style={{ paddingRight: '40px' }}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle"
+                                        onClick={() => setShowOldPassword(!showOldPassword)}
+                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex' }}
+                                    >
+                                        {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Mật khẩu mới</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showNewPassword ? "text" : "password"}
+                                        required
+                                        value={passwordForm.newPassword}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                        style={{ paddingRight: '40px' }}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex' }}
+                                    >
+                                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Nhập lại mật khẩu mới</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        required
+                                        value={passwordForm.confirmPassword}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                        style={{ paddingRight: '40px' }}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex' }}
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                <button type="button" className="btn btn-outline" onClick={() => setShowPasswordModal(false)} disabled={isChangingPassword}>
+                                    Hủy
+                                </button>
+                                <button type="submit" className="btn btn-primary" disabled={isChangingPassword}>
+                                    {isChangingPassword ? 'Đang cập nhật...' : 'Xác nhận'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 .profile-container {
@@ -422,7 +538,7 @@ const UserProfile = () => {
                     align-items: center;
                     justify-content: center;
                 }
-                .bg-indigo { background: #6366f1; }
+                .bg-indigo { background: var(--ds-primary); }
                 .bg-orange { background: #f97316; }
 
                 .history-info { 
@@ -476,6 +592,31 @@ const UserProfile = () => {
                 input:checked + .slider:before {
                     transform: translateX(22px);
                 }
+
+                .modal-overlay {
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+                .modal-content {
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 16px;
+                    width: 90%;
+                    max-width: 450px;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                }
+                .modal-header h3 { margin: 0; font-size: 1.25rem; color: var(--color-text-primary); }
 
                 .fade-in { animation: fadeIn 0.3s ease-out; }
             `}</style>

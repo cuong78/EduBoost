@@ -35,7 +35,10 @@ public class StudentExamAttemptController {
     @Operation(summary = "Start or resume an exam attempt for the current student")
     public ResponseEntity<AttemptStartResponse> startAttempt(@Valid @RequestBody AttemptStartRequest request) {
         log.info("Student starting exam attempt for examId={} scheduleId={}", request.getExamId(), request.getScheduleId());
-        AttemptStartResponse response = examAttemptService.startAttempt(request.getExamId(), request.getScheduleId());
+        AttemptStartResponse response = examAttemptService.startAttempt(
+                request.getExamId(),
+                request.getScheduleId(),
+                request.getSchedulePassword());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

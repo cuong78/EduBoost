@@ -383,24 +383,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void changeUserPassword(String oldPassword, String newPassword) {
         // Get current authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
+        String username = null;
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        } else {
+            username = authentication.getName();
+        }
 
         User user = userRepository
                 .findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
 
         // Verify old password matches
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new BadRequestException("Old password is incorrect");
+            throw new BadRequestException("Mật khẩu cũ không chính xác");
         }
 
         // Fixed: Use efficient blank string check
         if (isBlankString(newPassword)) {
-            throw new BadRequestException("New password cannot be empty");
+            throw new BadRequestException("Mật khẩu mới không được để trống");
         }
 
         if (newPassword.equals(oldPassword)) {
-            throw new BadRequestException("New password must be different from old password");
+            throw new BadRequestException("Mật khẩu mới phải khác mật khẩu hiện tại");
         }
 
         // Update password

@@ -76,7 +76,7 @@ const CreateQuestion = () => {
   const [cognitiveLevels, setCognitiveLevels] = useState([]);
   const [loadingCognitiveLevels, setLoadingCognitiveLevels] = useState(false);
 
-  // Tab 2: Import from template file (Excel/PDF)
+  // Tab 2: Import from Word file (.docx)
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importedQuestions, setImportedQuestions] = useState([]);
@@ -278,17 +278,18 @@ const CreateQuestion = () => {
     }
   };
 
-  // Tab 2: Import from template file (Excel/PDF) - Backend parse, no AI
+  // Tab 2: Import from Word file (.docx) - Backend parse
   const handleImportFile = async () => {
     if (!lessonId) return showErrorToast("Vui lòng chọn bài học");
     if (!importFile) return showErrorToast("Vui lòng chọn file");
     setImporting(true);
     try {
-      const response = await questionBankService.importFromExcel(
+      const response = await questionBankService.importFromWord(
         importFile,
         Number(lessonId),
+        true, // useAiClassification
       );
-      const questions = response.questions || [];
+      const questions = Array.isArray(response) ? response : (response.questions || response.importedQuestions || []);
       // Map to include cognitiveLevelId (default to first if available)
       const mappedQuestions = questions.map((q) => ({
         ...q,
@@ -297,15 +298,9 @@ const CreateQuestion = () => {
           (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null),
       }));
       setImportedQuestions(mappedQuestions);
-      if (response.errors && response.errors.length > 0) {
-        showErrorToast(
-          `Import thành công ${response.validRows} câu, có ${response.errors.length} lỗi`,
-        );
-      } else {
-        showSuccessToast(
-          `Đã import được ${response.validRows} câu hỏi từ template`,
-        );
-      }
+      showSuccessToast(
+        `Đã import và lưu ${mappedQuestions.length} câu hỏi vào ngân hàng câu hỏi`,
+      );
     } catch (e) {
       showErrorToast(
         "Import thất bại: " +
@@ -316,74 +311,54 @@ const CreateQuestion = () => {
     }
   };
 
-  const handleDownloadTemplate = async () => {
-    try {
-      await questionBankService.downloadTemplate();
-      showSuccessToast("Đã tải template thành công");
-    } catch (e) {
-      showErrorToast(
-        "Tải template thất bại: " +
-          (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
-      );
-    }
+  const handleDownloadTemplate = () => {
+    questionBankService.downloadWordTemplate();
+    showSuccessToast("Đã tải hướng dẫn template");
   };
 
   const handleEditImportedQuestion = (index) => {
     setEditingQuestionIndex(index);
   };
 
-  const handleSaveImportedQuestion = (index, updated) => {
-    const newList = [...importedQuestions];
-    newList[index] = { ...newList[index], ...updated };
-    setImportedQuestions(newList);
-    setEditingQuestionIndex(null);
-    showSuccessToast("Đã cập nhật câu hỏi");
-  };
-
-  // Show import preview
-  const handleShowImportPreview = () => {
-    if (!lessonId) return showErrorToast("Vui lòng chọn bài học");
-    if (importedQuestions.length === 0)
-      return showErrorToast("Chưa có câu hỏi để xem trước");
-    setShowImportPreview(true);
-  };
-
-  const handleSaveAllImported = async () => {
-    if (!lessonId) return showErrorToast("Vui lòng chọn bài học");
-    if (importedQuestions.length === 0)
-      return showErrorToast("Chưa có câu hỏi để lưu");
-    setSavingImported(true);
+  const handleSaveImportedQuestion = async (index, updated) => {
+    const question = importedQuestions[index];
+    if (!question?.id) {
+      showErrorToast("Không tìm thấy ID câu hỏi để cập nhật");
+      return;
+    }
     try {
-      const questions = importedQuestions.map((q) => ({
-        lessonId: Number(lessonId),
-        questionText: q.questionText || "",
-        correctAnswer: q.correctAnswer || "",
-        explanation: q.explanation || null,
-        questionType: q.questionType || "MULTIPLE_CHOICE",
-        cognitiveLevelId:
-          q.cognitiveLevelId ||
-          (cognitiveLevels.length > 0 ? cognitiveLevels[0].id : null),
-        sourceType: "IMPORTED",
-      }));
-      await questionBankService.createQuestionsBatch(questions);
-      showSuccessToast(
-        "Đã lưu " + importedQuestions.length + " câu hỏi vào ngân hàng",
-      );
-      setImportedQuestions([]);
-      setShowImportPreview(false);
+      await questionBankService.updateQuestion(question.id, {
+        ...question,
+        ...updated,
+      });
+      const newList = [...importedQuestions];
+      newList[index] = { ...newList[index], ...updated };
+      setImportedQuestions(newList);
+      setEditingQuestionIndex(null);
+      showSuccessToast("Đã cập nhật câu hỏi thành công");
     } catch (e) {
       showErrorToast(
-        "Lưu thất bại: " +
+        "Cập nhật thất bại: " +
           (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
       );
-    } finally {
-      setSavingImported(false);
     }
   };
 
-  const handleDeleteImportedQuestion = (index) => {
+  const handleDeleteImportedQuestion = async (index) => {
+    const question = importedQuestions[index];
+    if (question?.id) {
+      try {
+        await questionBankService.deleteQuestion(question.id);
+        showSuccessToast("Đã xóa câu hỏi khỏi ngân hàng");
+      } catch (e) {
+        showErrorToast(
+          "Xóa thất bại: " +
+            (e?.response?.data?.message || e?.message || "Lỗi không xác định"),
+        );
+        return;
+      }
+    }
     setImportedQuestions(importedQuestions.filter((_, i) => i !== index));
-    showSuccessToast("Đã xóa câu hỏi");
   };
 
   // Tab 3: AI from resource
@@ -944,32 +919,38 @@ const CreateQuestion = () => {
         </div>
       )}
 
-      {/* Tab 2: Import from template file (Excel/PDF) */}
+      {/* Tab 2: Import từ file Word (.docx) */}
       {activeTab === "import" && (
         <div className="tab-content glass">
           <h3>
-            <FileUp size={18} /> Import từ template Excel/PDF
+            <FileUp size={18} /> Import từ file Word
           </h3>
           <div className="info-box">
             <p>
-              <strong>Format template:</strong> Câu hỏi | Câu trả lời |
-              Explanation | Dạng câu hỏi
+              <strong>Định dạng file Word (.docx):</strong>
             </p>
+            <ul style={{ margin: '8px 0', paddingLeft: '20px', fontSize: '0.9rem' }}>
+              <li>Mỗi câu bắt đầu bằng <code>Câu N:</code> (N là số thứ tự)</li>
+              <li>Đáp án: <code>A.</code> <code>B.</code> <code>C.</code> <code>D.</code></li>
+              <li>Đáp án đúng: <code>Đáp án: A</code> (hoặc B/C/D)</li>
+              <li>Lời giải: <code>Lời giải: [nội dung]</code> (tùy chọn)</li>
+              <li>Hỗ trợ hình ảnh và công thức toán (Equation Editor)</li>
+            </ul>
             <button className="btn-link" onClick={handleDownloadTemplate}>
-              <FileUp size={16} /> Tải template mẫu
+              <FileUp size={16} /> Tải hướng dẫn mẫu
             </button>
           </div>
           <div className="field">
-            <label>Upload file template</label>
+            <label>Upload file Word (.docx)</label>
             <div className="file-input-wrapper">
               <input
                 type="file"
                 id="import-file"
-                accept=".xlsx,.xls,.pdf"
+                accept=".docx"
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
               />
               <label htmlFor="import-file" className="file-label">
-                {importFile ? importFile.name : "Choose File"}
+                {importFile ? importFile.name : "Chọn file .docx"}
               </label>
             </div>
             {importFile && (
@@ -993,7 +974,7 @@ const CreateQuestion = () => {
               </div>
             )}
             <small className="muted">
-              Hỗ trợ file Excel (.xlsx, .xls) hoặc PDF.
+              Chỉ hỗ trợ file Word (.docx). Hình ảnh trong file sẽ được tự động upload.
             </small>
           </div>
           <button
@@ -1002,21 +983,22 @@ const CreateQuestion = () => {
             disabled={!lessonId || !importFile || importing}
           >
             {importing ? (
-              "Đang parse file..."
+              "Đang import và phân tích..."
             ) : (
               <>
-                <Upload size={16} /> Import và parse file
+                <Upload size={16} /> Import từ Word
               </>
             )}
           </button>
 
-          {importedQuestions.length > 0 && (
-            <>
-              {!showImportPreview ? (
-                <div className="imported-questions">
-                  <h4>
-                    Danh sách câu hỏi đã import ({importedQuestions.length})
-                  </h4>
+           {importedQuestions.length > 0 && (
+            <div className="imported-questions">
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ✅ Đã lưu {importedQuestions.length} câu hỏi vào ngân hàng
+                <span style={{ fontSize: '0.8rem', color: 'var(--ds-muted)', fontWeight: 400 }}>
+                  (Nhấn "Sửa" để chỉnh sửa từng câu)
+                </span>
+              </h4>
                   {importedQuestions.map((q, idx) => (
                     <div
                       key={idx}
@@ -1104,7 +1086,7 @@ const CreateQuestion = () => {
                               >
                                 <small
                                   style={{
-                                    color: "#10b981",
+                                    color: "var(--ds-success)",
                                     fontWeight: "600",
                                   }}
                                 >
@@ -1248,7 +1230,7 @@ const CreateQuestion = () => {
                               <span
                                 style={{
                                   fontSize: "0.75rem",
-                                  color: "#f59e0b",
+                                  color: "var(--ds-warning)",
                                   padding: "2px 8px",
                                   background: "rgba(245,158,11,0.1)",
                                   borderRadius: "4px",
@@ -1292,97 +1274,8 @@ const CreateQuestion = () => {
                       )}
                     </div>
                   ))}
-                  <div className="actions">
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleShowImportPreview}
-                      disabled={!lessonId || importedQuestions.length === 0}
-                    >
-                      <Eye size={16} /> Xác nhận
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="preview-container">
-                  <h4>
-                    <Eye size={18} /> Xem trước trước khi lưu (
-                    {importedQuestions.length} câu hỏi)
-                  </h4>
-                  <p className="muted" style={{ marginBottom: "1rem" }}>
-                    Kiểm tra lại các câu hỏi trước khi lưu vào ngân hàng câu
-                    hỏi.
-                  </p>
-                  <div className="preview-questions-list">
-                    {importedQuestions.map((q, idx) => (
-                      <div
-                        key={idx}
-                        className="preview-card"
-                        style={{ marginBottom: "1rem" }}
-                      >
-                        <div className="question-header">
-                          <span className="question-number">Câu {idx + 1}</span>
-                          <span className="question-type-badge">
-                            {QUESTION_TYPES.find(
-                              (t) => t.value === q.questionType,
-                            )?.label || q.questionType}
-                          </span>
-                          {q.cognitiveLevelId && (
-                            <span className="cognitive-badge">
-                              {cognitiveLevels.find(
-                                (l) => l.id === q.cognitiveLevelId,
-                              )?.level || ""}
-                            </span>
-                          )}
-                        </div>
-                        <div className="preview-section">
-                          <label>Câu hỏi</label>
-                          <div className="preview-content">
-                            <MathRenderer content={q.questionText || "—"} />
-                          </div>
-                        </div>
-                        <div className="preview-section">
-                          <label>Đáp án đúng</label>
-                          <div className="preview-content answer-highlight">
-                            <MathRenderer content={q.correctAnswer || "—"} />
-                          </div>
-                        </div>
-                        {q.explanation && (
-                          <div className="preview-section">
-                            <label>Giải thích</label>
-                            <div className="preview-content explanation-style">
-                              <MathRenderer content={q.explanation} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="actions preview-actions">
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setShowImportPreview(false)}
-                    >
-                      <Edit2 size={16} /> Quay lại chỉnh sửa
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleSaveAllImported}
-                      disabled={savingImported}
-                    >
-                      {savingImported ? (
-                        "Đang lưu..."
-                      ) : (
-                        <>
-                          <Save size={16} /> Lưu tất cả (
-                          {importedQuestions.length} câu)
-                        </>
-                      )}
-                    </button>
-                  </div>
                 </div>
               )}
-            </>
-          )}
         </div>
       )}
 
@@ -1397,7 +1290,7 @@ const CreateQuestion = () => {
           ) : resources.length === 0 ? (
             <p className="muted">
               Chưa có tài nguyên trong bài học này. Vui lòng upload tài nguyên
-              (PDF/DOCX) trước.
+              (DOCX) trước.
             </p>
           ) : (
             <>
@@ -1419,7 +1312,7 @@ const CreateQuestion = () => {
                   </select>
                   <small className="muted">
                     Chỉ hiển thị tài nguyên đã được trích xuất nội dung
-                    (PDF/DOCX)
+                    (DOCX)
                   </small>
                 </div>
                 <div className="field">
@@ -1956,7 +1849,7 @@ const CreateQuestion = () => {
                                         >
                                           <small
                                             style={{
-                                              color: "#10b981",
+                                              color: "var(--ds-success)",
                                               fontWeight: "600",
                                             }}
                                           >
@@ -2310,7 +2203,7 @@ const CreateQuestion = () => {
                     gap: 0.5rem;
                 }
                 .file-info span:first-child {
-                    color: #10b981;
+                    color: var(--ds-success);
                     font-weight: 500;
                 }
                 .file-size {
@@ -2541,7 +2434,7 @@ const CreateQuestion = () => {
                     display: inline-block;
                     padding: 4px 10px;
                     background: rgba(16, 185, 129, 0.1);
-                    color: #10b981;
+                    color: var(--ds-success);
                     border-radius: 6px;
                     font-size: 0.8rem;
                     font-weight: 600;
@@ -2643,11 +2536,11 @@ const CreateQuestion = () => {
                 }
                 .source-badge.manual {
                     background: rgba(59, 130, 246, 0.1);
-                    color: #3b82f6;
+                    color: var(--ds-info);
                 }
                 .source-badge.imported {
                     background: rgba(245, 158, 11, 0.1);
-                    color: #f59e0b;
+                    color: var(--ds-warning);
                 }
                 .source-badge.ai_generated {
                     background: rgba(168, 85, 247, 0.1);

@@ -459,9 +459,9 @@ const ResourceManagement = () => {
                 marginBottom: "1.25rem",
               }}
             >
-              <File size={20} style={{ color: "#3b82f6", flexShrink: 0 }} />
+              <File size={20} style={{ color: "var(--ds-info)", flexShrink: 0 }} />
               <div>
-                <p style={{ margin: 0, fontWeight: 600, color: "#3b82f6", fontSize: "0.9rem" }}>
+                <p style={{ margin: 0, fontWeight: 600, color: "var(--ds-info)", fontSize: "0.9rem" }}>
                   Chỉ hỗ trợ file Microsoft Word
                 </p>
                 <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
@@ -487,7 +487,7 @@ const ResourceManagement = () => {
                 accept=".docx,.doc"
               />
               {uploadFile ? (
-                <small style={{ color: "#10b981", marginTop: "0.25rem", display: "block" }}>
+                <small style={{ color: "var(--ds-success)", marginTop: "0.25rem", display: "block" }}>
                   ✓ Đã chọn: {uploadFile.name}
                 </small>
               ) : (
@@ -704,7 +704,7 @@ const ResourceManagement = () => {
                     font-size: 0.7rem;
                     padding: 2px 6px;
                     background: rgba(16, 185, 129, 0.1);
-                    color: #10b981;
+                    color: var(--ds-success);
                     border-radius: 4px;
                 }
                 .resource-date {
@@ -736,7 +736,7 @@ const ResourceManagement = () => {
                 }
                 .icon-btn.danger:hover {
                     background: rgba(239, 68, 68, 0.1);
-                    color: #ef4444;
+                    color: var(--ds-error);
                 }
 
                 /* Modal */
@@ -849,7 +849,7 @@ const ResourceManagement = () => {
                     color: var(--color-text-secondary);
                 }
                 .btn-danger {
-                    background: #ef4444;
+                    background: var(--ds-error);
                     color: white;
                 }
                 .btn:hover { transform: translateY(-1px); }

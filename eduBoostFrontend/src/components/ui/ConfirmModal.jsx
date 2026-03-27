@@ -101,7 +101,7 @@ export default function ConfirmModal({
                     justify-content: flex-end;
                 }
                 .btn-danger {
-                    background: linear-gradient(135deg, #dc2626, #b91c1c);
+                    background: linear-gradient(135deg, var(--ds-error-text), #b91c1c);
                     color: white;
                 }
                 .btn-danger:hover {

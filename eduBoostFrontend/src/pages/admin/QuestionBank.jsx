@@ -15,6 +15,7 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  Archive,
 } from "lucide-react";
 import { questionBankService } from "../../services/questionBankService";
 import { adminSubjectService } from "../../services/adminSubjectService";
@@ -45,24 +46,25 @@ const QuestionBank = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState(null);
+  const [bulkUseAi, setBulkUseAi] = useState(true);
 
   // Form data
   const [formData, setFormData] = useState({
     lessonId: "",
     cognitiveLevelId: "",
     questionText: "",
-    questionImageUrl: "",
-    answerA: "",
-    answerB: "",
-    answerC: "",
-    answerD: "",
     correctAnswer: "",
     explanation: "",
+    questionType: "MULTIPLE_CHOICE",
     sourceType: "MANUAL",
+    imageUrl: "",
   });
 
   // Import data
@@ -101,14 +103,21 @@ const QuestionBank = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [subjectsData, cogLevelsData, statsData] = await Promise.all([
-        adminSubjectService.getAllSubjects(),
-        questionBankService.getCognitiveLevels(),
-        questionBankService.getStats(),
+      const [subjectsData, cogLevelsData] = await Promise.all([
+        adminSubjectService.getAllSubjects().catch(e => { console.error("subjects error", e); return []; }),
+        questionBankService.getCognitiveLevels().catch(e => { console.error("cognitive levels error", e); return []; }),
       ]);
-      setSubjects(subjectsData);
-      setCognitiveLevels(cogLevelsData);
-      setStats(statsData);
+      setSubjects(Array.isArray(subjectsData) ? subjectsData : (subjectsData?.data || subjectsData?.content || []));
+      setCognitiveLevels(Array.isArray(cogLevelsData) ? cogLevelsData : (cogLevelsData?.data || cogLevelsData?.content || []));
+      
+      // Stats is optional — don't let it block the page
+      try {
+        const statsData = await questionBankService.getStats();
+        setStats(statsData);
+      } catch (e) {
+        console.warn("Stats API not available:", e.message);
+        setStats(null);
+      }
     } catch (error) {
       console.error("Error fetching initial data:", error);
       showErrorToast("Không thể tải dữ liệu");
@@ -121,9 +130,10 @@ const QuestionBank = () => {
     try {
       const data =
         await adminChapterService.getChaptersBySubject(selectedSubject);
-      setChapters(data);
+      setChapters(Array.isArray(data) ? data : (data?.content || data?.data || []));
     } catch (error) {
       console.error("Error fetching chapters:", error);
+      setChapters([]);
     }
   };
 
@@ -131,9 +141,10 @@ const QuestionBank = () => {
     try {
       const data =
         await adminLessonService.getLessonsByChapter(selectedChapter);
-      setLessons(data);
+      setLessons(Array.isArray(data) ? data : (data?.content || data?.data || []));
     } catch (error) {
       console.error("Error fetching lessons:", error);
+      setLessons([]);
     }
   };
 
@@ -146,10 +157,12 @@ const QuestionBank = () => {
       if (selectedSourceType) filters.sourceType = selectedSourceType;
 
       const data = await questionBankService.getQuestions(filters);
-      setQuestions(data);
+      // Backend returns Page<T> object with .content array
+      const list = Array.isArray(data) ? data : (data?.content || data?.data?.content || []);
+      setQuestions(list);
     } catch (error) {
       console.error("Error fetching questions:", error);
-      showErrorToast("Không thể tải danh sách câu hỏi");
+      setQuestions([]);
     }
   };
 
@@ -159,14 +172,11 @@ const QuestionBank = () => {
       lessonId: selectedLesson || "",
       cognitiveLevelId: "",
       questionText: "",
-      questionImageUrl: "",
-      answerA: "",
-      answerB: "",
-      answerC: "",
-      answerD: "",
       correctAnswer: "",
       explanation: "",
+      questionType: "MULTIPLE_CHOICE",
       sourceType: "MANUAL",
+      imageUrl: "",
     });
     setShowModal(true);
   };
@@ -177,14 +187,11 @@ const QuestionBank = () => {
       lessonId: question.lessonId,
       cognitiveLevelId: question.cognitiveLevelId,
       questionText: question.questionText,
-      questionImageUrl: question.questionImageUrl || "",
-      answerA: question.answerA,
-      answerB: question.answerB,
-      answerC: question.answerC,
-      answerD: question.answerD,
       correctAnswer: question.correctAnswer,
       explanation: question.explanation || "",
-      sourceType: question.sourceType,
+      questionType: question.questionType || "MULTIPLE_CHOICE",
+      sourceType: question.sourceType || "MANUAL",
+      imageUrl: question.imageUrl || "",
     });
     setShowModal(true);
   };
@@ -300,9 +307,41 @@ const QuestionBank = () => {
     }
   };
 
-  const filteredQuestions = questions.filter((q) =>
-    q.questionText.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  // ===== BULK IMPORT =====
+  const handleBulkImport = () => {
+    setBulkImportResult(null);
+    setBulkImporting(false);
+    setShowBulkImportModal(true);
+  };
+
+  const handleBulkFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setBulkImporting(true);
+      setBulkImportResult(null);
+      const result = await questionBankService.bulkImport(file, bulkUseAi);
+      setBulkImportResult(result);
+      showSuccessToast(`Đã import ${result.successCount || 0} câu hỏi thành công`);
+      fetchQuestions();
+      try {
+        const newStats = await questionBankService.getStats();
+        setStats(newStats);
+      } catch (_) {}
+    } catch (error) {
+      console.error("Bulk import error:", error);
+      const errMsg = error.response?.data?.errors?.[0] || error.response?.data?.message || "Không thể import";
+      showErrorToast(errMsg);
+      setBulkImportResult({ errors: [errMsg] });
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  const filteredQuestions = Array.isArray(questions) ? questions.filter((q) =>
+    (q.questionText || "").toLowerCase().includes(searchTerm.toLowerCase()),
+  ) : [];
 
   if (loading) {
     return (
@@ -331,11 +370,15 @@ const QuestionBank = () => {
         <div className="btn-group">
           <button onClick={handleDownloadTemplate} className="btn btn-glass">
             <Download size={20} />
-            Template Excel
+            Template
           </button>
           <button onClick={handleImportExcel} className="btn btn-glass">
             <Upload size={20} />
-            Import Excel
+            Import Word
+          </button>
+          <button onClick={handleBulkImport} className="btn btn-glass" style={{background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.08))', border: '1px solid rgba(245,158,11,0.3)'}}>
+            <Archive size={20} />
+            Import ZIP hàng loạt
           </button>
           <button onClick={handleCreateQuestion} className="btn btn-primary">
             <Plus size={20} />
@@ -401,8 +444,8 @@ const QuestionBank = () => {
           >
             <option value="">Tất cả môn học</option>
             {subjects.map((subject) => (
-              <option key={subject.id} value={subject.subjectCode}>
-                {subject.subjectCode}
+              <option key={subject.id} value={subject.id}>
+                {subject.subjectName || subject.name || subject.subjectCode}
               </option>
             ))}
           </select>
@@ -465,63 +508,34 @@ const QuestionBank = () => {
               <div className="question-main">
                 <div className="question-badges">
                   <span className="question-badge badge-primary">
-                    {q.cognitiveLevelName || "N/A"}
+                    {q.cognitiveLevel || q.cognitiveLevelName || "N/A"}
                   </span>
                   <span
                     className={`question-badge badge-${q.sourceType?.toLowerCase() || "manual"}`}
                   >
                     {q.sourceType === "MANUAL"
                       ? "Thủ công"
-                      : q.sourceType === "EXCEL_IMPORT"
-                        ? "Excel"
-                        : "AI"}
+                      : q.sourceType === "WORD_IMPORT"
+                        ? "Word"
+                        : q.sourceType === "EXCEL_IMPORT"
+                          ? "Excel"
+                          : q.sourceType === "AI_GENERATED"
+                            ? "AI"
+                            : q.sourceType || "N/A"}
                   </span>
-                  {q.isVerified && (
-                    <span className="question-badge badge-verified">
-                      <CheckCircle size={14} />
-                      Đã xác thực
-                    </span>
-                  )}
                 </div>
                 <div className="question-content">
                   <p className="question-text">{q.questionText}</p>
                   <div className="question-answers">
                     <div className="answer-item">
-                      <span
-                        className={`answer-label ${q.correctAnswer === "A" ? "correct" : ""}`}
-                      >
-                        A
-                      </span>
-                      <span>{q.answerA}</span>
-                    </div>
-                    <div className="answer-item">
-                      <span
-                        className={`answer-label ${q.correctAnswer === "B" ? "correct" : ""}`}
-                      >
-                        B
-                      </span>
-                      <span>{q.answerB}</span>
-                    </div>
-                    <div className="answer-item">
-                      <span
-                        className={`answer-label ${q.correctAnswer === "C" ? "correct" : ""}`}
-                      >
-                        C
-                      </span>
-                      <span>{q.answerC}</span>
-                    </div>
-                    <div className="answer-item">
-                      <span
-                        className={`answer-label ${q.correctAnswer === "D" ? "correct" : ""}`}
-                      >
-                        D
-                      </span>
-                      <span>{q.answerD}</span>
+                      <span className="answer-label correct">✓</span>
+                      <span>{q.correctAnswer}</span>
                     </div>
                   </div>
                   <div className="question-meta">
                     <span>Bài: {q.lessonName || "N/A"}</span>
                     {q.explanation && <span>• Có giải thích</span>}
+                    {q.usageCount > 0 && <span>• Đã dùng {q.usageCount} lần</span>}
                   </div>
                 </div>
               </div>
@@ -621,92 +635,35 @@ const QuestionBank = () => {
               </div>
 
               <div className="form-group">
-                <label>URL hình ảnh (nếu có)</label>
+                <label>
+                  URL hình ảnh (nếu có)
+                </label>
                 <input
                   type="text"
-                  value={formData.questionImageUrl}
+                  value={formData.imageUrl}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      questionImageUrl: e.target.value,
+                      imageUrl: e.target.value,
                     })
                   }
                   placeholder="https://example.com/image.png"
                 />
               </div>
 
-              <div className="answers-grid">
-                <div className="form-group">
-                  <label>
-                    Đáp án A <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.answerA}
-                    onChange={(e) =>
-                      setFormData({ ...formData, answerA: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>
-                    Đáp án B <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.answerB}
-                    onChange={(e) =>
-                      setFormData({ ...formData, answerB: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>
-                    Đáp án C <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.answerC}
-                    onChange={(e) =>
-                      setFormData({ ...formData, answerC: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>
-                    Đáp án D <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.answerD}
-                    onChange={(e) =>
-                      setFormData({ ...formData, answerD: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
               <div className="form-group">
                 <label>
                   Đáp án đúng <span className="required">*</span>
                 </label>
-                <select
+                <textarea
                   value={formData.correctAnswer}
                   onChange={(e) =>
                     setFormData({ ...formData, correctAnswer: e.target.value })
                   }
+                  placeholder="Nhập đáp án đúng"
+                  rows={2}
                   required
-                >
-                  <option value="">Chọn đáp án đúng</option>
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
-                  <option value="D">D</option>
-                </select>
+                />
               </div>
 
               <div className="form-group">
@@ -873,6 +830,134 @@ const QuestionBank = () => {
         </div>
       )}
 
+      {/* Bulk Import ZIP Modal */}
+      {showBulkImportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass modal-large">
+            <div className="modal-header">
+              <h3>📦 Import hàng loạt từ file ZIP</h3>
+              <button
+                onClick={() => setShowBulkImportModal(false)}
+                className="modal-close-btn"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div style={{ padding: '1rem', background: 'rgba(99,102,241,0.05)', borderRadius: '12px', marginBottom: '1.5rem' }}>
+                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📂 Cấu trúc thư mục yêu cầu:</p>
+                <code style={{ display: 'block', padding: '0.75rem', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', fontSize: '0.8rem', lineHeight: 1.6 }}>
+                  📁 Lớp 10/<br/>
+                  &nbsp;&nbsp;📁 Toán/<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;📁 Chương 1/<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📁 Bài 1/<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 cau-hoi.docx<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📁 Bài 2/<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 cau-hoi.docx
+                </code>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={bulkUseAi}
+                    onChange={(e) => setBulkUseAi(e.target.checked)}
+                    style={{ width: 18, height: 18 }}
+                  />
+                  🤖 Sử dụng AI tự động phân loại mức độ nhận thức
+                </label>
+                <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>AI sẽ phân loại Nhận biết / Thông hiểu / Vận dụng / Vận dụng cao cho từng câu</p>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  File ZIP <span className="required">*</span>
+                </label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  onChange={handleBulkFileChange}
+                  disabled={bulkImporting}
+                />
+              </div>
+
+              {bulkImporting && (
+                <div className="import-loading" style={{ textAlign: 'center', padding: '2rem' }}>
+                  <Loader2
+                    size={40}
+                    style={{ animation: "spin 1s linear infinite", color: 'var(--ds-primary)' }}
+                  />
+                  <p style={{ marginTop: '1rem', fontWeight: 600 }}>Đang import hàng loạt... Vui lòng đợi</p>
+                  <p style={{ fontSize: '0.8rem', color: '#888' }}>Quá trình này có thể mất vài phút nếu file lớn hoặc bật AI</p>
+                </div>
+              )}
+
+              {bulkImportResult && (
+                <div className="import-preview" style={{ marginTop: '1.5rem' }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CheckCircle size={20} style={{ color: '#22c55e' }} />
+                    Kết quả Import
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(99,102,241,0.08)', borderRadius: '10px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{bulkImportResult.totalFiles || 0}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#666' }}>Tổng file</p>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(34,197,94,0.08)', borderRadius: '10px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#22c55e' }}>{bulkImportResult.successCount || 0}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#666' }}>Câu thành công</p>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(245,158,11,0.08)', borderRadius: '10px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{bulkImportResult.aiClassifiedCount || 0}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#666' }}>AI phân loại</p>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.08)', borderRadius: '10px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444' }}>{bulkImportResult.errors?.length || 0}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#666' }}>Lỗi</p>
+                    </div>
+                  </div>
+
+                  {bulkImportResult.byGrade && Object.keys(bulkImportResult.byGrade).length > 0 && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Theo khối lớp:</p>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {Object.entries(bulkImportResult.byGrade).map(([grade, count]) => (
+                          <span key={grade} style={{ padding: '0.25rem 0.75rem', background: 'rgba(99,102,241,0.12)', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600 }}>
+                            {grade}: {count} câu
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {bulkImportResult.errors?.length > 0 && (
+                    <div style={{ marginTop: '1rem', maxHeight: '180px', overflowY: 'auto' }}>
+                      <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#ef4444', marginBottom: '0.5rem' }}>Chi tiết lỗi:</p>
+                      {bulkImportResult.errors.map((err, i) => (
+                        <p key={i} style={{ fontSize: '0.75rem', color: '#b91c1c', padding: '0.25rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                          ⚠️ {err}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowBulkImportModal(false)}
+                className="btn btn-primary"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && deleteTarget && (
         <div className="modal-overlay">
@@ -985,13 +1070,13 @@ const QuestionBank = () => {
           justify-content: center;
         }
         .bg-indigo {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
         }
         .bg-green {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, var(--ds-success), var(--ds-success-text));
         }
         .bg-orange {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
+          background: linear-gradient(135deg, var(--ds-warning), var(--ds-warning-text));
         }
         .filters-section {
           padding: 1.5rem;
@@ -1098,19 +1183,19 @@ const QuestionBank = () => {
         }
         .badge-primary {
           background: rgba(99, 102, 241, 0.1);
-          color: #6366f1;
+          color: var(--ds-primary);
         }
         .badge-manual {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
         }
         .badge-excel_import {
           background: rgba(245, 158, 11, 0.1);
-          color: #d97706;
+          color: var(--ds-warning-text);
         }
         .badge-verified {
           background: rgba(16, 185, 129, 0.1);
-          color: #059669;
+          color: var(--ds-success-text);
           display: flex;
           align-items: center;
           gap: 0.25rem;
@@ -1147,7 +1232,7 @@ const QuestionBank = () => {
           flex-shrink: 0;
         }
         .answer-label.correct {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, var(--ds-success), var(--ds-success-text));
           color: white;
         }
         .question-meta {
@@ -1174,18 +1259,18 @@ const QuestionBank = () => {
         }
         .btn-edit {
           background: rgba(99, 102, 241, 0.1);
-          color: #6366f1;
+          color: var(--ds-primary);
         }
         .btn-edit:hover {
-          background: #6366f1;
+          background: var(--ds-primary);
           color: white;
         }
         .btn-delete {
           background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
+          color: var(--ds-error);
         }
         .btn-delete:hover {
-          background: #ef4444;
+          background: var(--ds-error);
           color: white;
         }
         .modal-overlay {
@@ -1221,7 +1306,7 @@ const QuestionBank = () => {
           justify-content: space-between;
           padding: 1.5rem;
           border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           color: white;
           border-radius: 16px 16px 0 0;
         }
@@ -1231,7 +1316,7 @@ const QuestionBank = () => {
           margin: 0;
         }
         .modal-header-danger {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
+          background: linear-gradient(135deg, var(--ds-error), var(--ds-error-text));
         }
         .modal-header-icon {
           display: inline-flex;
@@ -1257,7 +1342,7 @@ const QuestionBank = () => {
           line-height: 1.6;
         }
         .warning-text {
-          color: #ef4444;
+          color: var(--ds-error);
           font-weight: 600;
           font-size: 0.875rem;
         }
@@ -1305,7 +1390,7 @@ const QuestionBank = () => {
           gap: 1rem;
         }
         .required {
-          color: #ef4444;
+          color: var(--ds-error);
         }
         .form-hint {
           font-size: 0.75rem;
@@ -1315,14 +1400,14 @@ const QuestionBank = () => {
         .link-button {
           background: none;
           border: none;
-          color: #6366f1;
+          color: var(--ds-primary);
           text-decoration: underline;
           cursor: pointer;
           padding: 0;
           font: inherit;
         }
         .link-button:hover {
-          color: #4f46e5;
+          color: var(--ds-primary-hover);
         }
         .import-loading {
           text-align: center;
@@ -1342,7 +1427,7 @@ const QuestionBank = () => {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 1rem;
-          color: #6366f1;
+          color: var(--ds-primary);
         }
         .preview-list {
           display: flex;

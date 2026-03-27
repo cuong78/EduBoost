@@ -315,7 +315,7 @@ export default function StudentInvitations() {
                 .pagination-buttons { display: flex; align-items: center; gap: 0.75rem; }
                 .page-info { color: var(--color-text-secondary); font-size: 0.9rem; }
                 .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-                .required { color: #dc2626; }
+                .required { color: var(--ds-error-text); }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </div>

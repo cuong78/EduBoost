@@ -1,18 +1,8 @@
-import { useState, useEffect } from 'react';
-import {
-    Clock,
-    AlertCircle,
-    CheckCircle,
-    ArrowRight,
-    Calendar,
-    Search,
-    Filter,
-    BookOpen,
-    Trophy,
-    Loader2
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { Clock, AlertCircle, CheckCircle, ArrowRight, Calendar, BookOpen, Trophy, Loader2, Lock, Filter, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { examService } from '../../services/examService';
+import { showErrorToast } from '../../utils/show-toast';
 
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     <div className="stat-card glass">
@@ -26,27 +16,27 @@ const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     </div>
 );
 
-const ExamCard = ({ title, course, duration, deadline, status, id, examId, submittedAttemptCode }) => {
+const ExamCard = ({ title, course, duration, deadline, status, onOpenDetail }) => {
     const statusConfig = {
         'Available': {
             class: 'status-available',
             icon: Clock,
             label: 'Đang mở',
-            action: 'Làm bài ngay',
+            action: 'Xem chi tiết',
             btnClass: 'btn-primary'
         },
         'Completed': {
             class: 'status-completed',
             icon: CheckCircle,
             label: 'Đã hoàn thành',
-            action: 'Xem lại bài',
+            action: 'Xem chi tiết',
             btnClass: 'btn-secondary'
         },
         'SubmittedPending': {
             class: 'status-completed',
             icon: CheckCircle,
             label: 'Đã nộp — chờ công bố điểm',
-            action: 'Xem lại bài',
+            action: 'Xem chi tiết',
             btnClass: 'btn-secondary'
         },
         'Missed': {
@@ -56,11 +46,24 @@ const ExamCard = ({ title, course, duration, deadline, status, id, examId, submi
             action: 'Không khả dụng',
             btnClass: 'btn-disabled'
         },
+        'Upcoming': {
+            class: 'status-upcoming',
+            icon: Calendar,
+            label: 'Sắp mở',
+            action: 'Xem chi tiết',
+            btnClass: 'btn-secondary'
+        },
+        'Late': {
+            class: 'status-missed',
+            icon: AlertCircle,
+            label: 'Đã trễ',
+            action: 'Xem chi tiết',
+            btnClass: 'btn-secondary'
+        }
     };
 
     const config = statusConfig[status] || statusConfig['Available'];
     const Icon = config.icon;
-    const reviewTo = submittedAttemptCode ? `/student/exam-review/${submittedAttemptCode}` : null;
 
     return (
         <div className={`exam-card glass ${status}`}>
@@ -91,35 +94,24 @@ const ExamCard = ({ title, course, duration, deadline, status, id, examId, submi
             </div>
 
             <div className="exam-actions">
-                {status === 'Available' ? (
-                    <Link to={`/student/exam/${examId}?scheduleId=${id}`} className={`btn ${config.btnClass} full-width`}>
-                        {config.action} <ArrowRight size={18} />
-                    </Link>
-                ) : status === 'Completed' || status === 'SubmittedPending' ? (
-                    reviewTo ? (
-                        <Link to={reviewTo} className={`btn ${config.btnClass} full-width`}>
-                            {config.action} <ArrowRight size={18} />
-                        </Link>
-                    ) : (
-                        <button className={`btn ${config.btnClass} full-width`} disabled>
-                            {config.action}
-                        </button>
-                    )
-                ) : (
-                    <button className={`btn ${config.btnClass} full-width`} disabled={true}>
-                        {status === 'Missed' ? 'Kỳ thi đã qua' : status === 'Late' ? 'Bạn đã trễ kì thi' : config.action}
-                    </button>
-                )}
+                <button className={`btn ${config.btnClass} full-width`} onClick={onOpenDetail}>
+                    {config.action} <ArrowRight size={18} />
+                </button>
             </div>
         </div>
     );
 };
 
 const ExamList = () => {
+    const navigate = useNavigate();
     const [filter, setFilter] = useState('All');
     const [allExams, setAllExams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedExam, setSelectedExam] = useState(null);
+    const [attemptsLoading, setAttemptsLoading] = useState(false);
+    const [attempts, setAttempts] = useState([]);
+    const [password, setPassword] = useState('');
 
     useEffect(() => {
         setLoading(true);
@@ -160,6 +152,13 @@ const ExamList = () => {
                         }).format(end),
                         status,
                         submittedAttemptCode: schedule.submittedAttemptCode,
+                        scoreRevealMode: schedule.scoreRevealMode,
+                        maxAttempts: schedule.maxAttempts || 1,
+                        startTime: schedule.startTime,
+                        endTime: schedule.endTime,
+                        resultsAnnouncedAt: schedule.resultsAnnouncedAt,
+                        needsPassword: Boolean(schedule.hasPassword),
+                        raw: schedule,
                     };
                 });
                 setAllExams(mapped);
@@ -170,6 +169,18 @@ const ExamList = () => {
             })
             .finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        if (!selectedExam?.id) return;
+        setAttemptsLoading(true);
+        examService.getStudentScheduleAttempts(selectedExam.id)
+            .then((res) => setAttempts(Array.isArray(res) ? res : []))
+            .catch(() => {
+                setAttempts([]);
+                showErrorToast('Không tải được lịch sử lần làm bài');
+            })
+            .finally(() => setAttemptsLoading(false));
+    }, [selectedExam?.id]);
 
     const available = allExams.filter(e => e.status === 'Available').length;
     const completed = allExams.filter(e => e.status === 'Completed' || e.status === 'SubmittedPending').length;
@@ -187,6 +198,20 @@ const ExamList = () => {
             if (filter === 'Completed') return exam.status === 'Completed' || exam.status === 'SubmittedPending';
             return exam.status === filter;
         });
+
+    const attemptCountText = useMemo(() => {
+        if (!selectedExam) return '0/0';
+        return `${attempts.length}/${selectedExam.maxAttempts || 1}`;
+    }, [attempts, selectedExam]);
+
+    const handleTakeExam = () => {
+        if (!selectedExam) return;
+        const hasPassword = password.trim().length > 0;
+        const query = hasPassword
+            ? `?scheduleId=${selectedExam.id}&password=${encodeURIComponent(password.trim())}`
+            : `?scheduleId=${selectedExam.id}`;
+        navigate(`/student/exam/${selectedExam.examId}${query}`);
+    };
 
     const tabs = [
         { id: 'All', label: 'Tất cả' },
@@ -253,7 +278,7 @@ const ExamList = () => {
             ) : filteredExams.length > 0 ? (
                 <div className="exam-grid">
                     {filteredExams.map(exam => (
-                        <ExamCard key={exam.id} {...exam} />
+                        <ExamCard key={exam.id} {...exam} onOpenDetail={() => setSelectedExam(exam)} />
                     ))}
                 </div>
             ) : (
@@ -263,6 +288,76 @@ const ExamList = () => {
                     </div>
                     <h3>Không tìm thấy bài kiểm tra nào</h3>
                     <p>Thử thay đổi bộ lọc hoặc tìm kiếm lại.</p>
+                </div>
+            )}
+
+            {selectedExam && (
+                <div className="ds-modal-overlay" onClick={() => setSelectedExam(null)}>
+                    <div className="ds-modal ds-modal-lg" onClick={(e) => e.stopPropagation()}>
+                        <div className="ds-modal-header">
+                            <h3 className="ds-modal-title">{selectedExam.title}</h3>
+                            <button className="ds-modal-close" onClick={() => setSelectedExam(null)}>x</button>
+                        </div>
+                        <div className="ds-kpi-grid" style={{ marginBottom: '1rem' }}>
+                            <div className="ds-kpi-card ds-kpi-accent-info"><div className="ds-kpi-card-label">Lớp</div><div className="ds-kpi-card-value">{selectedExam.course}</div></div>
+                            <div className="ds-kpi-card ds-kpi-accent-primary"><div className="ds-kpi-card-label">Thời lượng</div><div className="ds-kpi-card-value">{selectedExam.duration}p</div></div>
+                            <div className="ds-kpi-card ds-kpi-accent-warning"><div className="ds-kpi-card-label">Lần làm</div><div className="ds-kpi-card-value">{attemptCountText}</div></div>
+                        </div>
+                        <p className="ds-page-subtitle">
+                            Mở thi: {new Date(selectedExam.startTime).toLocaleString()} - {new Date(selectedExam.endTime).toLocaleString()}
+                        </p>
+                        <p className="ds-page-subtitle" style={{ marginBottom: '1rem' }}>
+                            Công bố điểm: {selectedExam.scoreRevealMode === 'AFTER_ANNOUNCE'
+                                ? (selectedExam.resultsAnnouncedAt ? 'Đã công bố' : 'Chờ giáo viên công bố')
+                                : 'Ngay khi nộp bài'}
+                        </p>
+
+                        {selectedExam.needsPassword && (
+                            <div className="ds-form-group">
+                                <label className="ds-label"><Lock size={14} /> Mật khẩu bài thi</label>
+                                <input className="ds-input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Nhập mật khẩu để vào thi" />
+                            </div>
+                        )}
+
+                        <div className="ds-card" style={{ marginBottom: '1rem' }}>
+                            <div className="ds-card-header">Lịch sử lần làm</div>
+                            <div className="ds-card-body ds-card-body-compact">
+                                {attemptsLoading ? (
+                                    <div className="ds-loading"><Loader2 className="ds-spinner" size={20} /> Đang tải...</div>
+                                ) : attempts.length === 0 ? (
+                                    <div className="ds-empty-state">Chưa có lần làm nào.</div>
+                                ) : (
+                                    <table className="ds-table">
+                                        <thead>
+                                            <tr><th>Lần</th><th>Trạng thái</th><th>Điểm</th><th>Nộp lúc</th><th></th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {attempts.map((a) => (
+                                                <tr key={a.attemptCode}>
+                                                    <td>{a.attemptNumber}</td>
+                                                    <td>{a.status}</td>
+                                                    <td>{a.scoresHidden ? 'Chờ công bố' : (a.score ?? '-')}</td>
+                                                    <td>{a.submittedAt ? new Date(a.submittedAt).toLocaleString() : '-'}</td>
+                                                    <td>{a.attemptCode ? <Link to={`/student/exam-review/${a.attemptCode}`}>Xem chi tiết</Link> : '-'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="ds-modal-footer">
+                            <button className="ds-btn ds-btn-secondary" onClick={() => setSelectedExam(null)}>Đóng</button>
+                            <button
+                                className="ds-btn ds-btn-primary"
+                                onClick={handleTakeExam}
+                                disabled={selectedExam.needsPassword && !password.trim()}
+                            >
+                                Vào làm bài
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -308,18 +403,18 @@ const ExamList = () => {
                 /* Buttons */
                 .btn-outline {
                     background: white;
-                    border: 1px solid #e5e7eb;
+                    border: 1px solid var(--ds-border);
                     color: var(--color-text-secondary);
                     gap: 0.5rem;
                 }
                 
                 .btn-outline:hover {
-                    background: #f9fafb;
+                    background: var(--ds-bg-subtle);
                 }
 
                 .btn-secondary {
                     background: #e0e7ff; /* indigo-100 */
-                    color: #4f46e5; /* indigo-600 */
+                    color: var(--ds-primary-hover); /* indigo-600 */
                 }
                 
                 .btn-secondary:hover {
@@ -327,8 +422,8 @@ const ExamList = () => {
                 }
 
                 .btn-disabled {
-                    background: #f3f4f6;
-                    color: #9ca3af;
+                    background: var(--ds-border-light);
+                    color: var(--ds-text-muted);
                     cursor: not-allowed;
                 }
 
@@ -367,9 +462,9 @@ const ExamList = () => {
                     justify-content: center;
                 }
 
-                .text-green { color: #10b981; background: #d1fae5; }
-                .text-indigo { color: #6366f1; background: #e0e7ff; }
-                .text-yellow { color: #f59e0b; background: #fef3c7; }
+                .text-green { color: var(--ds-success); background: var(--ds-success-bg); }
+                .text-indigo { color: var(--ds-primary); background: #e0e7ff; }
+                .text-yellow { color: var(--ds-warning); background: var(--ds-warning-bg); }
 
                 .stat-label {
                     color: var(--color-text-secondary);
@@ -387,7 +482,7 @@ const ExamList = () => {
                 .tabs-container {
                     display: flex;
                     gap: 0.5rem;
-                    border-bottom: 1px solid #e5e7eb;
+                    border-bottom: 1px solid var(--ds-border);
                     margin-bottom: 2rem;
                     overflow-x: auto;
                 }
@@ -472,7 +567,8 @@ const ExamList = () => {
 
                 .status-available { background: #dcfce7; color: #15803d; }
                 .status-completed { background: #e0e7ff; color: #4338ca; }
-                .status-missed { background: #fee2e2; color: #b91c1c; }
+                .status-missed { background: var(--ds-error-bg); color: #b91c1c; }
+                .status-upcoming { background: var(--ds-info-bg); color: var(--ds-info-text); }
 
                 .course-badge {
                     font-size: 0.875rem;
@@ -523,7 +619,7 @@ const ExamList = () => {
                     padding: 4rem 1rem;
                     background: rgba(255,255,255,0.4);
                     border-radius: 1.5rem;
-                    border: 2px dashed #e5e7eb;
+                    border: 2px dashed var(--ds-border);
                 }
 
                 .empty-icon {

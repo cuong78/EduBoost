@@ -98,7 +98,7 @@ public class MathGrade10Initializer {
         lessonRepository.save(
                 Lesson.builder()
                         .chapter(chap2)
-                        .lessonNumber(1)
+                        .lessonNumber(4)
                         .lessonName("Bất phương trình bậc nhất hai ẩn")
                         .description("Khái niệm bất phương trình bậc nhất hai ẩn và cách biểu diễn tập nghiệm")
                         .build()
@@ -107,7 +107,7 @@ public class MathGrade10Initializer {
         Lesson c2l2 = lessonRepository.save(
                 Lesson.builder()
                         .chapter(chap2)
-                        .lessonNumber(2)
+                        .lessonNumber(5)
                         .lessonName("Hệ bất phương trình bậc nhất hai ẩn")
                         .description("Khái niệm hệ bất phương trình bậc nhất hai ẩn và cách giải")
                         .build()
@@ -127,84 +127,84 @@ public class MathGrade10Initializer {
         // Chương 3: Hệ thức lượng trong tam giác
         Chapter chap3 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(3)
                 .chapterName("Hệ thức lượng trong tam giác").description("Chương 3: Hệ thức lượng trong tam giác").build());
-        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(6)
                 .lessonName("Giá trị lượng giác của một góc từ 0 độ đến 180 độ")
                 .description("Giá trị lượng giác của một góc trong khoảng từ 0 đến 180 độ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(7)
                 .lessonName("Hệ thức lượng trong tam giác").description("Các hệ thức lượng cơ bản trong tam giác").build());
 
         // Chương 4: Vectơ
         Chapter chap4 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(4)
                 .chapterName("Vectơ").description("Chương 4: Vectơ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(8)
                 .lessonName("Các khái niệm mở đầu").description("Khái niệm vectơ, giá của vectơ, độ dài vectơ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(9)
                 .lessonName("Tổng và hiệu của hai vectơ").description("Phép cộng và phép trừ hai vectơ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(10)
                 .lessonName("Tích của một vectơ với một số").description("Phép nhân vectơ với một số thực").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(4)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(11)
                 .lessonName("Vectơ trong mặt phẳng tọa độ").description("Biểu diễn vectơ trong hệ trục tọa độ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(5)
+        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(12)
                 .lessonName("Tích vô hướng của hai vectơ").description("Khái niệm và ứng dụng của tích vô hướng").build());
 
         // Chương 5: Các số đặc trưng của mẫu số liệu không ghép nhóm
         Chapter chap5 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(5)
                 .chapterName("Các số đặc trưng của mẫu số liệu không ghép nhóm")
                 .description("Chương 5: Các số đặc trưng của mẫu số liệu không ghép nhóm").build());
-        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(13)
                 .lessonName("Số gần đúng và sai số")
                 .description("Khái niệm số gần đúng, sai số tuyệt đối và sai số tương đối").build());
-        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(14)
                 .lessonName("Các số đặc trưng đo xu thế trung tâm").description("Số trung bình cộng, trung vị, mốt").build());
-        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(15)
                 .lessonName("Các số đặc trưng đo độ phân tán")
                 .description("Khoảng biến thiên, phương sai và độ lệch chuẩn").build());
 
         // Chương 6: Hàm số, đồ thị và ứng dụng
         Chapter chap6 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(6)
                 .chapterName("Hàm số, đồ thị và ứng dụng").description("Chương 6: Hàm số, đồ thị và ứng dụng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(16)
                 .lessonName("Hàm số").description("Khái niệm hàm số và cách biểu diễn hàm số").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(17)
                 .lessonName("Hàm số bậc hai").description("Hàm số bậc hai và đồ thị parabol").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(18)
                 .lessonName("Dấu của tam thức bậc hai").description("Xét dấu tam thức bậc hai và ứng dụng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(4)
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(19)
                 .lessonName("Phương trình quy về phương trình bậc hai")
                 .description("Các phương trình có thể đưa về dạng bậc hai").build());
 
         // Chương 7: Phương pháp tọa độ trong mặt phẳng
         Chapter chap7 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(7)
                 .chapterName("Phương pháp tọa độ trong mặt phẳng").description("Chương 7: Phương pháp tọa độ trong mặt phẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(20)
                 .lessonName("Phương trình đường thẳng").description("Các dạng phương trình của đường thẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(21)
                 .lessonName("Vị trí tương đối giữa hai đường thẳng. Góc và khoảng cách")
                 .description("Xét vị trí, góc và khoảng cách giữa hai đường thẳng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(22)
                 .lessonName("Đường tròn trong mặt phẳng tọa độ")
                 .description("Phương trình đường tròn và các bài toán liên quan").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(4)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(23)
                 .lessonName("Ba đường conic").description("Elip, hypebol và parabol").build());
 
         // Chương 8: Đại số tổ hợp
         Chapter chap8 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(8)
                 .chapterName("Đại số tổ hợp").description("Chương 8: Đại số tổ hợp").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(24)
                 .lessonName("Quy tắc đếm").description("Quy tắc cộng và quy tắc nhân").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(25)
                 .lessonName("Hoán vị, chỉnh hợp và tổ hợp").description("Các khái niệm hoán vị, chỉnh hợp và tổ hợp").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(3)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(26)
                 .lessonName("Nhị thức Newton").description("Khai triển nhị thức Newton").build());
 
         // Chương 9: Tính xác suất theo định nghĩa cổ điển
         Chapter chap9 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(10).chapterNumber(9)
                 .chapterName("Tính xác suất theo định nghĩa cổ điển")
                 .description("Chương 9: Tính xác suất theo định nghĩa cổ điển").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(1)
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(27)
                 .lessonName("Biến cố và định nghĩa cổ điển của xác suất")
                 .description("Khái niệm biến cố và xác suất theo định nghĩa cổ điển").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(2)
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(28)
                 .lessonName("Thực hành tính xác suất theo định nghĩa cổ điển")
                 .description("Áp dụng công thức xác suất vào bài toán thực tế").build());
     }

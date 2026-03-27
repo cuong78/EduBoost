@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   Layers,
@@ -9,16 +10,20 @@ import {
   Pencil,
   RefreshCw,
   Trash2,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
   LayoutGrid,
   ExternalLink,
   Check,
+  RefreshCcw,
+  Library,
+  Save,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
 import { examService } from "../../services/examService";
+import { questionBankService } from "../../services/questionBankService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import RichTextEditor from "../../components/common/RichTextEditor";
+import { exportHtmlToPdf } from "../../utils/pdfExport";
 import MathRenderer from "../../components/common/MathRenderer";
 import { jsPDF } from "jspdf";
 
@@ -125,6 +130,21 @@ const ExamGenerator = () => {
     wrongAnswer3: "",
   });
 
+  // Action states
+  const [generatingAiId, setGeneratingAiId] = useState(null);
+  const [savingBankId, setSavingBankId] = useState(null);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [loadingBank, setLoadingBank] = useState(false);
+  const [bankQuestions, setBankQuestions] = useState([]);
+  const [qToReplace, setQToReplace] = useState(null);
+
+  // Drag and Drop State
+  const [draggedIdx, setDraggedIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const autoScrollY = useRef(null);
+  const autoScrollFrame = useRef(null);
+  const pdfContainerRef = useRef(null);
+
   const stats = useMemo(() => {
     const byLesson = selectedLessonIds.reduce((acc, lid) => {
       acc[lid] = Number(lessonDistribution[lid] || 0);
@@ -220,6 +240,33 @@ const ExamGenerator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load existing exam when ?examId=XX is in the URL (edit mode)
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const editExamId = searchParams.get("examId");
+    if (editExamId) {
+      setLoadingPreview(true);
+      examService.getExamById(editExamId)
+        .then((exam) => {
+          setCurrentExam(exam);
+          setExamTitle(exam.examTitle || "");
+          if (exam.subjectId) setSubjectId(String(exam.subjectId));
+          if (exam.gradeLevel) setGradeLevel(Number(exam.gradeLevel));
+          if (exam.examTypeCode) setExamType(exam.examTypeCode);
+          const qs = Array.isArray(exam.questions) ? [...exam.questions] : [];
+          qs.sort((a, b) => Number(a.orderNumber || 0) - Number(b.orderNumber || 0));
+          setPreviewQuestions(qs);
+          setStep(3);
+        })
+        .catch((e) => {
+          console.error(e);
+          showErrorToast("Không thể tải đề thi để chỉnh sửa");
+        })
+        .finally(() => setLoadingPreview(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const filtered = filterSubjectsByGrade(subjects, gradeLevel);
     if (filtered.length > 0) {
@@ -270,6 +317,61 @@ const ExamGenerator = () => {
     loadLessons().catch(() => setLessons([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId]);
+
+  // Support manual wheel scrolling while native dragging
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (draggedIdx !== null) {
+        // Force scroll when the browser blocks wheel during native drag
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, [draggedIdx]);
+
+  // Smooth continuous auto-scroll during drag
+  useEffect(() => {
+    if (draggedIdx === null) {
+      if (autoScrollFrame.current) {
+        cancelAnimationFrame(autoScrollFrame.current);
+        autoScrollFrame.current = null;
+      }
+      return;
+    }
+
+    const scrollLoop = () => {
+      if (autoScrollY.current !== null) {
+        const threshold = 120; // pixels from edge to start scrolling
+        const y = autoScrollY.current;
+        const vh = window.innerHeight;
+        
+        let speed = 0;
+        if (y < threshold) {
+          speed = -((threshold - y) / threshold) * 15; // scroll up
+        } else if (vh - y < threshold) {
+          speed = ((threshold - (vh - y)) / threshold) * 15; // scroll down
+        }
+        
+        if (speed !== 0) {
+          window.scrollBy(0, speed);
+        }
+      }
+      autoScrollFrame.current = requestAnimationFrame(scrollLoop);
+    };
+    
+    autoScrollFrame.current = requestAnimationFrame(scrollLoop);
+    return () => {
+      if (autoScrollFrame.current) cancelAnimationFrame(autoScrollFrame.current);
+    };
+  }, [draggedIdx]);
+
+  const updateAutoScroll = (e) => {
+    if (e.clientY && e.clientY !== 0) {
+      autoScrollY.current = e.clientY;
+    }
+  };
 
   const toggleLesson = (lessonId) => {
     setSelectedLessonIds((prev) => {
@@ -476,37 +578,53 @@ const ExamGenerator = () => {
 
   // Export PDF without answers (đề thi thường)
   const handleExportPdf = async () => {
-    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
-    setShowExportMenu(false);
-    setExportingPdf(true);
-    try {
-      const blob = await examService.exportExam(currentExam.id, "pdf");
-      downloadBlob(blob, `${currentExam.examCode || "de-thi"}.pdf`);
-      showSuccessToast("Đã xuất PDF đề thi thành công! Trạng thái đề thi được cập nhật USED.");
-      // After export, status changes to USED — refresh
-      await refreshExam(currentExam.id);
-    } catch (e) {
-      showErrorToast(e?.response?.data?.message || "Xuất PDF thất bại");
-    } finally {
-      setExportingPdf(false);
-    }
+    if (!currentExam?.id || !pdfContainerRef.current) return showErrorToast("Chưa có đề thi");
+    
+    // Disable answers before export
+    const previousShowCorrectAnswers = showCorrectAnswers;
+    setShowCorrectAnswers(false);
+    
+    // Let React render without answers
+    setTimeout(async () => {
+      setExportingPdf(true);
+      try {
+        await exportHtmlToPdf(pdfContainerRef.current, `${currentExam.examCode || "de-thi"}.pdf`);
+        showSuccessToast("Đã xuất PDF đề thi thành công! Trạng thái đề thi đã được cập nhật USED.");
+        // Notify backend to mark as USED
+        await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+        await refreshExam(currentExam.id);
+      } catch (e) {
+        showErrorToast("Xuất PDF thất bại");
+      } finally {
+        setExportingPdf(false);
+        // Restore previous state if needed
+        setShowCorrectAnswers(previousShowCorrectAnswers);
+      }
+    }, 100);
   };
 
   // Export PDF with answers (đáp án)
   const handleExportAnswerKey = async () => {
-    if (!currentExam?.id) return showErrorToast("Chưa có đề thi");
-    setShowExportMenu(false);
-    setExportingPdf(true);
-    try {
-      const blob = await examService.exportExam(currentExam.id, "answer-key");
-      downloadBlob(blob, `${currentExam.examCode || "de-thi"}-dap-an.pdf`);
-      showSuccessToast("Đã xuất đáp án PDF thành công!");
-      await refreshExam(currentExam.id);
-    } catch (e) {
-      showErrorToast(e?.response?.data?.message || "Xuất đáp án thất bại");
-    } finally {
-      setExportingPdf(false);
-    }
+    if (!currentExam?.id || !pdfContainerRef.current) return showErrorToast("Chưa có đề thi");
+    
+    // Enable answers before export
+    setShowCorrectAnswers(true);
+
+    // Let React render answers
+    setTimeout(async () => {
+      setExportingPdf(true);
+      try {
+        await exportHtmlToPdf(pdfContainerRef.current, `${currentExam.examCode || "de-thi"}-dap-an.pdf`);
+        showSuccessToast("Đã xuất đáp án PDF thành công! Trạng thái đề thi đã được cập nhật USED.");
+        // Notify backend to mark as USED
+        await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+        await refreshExam(currentExam.id);
+      } catch (e) {
+        showErrorToast("Xuất đáp án thất bại");
+      } finally {
+        setExportingPdf(false);
+      }
+    }, 100);
   };
 
 
@@ -536,18 +654,6 @@ const ExamGenerator = () => {
     }
   };
 
-  const handleRegenerateWrong = async (qid) => {
-    if (!currentExam?.id) return;
-    try {
-      await examService.regenerateWrongAnswers(currentExam.id, qid);
-      await refreshExam(currentExam.id);
-      showSuccessToast("Đã yêu cầu sinh lại đáp án sai");
-    } catch (e) {
-      console.error(e);
-      showErrorToast("Không thể sinh lại đáp án sai");
-    }
-  };
-
   const handleDeleteQuestion = async (qid) => {
     if (!currentExam?.id) return;
     try {
@@ -560,26 +666,168 @@ const ExamGenerator = () => {
     }
   };
 
-  const moveQuestion = async (index, dir) => {
+  // ── AI Regenerate: delete current question, generate 1 new one via AI ──
+  const handleAiRegenerate = async (q) => {
     if (!currentExam?.id) return;
-    const next = [...previewQuestions];
-    const j = index + dir;
-    if (j < 0 || j >= next.length) return;
-    [next[index], next[j]] = [next[j], next[index]];
-    const reOrdered = next.map((q, idx) => ({ ...q, orderNumber: idx + 1 }));
-    setPreviewQuestions(reOrdered);
+    setGeneratingAiId(q.id);
     try {
-      await examService.reorderQuestions(currentExam.id, {
-        questionOrders: reOrdered.map((q, idx) => ({
-          examQuestionId: q.id,
-          newOrderNumber: idx + 1,
-        })),
+      // Delete the old question first
+      await examService.deleteExamQuestion(currentExam.id, q.id);
+      // Generate 1 replacement via AI using same lesson + cognitive level
+      await examService.aiGenerateQuestionsForExam(currentExam.id, {
+        lessonId: q.lessonId,
+        cognitiveLevelId: q.cognitiveLevelId,
+        numberOfQuestions: 1,
+        pointsPerQuestion: q.points,
       });
       await refreshExam(currentExam.id);
+      showSuccessToast("AI đã tạo lại câu hỏi mới thành công!");
     } catch (e) {
       console.error(e);
-      showErrorToast("Không thể sắp xếp lại thứ tự");
+      showErrorToast(e?.response?.data?.message || "Không thể tạo lại câu hỏi bằng AI");
+      // Refresh anyway in case the delete succeeded but generate failed
+      try { await refreshExam(currentExam.id); } catch {}
+    } finally {
+      setGeneratingAiId(null);
     }
+  };
+
+  // ── Open Bank Modal: load questions from bank with same filters ──
+  const handleOpenBankModal = async (q) => {
+    setQToReplace(q);
+    setBankModalOpen(true);
+    setLoadingBank(true);
+    setBankQuestions([]);
+    try {
+      const filters = {
+        lessonId: q.lessonId,
+        cognitiveLevelId: q.cognitiveLevelId,
+        size: 50,
+        page: 0,
+      };
+      const data = await questionBankService.getQuestions(filters);
+      const list = Array.isArray(data) ? data : (data?.content ?? data?.data ?? []);
+      // Filter out questions already in the current exam
+      const existingQIds = new Set(previewQuestions.map((pq) => pq.questionId).filter(Boolean));
+      const filtered = list.filter((bq) => !existingQIds.has(bq.id));
+      setBankQuestions(filtered);
+    } catch (e) {
+      console.error(e);
+      showErrorToast("Không thể tải câu hỏi từ ngân hàng");
+    } finally {
+      setLoadingBank(false);
+    }
+  };
+
+  // ── Select from Bank: replace old question with one from bank ──
+  const handleSelectFromBank = async (bankQuestion) => {
+    if (!currentExam?.id || !qToReplace) return;
+    try {
+      // Delete old question
+      await examService.deleteExamQuestion(currentExam.id, qToReplace.id);
+      // Add new question from bank
+      await examService.addQuestionToExam(currentExam.id, {
+        questionId: bankQuestion.id,
+        orderNumber: qToReplace.orderNumber,
+        points: qToReplace.points,
+      });
+      setBankModalOpen(false);
+      setQToReplace(null);
+      await refreshExam(currentExam.id);
+      showSuccessToast("Đã thay thế câu hỏi từ ngân hàng!");
+    } catch (e) {
+      console.error(e);
+      showErrorToast(e?.response?.data?.message || "Không thể thay thế câu hỏi");
+    }
+  };
+
+  // ── Save to Bank: save AI/edited question to QuestionBank ──
+  const handleSaveToBank = async (q) => {
+    if (!currentExam?.id) return;
+    setSavingBankId(q.id);
+    try {
+      await questionBankService.createQuestion({
+        lessonId: q.lessonId,
+        questionText: q.questionText,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || "",
+        questionType: "MULTIPLE_CHOICE",
+        cognitiveLevelId: q.cognitiveLevelId,
+        sourceType: q.sourceFlag === "AI_GENERATED" ? "AI_GENERATED" : "TEACHER_CREATED",
+      });
+      showSuccessToast("Đã lưu câu hỏi vào ngân hàng thành công!");
+    } catch (e) {
+      console.error(e);
+      showErrorToast(e?.response?.data?.message || "Không thể lưu vào ngân hàng");
+    } finally {
+      setSavingBankId(null);
+    }
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index);
+    
+    // Create an empty drag image to hide the massive ghost image
+    const dragImg = new Image();
+    dragImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(dragImg, 0, 0);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    updateAutoScroll(e);
+    if (dragOverIdx !== index) {
+      setDragOverIdx(index);
+    }
+  };
+
+  const handleDrop = async (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await applyDragAndDrop(index);
+  };
+
+  const handleListDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    updateAutoScroll(e);
+  };
+
+  const handleListDrop = async (e) => {
+    e.preventDefault();
+    if (draggedIdx !== null && previewQuestions.length > 0) {
+      // If dropped on the empty bottom list area, move to the very end
+      await applyDragAndDrop(previewQuestions.length - 1);
+    }
+  };
+
+  const applyDragAndDrop = async (targetIndex) => {
+    if (draggedIdx !== null && targetIndex !== null && draggedIdx !== targetIndex && currentExam?.id) {
+      const next = [...previewQuestions];
+      const draggedItem = next[draggedIdx];
+      next.splice(draggedIdx, 1);
+      next.splice(targetIndex, 0, draggedItem);
+      
+      const reOrdered = next.map((q, idx) => ({ ...q, orderNumber: idx + 1 }));
+      setPreviewQuestions(reOrdered);
+      
+      try {
+        await examService.reorderQuestions(currentExam.id, {
+          questionOrders: reOrdered.map((q, idx) => ({
+            examQuestionId: q.id,
+            newOrderNumber: idx + 1,
+          })),
+        });
+      } catch (err) {
+        console.error(err);
+        showErrorToast("Không thể sắp xếp lại thứ tự");
+      }
+    }
+    setDraggedIdx(null);
+    setDragOverIdx(null);
   };
 
   return (
@@ -721,7 +969,7 @@ const ExamGenerator = () => {
                 </div>
               )}
               {matrixTemplates.length > 0 && !matrixTemplateId && (
-                <p style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "0.5rem" }}>⚠️ Vui lòng chọn một ma trận để tiếp tục</p>
+                <p style={{ color: "var(--ds-error)", fontSize: "0.85rem", marginTop: "0.5rem" }}>⚠️ Vui lòng chọn một ma trận để tiếp tục</p>
               )}
             </div>
           ) : (
@@ -879,7 +1127,7 @@ const ExamGenerator = () => {
                     style={{
                       background: "rgba(16,185,129,0.08)",
                       fontWeight: 700,
-                      color: "#10b981",
+                      color: "var(--ds-success)",
                       cursor: "not-allowed",
                     }}
                   />
@@ -941,7 +1189,7 @@ const ExamGenerator = () => {
               <div className="dist-footer muted">
                 Tổng: {stats.sumLevel} / {stats.sumLesson} câu
                 {stats.sumLevel !== stats.sumLesson && stats.sumLesson > 0 && (
-                  <span style={{ color: "#ef4444", marginLeft: "0.5rem" }}>
+                  <span style={{ color: "var(--ds-error)", marginLeft: "0.5rem" }}>
                     (phải bằng tổng số câu)
                   </span>
                 )}
@@ -984,7 +1232,7 @@ const ExamGenerator = () => {
               )}
             </button>
             {!loadingPreview && stats.sumLesson > 0 && stats.sumLevel !== stats.sumLesson && (
-              <p style={{ color: "#ef4444", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
+              <p style={{ color: "var(--ds-error)", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
                 ⚠️ Phân bổ theo mức độ ({stats.sumLevel} câu) phải bằng tổng số câu ({stats.sumLesson} câu) để tạo đề.
               </p>
             )}
@@ -1012,7 +1260,7 @@ const ExamGenerator = () => {
                     padding: "2px 10px",
                     borderRadius: 999,
                     background: currentExam.status === "PUBLISHED" ? "rgba(59,130,246,0.12)" : "rgba(107,114,128,0.12)",
-                    color: currentExam.status === "PUBLISHED" ? "#3b82f6" : "#6b7280",
+                    color: currentExam.status === "PUBLISHED" ? "var(--ds-info)" : "var(--ds-text-secondary)",
                     fontSize: "0.78rem",
                     fontWeight: 700,
                   }}>{currentExam.status}</span>
@@ -1044,65 +1292,84 @@ const ExamGenerator = () => {
                     : <><Sparkles size={16} /> Công bố</>}
                 </button>
               ) : (
-                <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "#3b82f6", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
+                <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "var(--ds-info)", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
                   ✓ Đã công bố
                 </span>
               )}
 
-              {/* Export dropdown */}
-              <div style={{ position: "relative" }}>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setShowExportMenu((v) => !v)}
-                  disabled={exportingPdf || !currentExam?.id}
-                >
-                  {exportingPdf
-                    ? <><RefreshCw size={16} className="spin" /> Đang xuất...</>
-                    : <><Download size={16} /> Export</>}
-                </button>
-                {showExportMenu && (
-                  <div style={{
-                    position: "absolute", right: 0, top: "110%", zIndex: 50,
-                    background: "white", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    minWidth: 220, overflow: "hidden", border: "1px solid rgba(0,0,0,0.07)"
-                  }}>
-                    <button
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "0.85rem 1.2rem", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#1f2937", textAlign: "left" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                      onClick={handleExportPdf}
-                    >
-                      <Download size={16} color="#6366f1" />
-                      <span><strong>Đề thi</strong><br /><small style={{ color: "#9ca3af" }}>Không có đáp án</small></span>
-                    </button>
-                    <div style={{ height: 1, background: "rgba(0,0,0,0.05)" }} />
-                    <button
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "0.85rem 1.2rem", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#1f2937", textAlign: "left" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                      onClick={handleExportAnswerKey}
-                    >
-                      <FileText size={16} color="#10b981" />
-                      <span><strong>Đáp án &amp; Đề thi</strong><br /><small style={{ color: "#9ca3af" }}>Kèm đáp án đúng</small></span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Export button */}
+              <button
+                className="btn btn-outline"
+                onClick={() => showCorrectAnswers ? handleExportAnswerKey() : handleExportPdf()}
+                disabled={exportingPdf || !currentExam?.id}
+              >
+                {exportingPdf
+                  ? <><RefreshCw size={16} className="spin" /> Đang xuất...</>
+                  : <><Download size={16} /> Export</>}
+              </button>
             </div>
           </div>
 
-          <div className="q-list">
+          <div 
+            className="q-list"
+            onDragOver={handleListDragOver}
+            onDrop={handleListDrop}
+            ref={pdfContainerRef}
+            style={{ backgroundColor: 'white' }}
+          >
+            {/* Header only for PDF Export */}
+            <div className="pdf-only-header">
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", color: "black" }}>
+                <div style={{ textAlign: "center", fontWeight: "normal", fontSize: "16px" }}>
+                  TRƯỜNG: ...........................................<br/>
+                  HỌ TÊN: ...........................................<br/>
+                  LỚP: ...........................................
+                </div>
+                <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "16px" }}>
+                  MÃ ĐỀ: {currentExam?.examCode || "........."}
+                </div>
+              </div>
+              <h2 style={{ textAlign: "center", marginBottom: "8px", color: "black", width: "100%", justifyContent: "center", textTransform: "uppercase" }}>
+                {currentExam?.examTitle || "ĐỀ KIỂM TRA"}
+              </h2>
+              <div style={{ textAlign: "center", fontSize: "18px", marginBottom: "5px", color: "black", fontWeight: "bold" }}>
+                MÔN: {currentExam?.subjectName?.toUpperCase()}
+              </div>
+              <div style={{ textAlign: "center", fontSize: "16px", marginBottom: "20px", color: "black", fontStyle: "italic" }}>
+                Thời gian làm bài: {currentExam?.examTypeCode === "15MIN" ? "15" : currentExam?.examTypeCode === "45MIN" ? "45" : currentExam?.examTypeCode === "MIDTERM" ? "60" : currentExam?.examTypeCode === "FINAL" ? "90" : "..."} phút (không kể thời gian phát đề)
+              </div>
+              <hr style={{ borderTop: "2px solid #000", marginBottom: "20px" }} />
+            </div>
+
             {loadingPreview ? (
               <div className="muted" style={{ padding: "1rem" }}>
                 <RefreshCw className="spin" size={16} /> Đang tạo preview...
               </div>
             ) : (
-              previewQuestions.map((q, idx) => (
-                <div key={q.id} className="q-item">
+              previewQuestions.map((q, idx) => {
+                const isDraggingMe = draggedIdx === idx;
+                const isDragOverMe = dragOverIdx === idx && !isDraggingMe;
+                const dropDirection = dragOverIdx !== null && draggedIdx !== null && draggedIdx < dragOverIdx ? 'bottom' : 'top';
+                
+                return (
+                <div 
+                  key={q.id} 
+                  className={`q-item ${isDragOverMe ? `drag-over-${dropDirection}` : ""} ${isDraggingMe ? "is-dragging" : ""}`}
+                  draggable={currentExam?.status === "DRAFT"}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDrag={(e) => updateAutoScroll(e)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); autoScrollY.current = null; }}
+                  style={{ cursor: currentExam?.status === "DRAFT" ? (isDraggingMe ? "grabbing" : "grab") : "default" }}
+                >
                   <div className="q-top">
-                    <span className="q-num">
-                      Câu {q.orderNumber || idx + 1}
-                    </span>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      {currentExam?.status === "DRAFT" && <GripVertical size={18} style={{ color: "var(--ds-text-muted)" }} />}
+                      <span className="q-num">Câu {q.orderNumber || idx + 1}</span>
+                    </div>
                     {q.cognitiveLevelName && (
                       <span className="badge bank">{q.cognitiveLevelName}</span>
                     )}
@@ -1118,39 +1385,51 @@ const ExamGenerator = () => {
 
                     <div className="q-actions">
                       <button
-                        className="btn btn-outline btn-xs"
-                        onClick={() => moveQuestion(idx, -1)}
-                        title="Lên"
-                      >
-                        <ArrowUp size={14} />
-                      </button>
-                      <button
-                        className="btn btn-outline btn-xs"
-                        onClick={() => moveQuestion(idx, 1)}
-                        title="Xuống"
-                      >
-                        <ArrowDown size={14} />
-                      </button>
-                      <button
-                        className="btn btn-outline btn-xs"
+                        className="btn-action btn-action-edit"
                         onClick={() => startEdit(q)}
-                        title="Sửa"
+                        title="Sửa câu hỏi"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        <Pencil size={14} />
+                        <Pencil size={15} />
+                        <span className="btn-action-label">Sửa</span>
                       </button>
                       <button
-                        className="btn btn-outline btn-xs"
-                        onClick={() => handleRegenerateWrong(q.id)}
-                        title="Sinh lại đáp án sai"
+                        className="btn-action btn-action-ai"
+                        onClick={() => handleAiRegenerate(q)}
+                        title="AI tạo lại câu hỏi mới"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        <RefreshCw size={14} />
+                        {generatingAiId === q.id ? <RefreshCw className="spin" size={15} /> : <RefreshCcw size={15} />}
+                        <span className="btn-action-label">{generatingAiId === q.id ? "Đang tạo..." : "AI tạo lại"}</span>
                       </button>
                       <button
-                        className="btn btn-outline btn-xs danger"
+                        className="btn-action btn-action-bank"
+                        onClick={() => handleOpenBankModal(q)}
+                        title="Đổi câu từ ngân hàng"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
+                      >
+                        <Library size={15} />
+                        <span className="btn-action-label">Đổi câu</span>
+                      </button>
+                      {(q.sourceFlag === "AI_GENERATED" || q.sourceFlag === "TEACHER_EDITED") && (
+                        <button
+                          className="btn-action btn-action-save"
+                          onClick={() => handleSaveToBank(q)}
+                          title="Lưu câu hỏi vào ngân hàng đề"
+                          disabled={generatingAiId === q.id || savingBankId === q.id}
+                        >
+                          {savingBankId === q.id ? <RefreshCw className="spin" size={15} /> : <Save size={15} />}
+                          <span className="btn-action-label">{savingBankId === q.id ? "Đang lưu..." : "Lưu vào NH"}</span>
+                        </button>
+                      )}
+                      <button
+                        className="btn-action btn-action-delete"
                         onClick={() => handleDeleteQuestion(q.id)}
-                        title="Xóa"
+                        title="Xóa câu hỏi"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
+                        <span className="btn-action-label">Xóa</span>
                       </button>
                     </div>
                   </div>
@@ -1287,8 +1566,61 @@ const ExamGenerator = () => {
                     </>
                   )}
                 </div>
-              ))
+              );
+              })
             )}
+          </div>
+        </div>
+      )}
+
+      {bankModalOpen && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: "#fff", padding: "24px", borderRadius: "16px", width: "700px", maxWidth: "90%", maxHeight: "85vh",
+            display: "flex", flexDirection: "column", boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0 }}>Chọn câu hỏi thay thế</h3>
+              <button className="btn btn-secondary btn-xs" onClick={() => { setBankModalOpen(false); setQToReplace(null); }}>Đóng</button>
+            </div>
+            
+            <p className="muted" style={{ marginBottom: "16px" }}>
+              Đang lọc theo: <strong>{qToReplace?.lessonName || "Bài học"}</strong> • <strong>{qToReplace?.cognitiveLevelName || "Mức độ"}</strong>
+            </p>
+
+            <div style={{ overflowY: "auto", flex: 1, paddingRight: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {loadingBank ? (
+                <div style={{ textAlign: "center", padding: "3rem" }} className="muted">
+                  <RefreshCw className="spin" size={24} style={{ marginBottom: "10px" }} />
+                  <br />Đang tải dữ liệu...
+                </div>
+              ) : bankQuestions.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "3rem", background: "rgba(0,0,0,0.03)", borderRadius: "12px" }} className="muted">
+                  Ngân hàng không còn câu hỏi nào phù hợp với bộ lọc hiện tại.
+                </div>
+              ) : (
+                bankQuestions.map((bq, i) => (
+                  <div key={bq.id} style={{ padding: "12px", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", background: "rgba(255,255,255,0.8)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                      <div style={{ flex: 1, overflow: "hidden" }}>
+                        <div style={{ fontWeight: 600, marginBottom: "8px", fontSize: "0.95rem" }}>
+                          <MathRenderer content={bq.questionText} />
+                        </div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--ds-success-text)", marginBottom: "4px" }}>
+                          ✓ <MathRenderer content={bq.correctAnswer} />
+                        </div>
+                      </div>
+                      <button className="btn btn-primary" onClick={() => handleSelectFromBank(bq)}>
+                        Chọn
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1317,13 +1649,13 @@ const ExamGenerator = () => {
         .matrix-select-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; margin-bottom: 0.5rem; }
         .matrix-card { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.07); cursor: pointer; transition: all 0.18s; position: relative; }
         .matrix-card:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
-        .matrix-card.selected { border-color: #6366f1; background: rgba(99,102,241,0.08); }
-        .mc-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; }
+        .matrix-card.selected { border-color: var(--ds-primary); background: rgba(99,102,241,0.08); }
+        .mc-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: var(--ds-primary); color: white; display: flex; align-items: center; justify-content: center; }
         .mc-name { font-weight: 700; margin-bottom: 4px; font-size: 0.95rem; }
         .mc-meta { font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .mc-levels { display: flex; flex-wrap: wrap; gap: 4px; }
         .mc-level-tag { padding: 2px 8px; border-radius: 999px; background: rgba(99,102,241,0.1); color: #4338ca; font-size: 0.75rem; font-weight: 600; }
-        .badge-default { padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.1); color: #059669; font-size: 0.72rem; font-weight: 700; }
+        .badge-default { padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.1); color: var(--ds-success-text); font-size: 0.72rem; font-weight: 700; }
         .matrix-empty-notice { padding: 2rem; border-radius: 14px; background: rgba(255,255,255,0.45); border: 1px dashed rgba(0,0,0,0.12); text-align: center; color: var(--color-text-secondary); }
         .matrix-empty-notice p { margin: 0.75rem 0 1rem; }
 
@@ -1356,19 +1688,97 @@ const ExamGenerator = () => {
 
         .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 1rem; }
 
-        .q-list { display: flex; flex-direction: column; gap: 12px; }
-        .q-item { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.06); }
+        .q-list { display: flex; flex-direction: column; gap: 12px; min-height: 200px; padding-bottom: 60px; }
+        .q-item { padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.5); border: 2px solid rgba(0,0,0,0.06); transition: border-color 0.15s, opacity 0.15s; }
+        .q-item[draggable="true"] { user-select: none; -webkit-user-select: none; }
+        .q-item[draggable="true"] * { user-select: none; -webkit-user-select: none; }
+        .q-item[draggable="true"] img { pointer-events: none; }
+        .q-item[draggable="true"]:hover { border-color: rgba(0,0,0,0.12); }
+        .q-item.is-dragging { opacity: 0.35; border: 2px dashed rgba(0,0,0,0.2); }
+        .q-item.drag-over-top { border-top: 3px solid var(--color-accent-1); }
+        .q-item.drag-over-bottom { border-bottom: 3px solid var(--color-accent-1); }
         .q-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; justify-content: space-between; }
         .q-num { font-weight: 800; }
         .q-meta { font-size: 0.9rem; margin-bottom: 8px; }
         .q-text { font-size: 0.98rem; }
-        .q-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .q-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .btn-xs { padding: 6px 8px; border-radius: 10px; }
-        .danger { border-color: rgba(239,68,68,0.35); color: #ef4444; }
+        .danger { border-color: rgba(239,68,68,0.35); color: var(--ds-error); }
+
+        /* ── Professional Action Buttons ── */
+        .btn-action {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 7px 14px; border-radius: 10px; border: 1.5px solid;
+          font-size: 0.82rem; font-weight: 600; cursor: pointer;
+          background: transparent; transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-action:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+
+        .btn-action-edit { color: #475569; border-color: rgba(71,85,105,0.25); background: rgba(71,85,105,0.04); }
+        .btn-action-edit:hover:not(:disabled) { background: rgba(71,85,105,0.1); border-color: rgba(71,85,105,0.4); }
+
+        .btn-action-ai { color: #6366f1; border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.05); }
+        .btn-action-ai:hover:not(:disabled) { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.5); }
+
+        .btn-action-bank { color: #0ea5e9; border-color: rgba(14,165,233,0.3); background: rgba(14,165,233,0.05); }
+        .btn-action-bank:hover:not(:disabled) { background: rgba(14,165,233,0.12); border-color: rgba(14,165,233,0.5); }
+
+        .btn-action-save { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
+        .btn-action-save:hover:not(:disabled) { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.5); }
+
+        .btn-action-delete { color: #ef4444; border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.04); }
+        .btn-action-delete:hover:not(:disabled) { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.45); }
+
+        @media (max-width: 768px) {
+          .btn-action { padding: 6px 10px; font-size: 0.78rem; }
+          .btn-action-label { display: none; }
+        }
 
         .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
         .badge.ai { background: rgba(99,102,241,0.12); color: var(--color-accent-1); }
         .badge.bank { background: rgba(17,24,39,0.1); color: #111827; }
+
+        /* Hide specific elements during PDF Export */
+        .pdf-only-header { display: none; }
+        
+        .pdf-exporting .q-actions, 
+        .pdf-exporting .badge,
+        .pdf-exporting .GripVertical,
+        .pdf-exporting .q-meta { display: none !important; }
+        .pdf-exporting.q-list { gap: 12px !important; padding: 20px !important; color: black !important; }
+        .pdf-exporting .pdf-only-header { display: block !important; }
+        
+        .pdf-exporting .q-item { 
+          border: none !important; 
+          box-shadow: none !important; 
+          background: white !important; 
+          padding: 0 !important; 
+          margin-bottom: 15px !important; 
+          page-break-inside: avoid; 
+        }
+        
+        /* Exam content styling for PDF */
+        .pdf-exporting .q-top { margin-bottom: 2px !important; }
+        .pdf-exporting .q-num { font-weight: bold !important; font-size: 16px !important; color: black !important; }
+        .pdf-exporting .q-text { font-size: 16px !important; color: black !important; margin-bottom: 8px !important; }
+        .pdf-exporting .exam-answers { margin-top: 0 !important; gap: 4px !important; }
+        .pdf-exporting .exam-option { background: none !important; border: none !important; padding: 2px 0 !important; font-size: 15px !important; color: black !important; }
+        .pdf-exporting .option-label { color: black !important; font-weight: bold !important; }
+        .pdf-exporting .correct-icon { display: none !important; }
+        .pdf-exporting .exam-option.correct-marked { font-weight: bold !important; }
+        .pdf-exporting .exam-option.correct-marked .option-label,
+        .pdf-exporting .exam-option.correct-marked .option-content * { 
+          color: var(--ds-warning-text) !important; 
+          font-weight: bold !important; 
+          text-decoration: underline !important; 
+        }
+        .pdf-exporting .option-content {
+          min-width: 0 !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
+        }
 
         .answers { margin-top: 10px; display: grid; gap: 6px; }
         .a { padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.06); }
@@ -1377,13 +1787,13 @@ const ExamGenerator = () => {
         .explain { margin-top: 10px; }
 
         /* Exam-style answers A B C D */
-        .exam-answers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
-        @media (max-width: 768px) { .exam-answers { grid-template-columns: 1fr; } }
-        .exam-option { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.08); transition: all 0.2s; }
+        .exam-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+        @media (max-width: 768px) { .exam-answers { grid-template-columns: minmax(0, 1fr); } }
+        .exam-option { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.08); transition: all 0.2s; min-width: 0; }
         .exam-option.correct-marked { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.4); }
-        .option-label { font-weight: 700; color: var(--color-accent-1); min-width: 20px; }
-        .option-content { flex: 1; }
-        .correct-icon { color: #10b981; font-weight: 700; margin-left: auto; }
+        .option-label { font-weight: 700; color: var(--color-accent-1); min-width: 20px; flex-shrink: 0; }
+        .option-content { flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; }
+        .correct-icon { color: var(--ds-success); font-weight: 700; margin-left: auto; }
         .toggle-label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
         .toggle-label input { width: auto; cursor: pointer; }
 

@@ -13,5 +13,8 @@ public class AttemptStartRequest {
 
     // Optional: exam schedule to enforce start window (startTime + allowLateMinutes)
     private Long scheduleId;
+
+    // Optional: password required by exam schedule.
+    private String schedulePassword;
 }
 

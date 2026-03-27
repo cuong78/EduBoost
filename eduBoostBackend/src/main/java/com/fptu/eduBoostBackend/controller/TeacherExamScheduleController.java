@@ -79,6 +79,7 @@ public class TeacherExamScheduleController {
     }
 
     @GetMapping("/{scheduleId}/results")
+    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<java.util.List<ExamScheduleResultResponse>> getScheduleResults(@PathVariable Long scheduleId) {
         return ResponseEntity.ok(examScheduleService.getScheduleResults(scheduleId));
     }

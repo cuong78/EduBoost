@@ -12,6 +12,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.*;
 import com.fptu.eduBoostBackend.service.ExamScheduleService;
+import com.fptu.eduBoostBackend.service.ScoreRevealPolicyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     private final ExamAttemptRepository examAttemptRepository;
     private final StudentExamResultRepository studentExamResultRepository;
     private final ObjectMapper objectMapper;
+    private final ScoreRevealPolicyService scoreRevealPolicyService;
 
     private static final String DEFAULT_SETTINGS =
             "{\"maxTabSwitches\":3,\"requireFullscreen\":false,\"autoSubmitOnViolation\":false}";
@@ -238,6 +240,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
                         ? schedule.getScoreRevealMode().name()
                         : ScoreRevealMode.IMMEDIATE.name())
                 .resultsAnnouncedAt(schedule.getResultsAnnouncedAt())
+                .hasPassword(schedule.getPassword() != null && !schedule.getPassword().isBlank())
                 .build();
     }
 
@@ -290,11 +293,16 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     @Override
     @Transactional(readOnly = true)
     public List<ExamScheduleResultResponse> getScheduleResults(Long scheduleId) {
+        Teacher teacher = getCurrentTeacher();
         ExamSchedule schedule = examScheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam schedule not found"));
+        if (!schedule.getTeacher().getTeacherId().equals(teacher.getTeacherId())) {
+            throw new ForbiddenException("You are not allowed to view results of this schedule");
+        }
 
         // Schedule-correct: only attempts belonging to this schedule (prevents duplicates)
         List<ExamAttempt> attempts = examAttemptRepository.findBySchedule_Id(scheduleId);
+        boolean scoresVisible = scoreRevealPolicyService.areScoresVisible(schedule);
 
         // Deduplicate: one row per student (prefer latest SUBMITTED, else latest by startedAt)
         java.util.Map<String, ExamAttempt> bestByStudent = new java.util.HashMap<>();
@@ -332,7 +340,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
             java.math.BigDecimal finalScore = null;
             java.math.BigDecimal finalPercentage = null;
 
-            if (attempt.getStatus() == ExamAttemptStatus.SUBMITTED) {
+            if (scoresVisible && attempt.getStatus() == ExamAttemptStatus.SUBMITTED) {
                 Integer attemptNumber = attempt.getAttemptNumber() != null ? attempt.getAttemptNumber() : 1;
                 java.util.Optional<StudentExamResult> resultOpt =
                         studentExamResultRepository.findFirstByStudentAndExamAndAttemptNumberOrderByResultIdDesc(

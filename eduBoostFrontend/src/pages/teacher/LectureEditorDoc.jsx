@@ -209,7 +209,7 @@ const LectureEditorDoc = () => {
                     transition: all 0.2s;
                 }
                 .toolbar-btn:hover { background: #e2e8f0; color: #334155; }
-                .toolbar-btn.active { background: #e0e7ff; color: #4f46e5; }
+                .toolbar-btn.active { background: #e0e7ff; color: var(--ds-primary-hover); }
 
                 .divider {
                     width: 1px;
@@ -257,9 +257,9 @@ const LectureEditorDoc = () => {
                     margin-bottom: 1.5rem;
                 }
                 .upload-box:hover {
-                    border-color: #6366f1;
-                    color: #6366f1;
-                    background: #eef2ff;
+                    border-color: var(--ds-primary);
+                    color: var(--ds-primary);
+                    background: var(--ds-primary-bg);
                 }
                 .upload-box p { font-size: 0.85rem; margin-top: 0.5rem; }
 
@@ -282,7 +282,7 @@ const LectureEditorDoc = () => {
                 .file-icon {
                     width: 36px;
                     height: 36px;
-                    background: #3b82f6;
+                    background: var(--ds-info);
                     color: white;
                     border-radius: 6px;
                     font-size: 0.7rem;
@@ -303,7 +303,7 @@ const LectureEditorDoc = () => {
                     color: #cbd5e1;
                     cursor: pointer;
                 }
-                .remove-btn:hover { color: #ef4444; }
+                .remove-btn:hover { color: var(--ds-error); }
             `}</style>
         </div>
     );

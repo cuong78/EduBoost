@@ -90,6 +90,7 @@ class TokenManager {
      */
     clearToken() {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         this.clearRefreshTimer();
     }
 

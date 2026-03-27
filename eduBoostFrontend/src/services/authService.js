@@ -98,6 +98,7 @@ export const authService = {
         if (code === 200) {
             return {
                 token: res.data.token,
+                refreshToken: res.data.refreshToken,
                 roles: res.data.roles || []
             };
         }
@@ -200,18 +201,31 @@ export const authService = {
         }
     },
 
-    refreshToken: async () => {
-        const currentToken = tokenManager.getToken();
+    changePassword: async (oldPassword, newPassword, confirmPassword) => {
+        try {
+            const response = await apiClient.post(`${API.BASE}/auth/change-password`, {
+                oldPassword,
+                newPassword,
+                confirmPassword
+            }, { skipErrorToast: true });
+            return response.data;
+        } catch (error) {
+            console.error('Đổi mật khẩu thất bại', error);
+            throw error;
+        }
+    },
 
-        if (!currentToken) throw new Error("No token available for refresh");
+    refreshToken: async () => {
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+
+        if (!storedRefreshToken) throw new Error("No refresh token available");
 
         // Sử dụng axios trực tiếp thay vì apiClient để tránh vòng lặp vô hạn
         const response = await axios.post(`${API.BASE}/auth/refresh-token`, {
-            token: currentToken,
+            refreshToken: storedRefreshToken,
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentToken}`
             },
             withCredentials: false
         });

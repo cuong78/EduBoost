@@ -29,4 +29,12 @@ public interface AIQuestionGeneratorService {
      * @return Generated questions with metadata
      */
     AIGenerateFromUrlResponse generateFromUrl(AIGenerateFromUrlRequest request);
+
+    /**
+     * Generate questions from pre-merged content (multiple resources combined)
+     * @param mergedContent The combined extracted content from all lesson resources
+     * @param request The generation request containing lessonId and configuration
+     * @return Generated questions with metadata
+     */
+    AIGenerateFromResourceResponse generateFromMergedContent(String mergedContent, AIGenerateFromResourceRequest request);
 }

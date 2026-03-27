@@ -1,6 +1,7 @@
 package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.response.ExamScheduleSummaryResponse;
+import com.fptu.eduBoostBackend.dto.response.exam.StudentExamAttemptHistoryResponse;
 import com.fptu.eduBoostBackend.service.ExamAttemptService;
 import com.fptu.eduBoostBackend.service.ExamScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +33,13 @@ public class StudentExamController {
     public ResponseEntity<List<ExamScheduleSummaryResponse>> getUpcomingExams() {
         List<ExamScheduleSummaryResponse> exams = examScheduleService.getStudentUpcomingExams();
         return ResponseEntity.ok(exams);
+    }
+
+    @GetMapping("/schedules/{scheduleId}/attempts")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Get current student's attempt history for a schedule")
+    public ResponseEntity<List<StudentExamAttemptHistoryResponse>> getAttemptHistory(@PathVariable Long scheduleId) {
+        return ResponseEntity.ok(examAttemptService.getStudentScheduleAttempts(scheduleId));
     }
 
     /**

@@ -9,7 +9,7 @@ export default function ExamScheduleDetailModal({ schedule, onClose, onAnnounce 
 
     const isAfterAnnounce = schedule?.scoreRevealMode === 'AFTER_ANNOUNCE';
     const canAnnounce =
-        isAfterAnnounce && !schedule?.resultsAnnouncedAt && schedule?.status !== 'CANCELLED' && schedule?.status !== 'CANCELLED';
+        isAfterAnnounce && !schedule?.resultsAnnouncedAt && schedule?.status !== 'CANCELLED';
 
     const handleGradingSaved = () => {
         setRefreshToken((x) => x + 1);
@@ -23,8 +23,8 @@ export default function ExamScheduleDetailModal({ schedule, onClose, onAnnounce 
         : 'Ngay khi nộp';
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '980px', width: '95%' }}>
+        <div className="ds-modal-overlay">
+            <div className="ds-modal ds-modal-xl" style={{ width: '95%' }}>
                 <div className="modal-header">
                     <h2>{schedule?.title || schedule?.examTitle || 'Lịch thi'}</h2>
                     <button className="btn-icon" onClick={onClose}>
@@ -106,6 +106,31 @@ export default function ExamScheduleDetailModal({ schedule, onClose, onAnnounce 
                     onSaved={handleGradingSaved}
                 />
             )}
+            <style>{`
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding-bottom: 0.8rem;
+                    margin-bottom: 0.8rem;
+                    border-bottom: 1px solid var(--ds-border-light);
+                }
+                .modal-header h2 {
+                    margin: 0;
+                    font-size: 1.1rem;
+                }
+                .btn-icon {
+                    border: 1px solid var(--ds-border);
+                    background: var(--ds-bg-subtle);
+                    border-radius: 10px;
+                    width: 34px;
+                    height: 34px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
+            `}</style>
         </div>
     );
 }

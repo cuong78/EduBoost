@@ -3,12 +3,15 @@ package com.fptu.eduBoostBackend.service.impl;
 import com.fptu.eduBoostBackend.dto.response.StudentExamResultDetailResponse;
 import com.fptu.eduBoostBackend.dto.response.StudentExamResultSummaryResponse;
 import com.fptu.eduBoostBackend.entities.Exam;
+import com.fptu.eduBoostBackend.entities.ExamAttempt;
+import com.fptu.eduBoostBackend.entities.ExamAttemptStatus;
 import com.fptu.eduBoostBackend.entities.Student;
 import com.fptu.eduBoostBackend.entities.StudentExamResult;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
-import com.fptu.eduBoostBackend.repositories.ExamRepository;
+import com.fptu.eduBoostBackend.repositories.ExamAttemptRepository;
 import com.fptu.eduBoostBackend.repositories.StudentExamResultRepository;
 import com.fptu.eduBoostBackend.repositories.StudentRepository;
+import com.fptu.eduBoostBackend.service.ScoreRevealPolicyService;
 import com.fptu.eduBoostBackend.service.StudentExamResultService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +35,8 @@ public class StudentExamResultServiceImpl implements StudentExamResultService {
 
     private final StudentExamResultRepository studentExamResultRepository;
     private final StudentRepository studentRepository;
-    private final ExamRepository examRepository;
+    private final ExamAttemptRepository examAttemptRepository;
+    private final ScoreRevealPolicyService scoreRevealPolicyService;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,13 +92,31 @@ public class StudentExamResultServiceImpl implements StudentExamResultService {
 
     private StudentExamResultSummaryResponse mapToSummary(StudentExamResult result) {
         Exam exam = result.getExam();
+        if (!isScoreVisible(result)) {
+            return StudentExamResultSummaryResponse.builder()
+                    .resultId(result.getResultId())
+                    .examId(exam != null ? exam.getId() : null)
+                    .examTitle(exam != null ? exam.getExamTitle() : null)
+                    .subjectName(exam != null && exam.getSubject() != null ? exam.getSubject().getDescription() : null)
+                    .subjectCode(exam != null && exam.getSubject() != null ? exam.getSubject().getSubjectCode() : null)
+                    .chapterName(exam != null && exam.getChapter() != null ? exam.getChapter().getChapterName() : null)
+                    .semester(exam != null ? exam.getSemester() : null)
+                    .schoolYear(exam != null ? exam.getSchoolYear() : null)
+                    .takenAt(result.getTakenAt())
+                    .score(null)
+                    .maxScore(null)
+                    .percentage(null)
+                    .status(result.getStatus())
+                    .sourceType(result.getSourceType())
+                    .build();
+        }
 
         BigDecimal maxScore = result.getMaxScore() != null ? result.getMaxScore() : exam != null ? exam.getTotalPoints() : null;
         BigDecimal percentage = result.getPercentage();
         if (percentage == null && maxScore != null && maxScore.compareTo(BigDecimal.ZERO) > 0) {
             percentage = result.getScore()
                     .multiply(BigDecimal.valueOf(100))
-                    .divide(maxScore, 2, BigDecimal.ROUND_HALF_UP);
+                    .divide(maxScore, 2, RoundingMode.HALF_UP);
         }
 
         return StudentExamResultSummaryResponse.builder()
@@ -115,13 +139,14 @@ public class StudentExamResultServiceImpl implements StudentExamResultService {
 
     private StudentExamResultDetailResponse mapToDetail(StudentExamResult result) {
         Exam exam = result.getExam();
+        boolean scoreVisible = isScoreVisible(result);
 
         BigDecimal maxScore = result.getMaxScore() != null ? result.getMaxScore() : exam != null ? exam.getTotalPoints() : null;
         BigDecimal percentage = result.getPercentage();
-        if (percentage == null && maxScore != null && maxScore.compareTo(BigDecimal.ZERO) > 0) {
+        if (scoreVisible && percentage == null && maxScore != null && maxScore.compareTo(BigDecimal.ZERO) > 0) {
             percentage = result.getScore()
                     .multiply(BigDecimal.valueOf(100))
-                    .divide(maxScore, 2, BigDecimal.ROUND_HALF_UP);
+                    .divide(maxScore, 2, RoundingMode.HALF_UP);
         }
 
         return StudentExamResultDetailResponse.builder()
@@ -134,15 +159,34 @@ public class StudentExamResultServiceImpl implements StudentExamResultService {
                 .semester(exam != null ? exam.getSemester() : null)
                 .schoolYear(exam != null ? exam.getSchoolYear() : null)
                 .takenAt(result.getTakenAt())
-                .score(result.getScore())
-                .maxScore(maxScore)
-                .percentage(percentage)
+                .score(scoreVisible ? result.getScore() : null)
+                .maxScore(scoreVisible ? maxScore : null)
+                .percentage(scoreVisible ? percentage : null)
                 .status(result.getStatus())
                 .sourceType(result.getSourceType())
                 .gradingCriteria(null)
                 .teacherComment(null)
                 .questionBreakdowns(Collections.emptyList())
                 .build();
+    }
+
+    private boolean isScoreVisible(StudentExamResult result) {
+        if (result == null || result.getStudent() == null || result.getExam() == null) {
+            return true;
+        }
+        Integer attemptNumber = result.getAttemptNumber() != null ? result.getAttemptNumber() : 1;
+        List<ExamAttempt> attempts = examAttemptRepository
+                .findByStudent_StudentIdAndExam_IdAndStatus(
+                        result.getStudent().getStudentId(),
+                        result.getExam().getId(),
+                        ExamAttemptStatus.SUBMITTED);
+        Optional<ExamAttempt> attemptOpt = attempts.stream()
+                .filter(a -> (a.getAttemptNumber() != null ? a.getAttemptNumber() : 1) == attemptNumber)
+                .filter(a -> a.getSchedule() != null)
+                .findFirst();
+        return attemptOpt.map(ExamAttempt::getSchedule)
+                .map(scoreRevealPolicyService::areScoresVisible)
+                .orElse(true);
     }
 }
 

@@ -422,60 +422,87 @@ public class ExamServiceImpl implements ExamService {
         
         // Process by lesson distribution if provided
         if (request.getLessonDistribution() != null && !request.getLessonDistribution().isEmpty()) {
-            for (LessonDistributionRequest lessonDist : request.getLessonDistribution()) {
-                Long lessonId = lessonDist.getLessonId();
-                int needed = lessonDist.getNumberOfQuestions();
-                
-                // If cognitive level distribution is provided, use it
-                if (cognitiveLevelDist != null && !cognitiveLevelDist.isEmpty()) {
-                    for (Map.Entry<Long, Integer> levelEntry : cognitiveLevelDist.entrySet()) {
-                        Long cognitiveLevelId = levelEntry.getKey();
-                        int neededForLevel = levelEntry.getValue();
-                        
+            // Calculate total questions across all lessons
+            int totalQuestionsFromLessons = request.getLessonDistribution().stream()
+                    .mapToInt(LessonDistributionRequest::getNumberOfQuestions).sum();
+
+            // If cognitive level distribution is provided, distribute proportionally across lessons
+            if (cognitiveLevelDist != null && !cognitiveLevelDist.isEmpty()) {
+                for (Map.Entry<Long, Integer> levelEntry : cognitiveLevelDist.entrySet()) {
+                    Long cognitiveLevelId = levelEntry.getKey();
+                    int totalForLevel = levelEntry.getValue();
+                    if (totalForLevel <= 0) continue;
+
+                    int levelRemaining = totalForLevel;
+
+                    for (int li = 0; li < request.getLessonDistribution().size(); li++) {
+                        LessonDistributionRequest lessonDist = request.getLessonDistribution().get(li);
+                        Long lessonId = lessonDist.getLessonId();
+                        int lessonCount = lessonDist.getNumberOfQuestions();
+
+                        // Proportional share for this lesson-level cell
+                        int neededForCell;
+                        if (li == request.getLessonDistribution().size() - 1) {
+                            // Last lesson gets the remainder to avoid rounding issues
+                            neededForCell = levelRemaining;
+                        } else {
+                            neededForCell = totalQuestionsFromLessons > 0
+                                    ? Math.round((float) totalForLevel * lessonCount / totalQuestionsFromLessons)
+                                    : 0;
+                        }
+                        neededForCell = Math.min(neededForCell, levelRemaining);
+                        if (neededForCell <= 0) continue;
+
                         // Get questions from bank for this lesson and cognitive level
                         List<QuestionBank> questions = questionBankRepository.findByLessonIdAndCognitiveLevelId(lessonId, cognitiveLevelId);
-                        
-                        int addedForLevel = 0;
+
+                        int addedForCell = 0;
                         for (QuestionBank q : questions) {
-                            if (addedForLevel >= neededForLevel) break;
+                            if (addedForCell >= neededForCell) break;
                             if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
-                            
+
                             orderNumber++;
                             ExamQuestion eq = createExamQuestionFromBank(exam, q, orderNumber, pointsPerQuestion);
                             addedQuestions.add(examQuestionRepository.save(eq));
                             fromBank++;
-                            addedForLevel++;
+                            addedForCell++;
                         }
-                        
+
                         // If still need more and AI generation is enabled
-                        int stillNeeded = neededForLevel - addedForLevel;
+                        int stillNeeded = neededForCell - addedForCell;
                         if (stillNeeded > 0 && Boolean.TRUE.equals(request.getUseAiGeneration())) {
                             List<ExamQuestion> aiQuestions = generateAIQuestionsForExam(exam, lessonId, cognitiveLevelId, stillNeeded, orderNumber, pointsPerQuestion);
                             orderNumber += aiQuestions.size();
                             addedQuestions.addAll(aiQuestions);
                             aiGenerated += aiQuestions.size();
                         }
+
+                        levelRemaining -= neededForCell;
                     }
-                } else {
-                    // No cognitive level distribution - just get questions for the lesson
+                }
+            } else {
+                // No cognitive level distribution - just get questions per lesson
+                for (LessonDistributionRequest lessonDist : request.getLessonDistribution()) {
+                    Long lessonId = lessonDist.getLessonId();
+                    int needed = lessonDist.getNumberOfQuestions();
+
                     List<QuestionBank> questions = questionBankRepository.findByLessonId(lessonId);
-                    
+
                     int addedForLesson = 0;
                     for (QuestionBank q : questions) {
                         if (addedForLesson >= needed) break;
                         if (examQuestionRepository.existsByExamIdAndQuestionId(examId, q.getId())) continue;
-                        
+
                         orderNumber++;
                         ExamQuestion eq = createExamQuestionFromBank(exam, q, orderNumber, pointsPerQuestion);
                         addedQuestions.add(examQuestionRepository.save(eq));
                         fromBank++;
                         addedForLesson++;
                     }
-                    
+
                     // If still need more and AI generation is enabled
                     int stillNeeded = needed - addedForLesson;
                     if (stillNeeded > 0 && Boolean.TRUE.equals(request.getUseAiGeneration())) {
-                        // Use default cognitive level (first one)
                         CognitiveLevel defaultLevel = cognitiveLevelRepository.findAll().stream().findFirst().orElse(null);
                         if (defaultLevel != null) {
                             List<ExamQuestion> aiQuestions = generateAIQuestionsForExam(exam, lessonId, defaultLevel.getId(), stillNeeded, orderNumber, pointsPerQuestion);
@@ -564,25 +591,39 @@ public class ExamServiceImpl implements ExamService {
                 return generated;
             }
             
-            // Use first resource with content
-            LessonResource resource = resources.stream()
-                    .filter(r -> r.getExtractedContent() != null && !r.getExtractedContent().isEmpty())
-                    .findFirst()
-                    .orElse(null);
+            // Merge ALL resources' extracted content (not just the first one)
+            StringBuilder mergedContent = new StringBuilder();
+            for (LessonResource r : resources) {
+                if (r.getExtractedContent() != null && !r.getExtractedContent().isEmpty()) {
+                    if (mergedContent.length() > 0) {
+                        mergedContent.append("\n\n--- TÀI LIỆU: ").append(r.getResourceName()).append(" ---\n\n");
+                    }
+                    mergedContent.append(r.getExtractedContent());
+                }
+            }
             
-            if (resource == null) {
+            if (mergedContent.length() == 0) {
                 log.warn("No resource with extracted content for lesson {}", lessonId);
                 return generated;
             }
             
-            // Call AI service to generate questions
+            log.info("Merged {} resources for lesson {}, total content length: {}", 
+                    resources.size(), lessonId, mergedContent.length());
+            
+            // Call AI service to generate questions using merged content
             AIGenerateFromResourceRequest aiRequest = new AIGenerateFromResourceRequest();
-            aiRequest.setResourceId(resource.getId());
             aiRequest.setLessonId(lessonId);
             aiRequest.setNumberOfQuestions(count);
             aiRequest.setAiProvider("DEEPSEEK");
             
-            AIGenerateFromResourceResponse aiResponse = aiQuestionGeneratorService.generateFromResource(aiRequest);
+            // Use the first resource's ID for backward compat, but pass merged content
+            LessonResource firstResource = resources.stream()
+                    .filter(r -> r.getExtractedContent() != null && !r.getExtractedContent().isEmpty())
+                    .findFirst().orElse(resources.get(0));
+            aiRequest.setResourceId(firstResource.getId());
+            
+            AIGenerateFromResourceResponse aiResponse = aiQuestionGeneratorService
+                    .generateFromMergedContent(mergedContent.toString(), aiRequest);
             
             int orderNumber = startOrder;
             
@@ -600,6 +641,8 @@ public class ExamServiceImpl implements ExamService {
                         .orderNumber(orderNumber)
                         .points(points)
                         .sourceFlag(ExamQuestionSourceFlag.AI_GENERATED)
+                        .cognitiveLevel(cognitiveLevel)
+                        .lesson(lesson)
                         .build();
                 
                 generated.add(examQuestionRepository.save(eq));
@@ -800,57 +843,6 @@ public class ExamServiceImpl implements ExamService {
 
 
     @Override
-    public ExamResponse cloneExam(Long examId) {
-        Exam original = examRepository.findByIdWithDetails(examId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        
-        User currentUser = getCurrentUser();
-        
-        // Create new exam
-        Exam clone = Exam.builder()
-                .examCode(generateExamCode(original.getSubject().getSubjectCode(), original.getGradeLevel()))
-                .examTitle(original.getExamTitle() + " (Copy)")
-                .examType(original.getExamType())
-                .subject(original.getSubject())
-                .gradeLevel(original.getGradeLevel())
-                .chapter(original.getChapter())
-                .semester(original.getSemester())
-                .schoolYear(original.getSchoolYear())
-                .matrixTemplate(original.getMatrixTemplate())
-                .totalQuestions(original.getTotalQuestions())
-                .totalPoints(original.getTotalPoints())
-                .createdBy(currentUser)
-                .status(ExamStatus.DRAFT)
-                .build();
-        
-        clone = examRepository.save(clone);
-        
-        // Clone questions
-        List<ExamQuestion> originalQuestions = examQuestionRepository.findByExamIdOrdered(examId);
-        for (ExamQuestion oq : originalQuestions) {
-            ExamQuestion clonedQ = ExamQuestion.builder()
-                    .exam(clone)
-                    .question(oq.getQuestion())
-                    .orderNumber(oq.getOrderNumber())
-                    .points(oq.getPoints())
-                    .sourceFlag(oq.getSourceFlag())
-                    .questionText(oq.getQuestionText())
-                    .correctAnswer(oq.getCorrectAnswer())
-                    .explanation(oq.getExplanation())
-                    .wrongAnswer1(oq.getWrongAnswer1())
-                    .wrongAnswer2(oq.getWrongAnswer2())
-                    .wrongAnswer3(oq.getWrongAnswer3())
-                    .isModified(false)
-                    .build();
-            examQuestionRepository.save(clonedQ);
-        }
-        
-        log.info("Cloned exam {} to {} by user: {}", original.getExamCode(), clone.getExamCode(), currentUser.getUsername());
-        
-        return mapToExamResponse(clone);
-    }
-
-    @Override
     public ExamStatisticsResponse getExamStatistics(Long examId) {
         Exam exam = examRepository.findByIdWithDetails(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -1029,7 +1021,7 @@ public class ExamServiceImpl implements ExamService {
     private void validateStatusTransition(ExamStatus current, ExamStatus newStatus) {
         // New simplified transitions: DRAFT/USED -> PUBLISHED, PUBLISHED -> DRAFT (unpublish)
         boolean valid = switch (current) {
-            case DRAFT -> newStatus == ExamStatus.PUBLISHED;
+            case DRAFT -> newStatus == ExamStatus.PUBLISHED || newStatus == ExamStatus.USED;
             case USED -> newStatus == ExamStatus.PUBLISHED;
             case PUBLISHED -> newStatus == ExamStatus.DRAFT || newStatus == ExamStatus.USED;
         };
@@ -1104,6 +1096,16 @@ public class ExamServiceImpl implements ExamService {
                 builder.cognitiveLevelName(eq.getQuestion().getCognitiveLevel().getLevel());
             }
         }
+
+        // Fallback: use fields stored directly on ExamQuestion (for AI-generated questions)
+        if (eq.getCognitiveLevel() != null && builder.build().getCognitiveLevelId() == null) {
+            builder.cognitiveLevelId(eq.getCognitiveLevel().getId());
+            builder.cognitiveLevelName(eq.getCognitiveLevel().getLevel());
+        }
+        if (eq.getLesson() != null && builder.build().getLessonId() == null) {
+            builder.lessonId(eq.getLesson().getId());
+            builder.lessonName(eq.getLesson().getLessonName());
+        }
         
         if (eq.getModifiedBy() != null) {
             builder.modifiedByName(eq.getModifiedBy().getFullName());
@@ -1121,71 +1123,15 @@ public class ExamServiceImpl implements ExamService {
             if (exam.getStatus() == ExamStatus.DRAFT) {
                 exam.setStatus(ExamStatus.USED);
                 examRepository.save(exam);
-                log.info("Exam {} status changed to USED after export", exam.getExamCode());
+                log.info("Exam {} status changed to USED after export signaling from frontend", exam.getExamCode());
             }
 
-            boolean showAnswer = "answer-key".equalsIgnoreCase(format);
-
-            List<ExamQuestion> questions = examQuestionRepository.findByExamIdOrdered(examId);
-            log.info("Export exam {} - question count: {}", examId, questions.size());
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PdfWriter writer = new PdfWriter(baos);
-            PdfDocument pdf = new PdfDocument(writer);
-            Document document = new Document(pdf);
-
-            ClassPathResource fontResource = new ClassPathResource("fonts/NotoSans-Regular.ttf");
-            FontProgram fontProgram;
-            try (InputStream fontStream = fontResource.getInputStream()) {
-                fontProgram = FontProgramFactory.createFont(fontStream.readAllBytes());
-            }
-            PdfFont font = PdfFontFactory.createFont(fontProgram, PdfEncodings.IDENTITY_H);
-            document.setFont(font);
-
-            document.add(new Paragraph(cleanText(exam.getExamTitle()))
-                    .setBold().setFontSize(18).setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("Môn: " + exam.getSubject().getDescription())
-                    .setTextAlignment(TextAlignment.CENTER).setFontSize(12));
-            document.add(new Paragraph("Thời gian: " + getExamDuration(exam))
-                    .setTextAlignment(TextAlignment.CENTER).setFontSize(12));
-            document.add(new Paragraph("\n"));
-            document.add(new Paragraph("------------------------------------------------------------")
-                    .setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("\n"));
-
-            int questionNumber = 1;
-            for (ExamQuestion q : questions) {
-                document.add(new Paragraph(
-                        "Câu " + questionNumber + ": " + cleanText(q.getQuestionText())
-                ).setBold().setFontSize(12));
-                document.add(new Paragraph("\n"));
-
-                List<String> answers = new ArrayList<>();
-                answers.add(q.getCorrectAnswer());
-                if (q.getWrongAnswer1() != null) answers.add(q.getWrongAnswer1());
-                if (q.getWrongAnswer2() != null) answers.add(q.getWrongAnswer2());
-                if (q.getWrongAnswer3() != null) answers.add(q.getWrongAnswer3());
-                Collections.shuffle(answers);
-
-                char label = 'A';
-                for (String ans : answers) {
-                    Paragraph answerParagraph = new Paragraph(label + ". " + cleanText(ans)).setFontSize(11);
-                    if (showAnswer && ans.equals(q.getCorrectAnswer())) {
-                        answerParagraph.setBold();
-                    }
-                    document.add(answerParagraph);
-                    label++;
-                }
-                document.add(new Paragraph("\n"));
-                questionNumber++;
-            }
-
-            document.close();
-            return baos.toByteArray();
+            // The actual PDF generation is now handled by the React frontend
+            return new byte[0];
 
         } catch (Exception e) {
-            log.error("Failed to export exam", e);
-            throw new RuntimeException("Failed to export exam", e);
+            log.error("Failed to marked exam as exported", e);
+            throw new RuntimeException("Failed to marked exam as exported", e);
         }
     }
     private Cell createInfoCell(String text) {

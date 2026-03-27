@@ -14,6 +14,7 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Upload,
+  FolderArchive,
 } from "lucide-react";
 import { adminLessonService } from "../../services/adminLessonService";
 import { adminChapterService } from "../../services/adminChapterService";
@@ -67,6 +68,11 @@ const LessonResources = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isWizardClosing, setIsWizardClosing] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+  const [importElapsed, setImportElapsed] = useState(0); // seconds elapsed
 
   useEffect(() => {
     fetchSubjects();
@@ -197,6 +203,62 @@ const LessonResources = () => {
     setWizardLessons([]);
     setIsWizardClosing(false);
     setShowWizard(true);
+  };
+
+  const handleImportFile = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setShowImportModal(true);
+  };
+
+  const handleImportClose = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportResult(null);
+  };
+
+  const handleImportFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.name.endsWith(".zip")) {
+      setImportFile(file);
+    } else {
+      showErrorToast("Vui lòng chọn file ZIP");
+    }
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importFile) {
+      showErrorToast("Vui lòng chọn file ZIP");
+      return;
+    }
+
+    setImporting(true);
+    setImportElapsed(0);
+    // Start elapsed timer
+    const timerRef = setInterval(() => setImportElapsed(s => s + 1), 1000);
+    try {
+      // New endpoint: just pass the file — folder structure is parsed from ZIP
+      const result = await adminResourceService.bulkImportResources(importFile);
+      setImportResult(result);
+      if (result.totalCreated > 0) {
+        showSuccessToast(
+          `Import thành công: ${result.totalCreated} tài nguyên được tạo`
+        );
+        if (selectedLesson) {
+          fetchResourcesByLesson(selectedLesson);
+        }
+      } else if (result.errors && result.errors.length > 0) {
+        showErrorToast(`Import xong nhưng có ${result.errors.length} lỗi`);
+      } else {
+        showErrorToast("Không tìm thấy file DOCX nào phù hợp trong ZIP");
+      }
+    } catch (error) {
+      showErrorToast(error.response?.data?.message || "Đã xảy ra lỗi khi import");
+      console.error(error);
+    } finally {
+      clearInterval(timerRef);
+      setImporting(false);
+    }
   };
 
   const handleWizardClose = () => {
@@ -523,6 +585,14 @@ const LessonResources = () => {
           >
             <Plus size={20} />
             Thêm tài nguyên
+          </button>
+          <button
+            onClick={handleImportFile}
+            className="btn btn-primary"
+            disabled={!selectedSubject || !selectedGrade}
+          >
+            <FolderArchive size={20} />
+            Import từ ZIP
           </button>
         </div>
       </div>
@@ -1291,6 +1361,194 @@ const LessonResources = () => {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="modal-overlay" onClick={() => !importing && handleImportClose()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "600px" }}>
+            <div className="modal-header">
+              <h3>Import Tài nguyên từ ZIP</h3>
+              <button onClick={handleImportClose} disabled={importing} className="modal-close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {!importResult ? (
+                <>
+                  <div className="import-info">
+                    <h4>Cấu trúc folder yêu cầu:</h4>
+                    <pre className="import-structure">
+{`Folder_tong.zip
+├── Lớp 6/
+│   ├── Toán/
+│   │   ├── Chương 1_Tên chương/
+│   │   │   ├── Bài 1_Tên bài/
+│   │   │   │   ├── bai_giang.docx
+│   │   │   │   └── bai_tap.docx
+│   │   │   └── Bài 2_Tên bài/
+│   │   │       └── tai_lieu.docx
+│   └── Khoa học tự nhiên/
+│       └── Chương 1/
+│           └── Bài 1/
+│               └── file.docx
+└── Lớp 7/
+    └── ...`}
+                    </pre>
+                    <p className="import-note">
+                      Hỗ trợ cấu trúc: <strong>Lớp X / Môn / Chương N / Bài M / *.docx</strong>.
+                      Chương và Bài phải đã tồn tại trong hệ thống.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Chọn file ZIP <span className="required">*</span>
+                    </label>
+                    <div
+                      className={`drag-drop-area ${importFile ? "has-file" : ""}`}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.name.endsWith(".zip")) {
+                          setImportFile(file);
+                        }
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept=".zip"
+                        onChange={handleImportFileChange}
+                        style={{ display: "none" }}
+                        id="import-file-input"
+                      />
+                      <label htmlFor="import-file-input" className="file-select-label">
+                        <Upload size={48} color="#8b5cf6" />
+                        <p>Kéo thả file ZIP vào đây hoặc chọn file</p>
+                      </label>
+                      {importFile && (
+                        <div className="selected-file">
+                          <FileText size={20} />
+                          <span>{importFile.name}</span>
+                          <span className="file-size">({(importFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="import-summary">
+                    <h4>Tóm tắt:</h4>
+                    <div className="summary-grid">
+                      <div className="summary-item">
+                        <span className="summary-label">Môn học:</span>
+                        <span className="summary-value">
+                          {subjects.find((s) => s.id === selectedSubject)?.subjectName || "Chưa chọn"}
+                        </span>
+                      </div>
+                      <div className="summary-item">
+                        <span className="summary-label">Khối lớp:</span>
+                        <span className="summary-value">{selectedGrade || "Chưa chọn"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="import-result">
+                  <div className="result-success">
+                    <FileText size={48} color={importResult.totalCreated > 0 ? "#10b981" : "#f59e0b"} />
+                    <h4>{importResult.totalCreated > 0 ? "Import hoàn tất!" : "Import xong (0 file)"}</h4>
+                  </div>
+                  <div className="result-stats">
+                    <div className="stat-item">
+                      <span className="stat-label">Tổng file ZIP:</span>
+                      <span className="stat-value">{importResult.totalFiles}</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Đã tạo:</span>
+                      <span className="stat-value success">{importResult.totalCreated}</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Bỏ qua:</span>
+                      <span className="stat-value">{importResult.skipped}</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Lỗi:</span>
+                      <span className="stat-value error">{importResult.errors?.length || 0}</span>
+                    </div>
+                  </div>
+                  {importResult.byGrade && Object.keys(importResult.byGrade).length > 0 && (
+                    <div className="result-by-grade">
+                      <h5>Theo khối lớp:</h5>
+                      {Object.entries(importResult.byGrade).map(([grade, count]) => (
+                        <div key={grade} className="stat-item">
+                          <span className="stat-label">{grade}:</span>
+                          <span className="stat-value success">{count} file</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {importResult.errors && importResult.errors.length > 0 && (
+                    <div className="result-errors">
+                      <h5>Chi tiết lỗi:</h5>
+                      <ul>
+                        {importResult.errors.slice(0, 10).map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                        {importResult.errors.length > 10 && (
+                          <li>...và {importResult.errors.length - 10} lỗi khác</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              {!importResult ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleImportClose}
+                    className="btn btn-glass"
+                    disabled={importing}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleImportSubmit}
+                    className="btn btn-primary"
+                    disabled={!importFile || importing}
+                  >
+                    {importing ? (
+                      <>
+                        <Loader2
+                          size={18}
+                          style={{ animation: "spin 1s linear infinite" }}
+                        />
+                        Đang xử lý... {Math.floor(importElapsed / 60).toString().padStart(2, "0")}:{(importElapsed % 60).toString().padStart(2, "0")}
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        Import
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleImportClose}
+                  className="btn btn-primary"
+                >
+                  Đóng
+                </button>
+              )}
             </div>
           </div>
         </div>

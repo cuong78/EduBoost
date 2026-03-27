@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Users } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import logo from '../../assets/logo.png';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [showParentMenu, setShowParentMenu] = useState(false);
   const parentMenuRef = useRef(null);
+
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +36,16 @@ const Navbar = () => {
     };
   }, [showParentMenu]);
 
+  const getDashboardLink = () => {
+    if (!user || !user.roles || user.roles.length === 0) return '/login';
+    const firstRole = user.roles[0];
+    const roleName = typeof firstRole === 'string' ? firstRole : firstRole.roleName;
+    if (roleName === 'PARENT') return '/parent';
+    if (roleName === 'STUDENT') return '/student';
+    if (roleName === 'ADMIN') return '/admin';
+    return '/teacher';
+  };
+
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="container navbar-content">
@@ -43,26 +56,34 @@ const Navbar = () => {
 
         <div className="nav-links">
           <Link to="/" className="nav-link">Trang chủ</Link>
-          <div className="parent-menu-wrapper" ref={parentMenuRef}>
-            <button 
-              className="nav-link parent-menu-trigger"
-              onClick={() => setShowParentMenu(!showParentMenu)}
-              onMouseEnter={() => setShowParentMenu(true)}
-            >
-              <Users size={16} style={{ marginRight: '0.5rem' }} />
-              Phụ huynh
-              <ChevronDown size={14} style={{ marginLeft: '0.5rem', transition: 'transform 0.3s', transform: showParentMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-            </button>
-            {showParentMenu && (
-              <div className="parent-dropdown" onMouseLeave={() => setShowParentMenu(false)}>
-                <Link to="/parent/login" className="dropdown-item" onClick={() => setShowParentMenu(false)}>
-                  Đăng nhập
-                </Link>
+          {!isAuthenticated ? (
+            <>
+              <div className="parent-menu-wrapper" ref={parentMenuRef}>
+                <button 
+                  className="nav-link parent-menu-trigger"
+                  onClick={() => setShowParentMenu(!showParentMenu)}
+                  onMouseEnter={() => setShowParentMenu(true)}
+                >
+                  <Users size={16} style={{ marginRight: '0.5rem' }} />
+                  Phụ huynh
+                  <ChevronDown size={14} style={{ marginLeft: '0.5rem', transition: 'transform 0.3s', transform: showParentMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                </button>
+                {showParentMenu && (
+                  <div className="parent-dropdown" onMouseLeave={() => setShowParentMenu(false)}>
+                    <Link to="/parent/login" className="dropdown-item" onClick={() => setShowParentMenu(false)}>
+                      Đăng nhập
+                    </Link>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <Link to="/register" className="nav-link">Đăng ký</Link>
-          <Link to="/login" className="nav-link">Đăng nhập</Link>
+              <Link to="/register" className="nav-link">Đăng ký</Link>
+              <Link to="/login" className="nav-link">Đăng nhập</Link>
+            </>
+          ) : (
+            <Link to={getDashboardLink()} className="nav-link btn-dashboard">
+              Bảng điều khiển
+            </Link>
+          )}
         </div>
       </div>
 
@@ -195,9 +216,22 @@ const Navbar = () => {
           font-size: 0.9rem;
         }
 
-        .dropdown-item:hover {
+          .dropdown-item:hover {
           background: rgba(99, 102, 241, 0.1);
           color: var(--color-accent-1);
+        }
+
+        .btn-dashboard {
+          background: var(--ds-primary, #6366f1);
+          color: white !important;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+          border: none;
+        }
+
+        .btn-dashboard:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+          background: var(--ds-primary-hover, #4f46e5) !important;
         }
 
         @media (max-width: 968px) {

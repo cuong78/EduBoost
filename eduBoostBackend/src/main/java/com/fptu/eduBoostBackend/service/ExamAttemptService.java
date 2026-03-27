@@ -8,10 +8,13 @@ import com.fptu.eduBoostBackend.dto.response.exam.AttemptStateResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptStartResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptReviewResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptSubmitResponse;
+import com.fptu.eduBoostBackend.dto.response.exam.StudentExamAttemptHistoryResponse;
+
+import java.util.List;
 
 public interface ExamAttemptService {
 
-    AttemptStartResponse startAttempt(Long examId, Long scheduleId);
+    AttemptStartResponse startAttempt(Long examId, Long scheduleId, String schedulePassword);
 
     AttemptStateResponse getAttemptState(String attemptCode);
 
@@ -30,5 +33,7 @@ public interface ExamAttemptService {
 
     /** Teacher grading: persists manual points overrides and recomputes score. */
     void gradeTeacherAttempt(Long scheduleId, String attemptCode, TeacherAttemptGradeRequest request);
+
+    List<StudentExamAttemptHistoryResponse> getStudentScheduleAttempts(Long scheduleId);
 }
 

@@ -26,6 +26,7 @@ export const API = {
     TEACHER_EXAM_SCHEDULE_CANCEL: (scheduleId) => `${BASE_URL}/teacher/exam-schedules/${scheduleId}/cancel`,
     // Student exams
     STUDENT_EXAMS_UPCOMING: `${BASE_URL}/student/exams/upcoming`,
+    STUDENT_EXAM_SCHEDULE_ATTEMPTS: (scheduleId) => `${BASE_URL}/student/exams/schedules/${scheduleId}/attempts`,
     STUDENT_EXAM_VIOLATION: (attemptCode) => `${BASE_URL}/student/exams/attempts/${attemptCode}/violations`,
     // Parent (public validate uses BASE)
     PARENT_VALIDATE_INVITATION: `${BASE_URL}/parent/validate-invitation`,

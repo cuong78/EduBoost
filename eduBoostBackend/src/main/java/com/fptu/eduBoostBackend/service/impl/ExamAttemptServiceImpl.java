@@ -9,10 +9,10 @@ import com.fptu.eduBoostBackend.dto.response.exam.AttemptStartResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptStateResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptReviewResponse;
 import com.fptu.eduBoostBackend.dto.response.exam.AttemptSubmitResponse;
+import com.fptu.eduBoostBackend.dto.response.exam.StudentExamAttemptHistoryResponse;
 import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.enums.ExamStatus;
 import com.fptu.eduBoostBackend.entities.enums.QuestionType;
-import com.fptu.eduBoostBackend.entities.enums.ScoreRevealMode;
 import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ExamAttemptAnswerRepository;
@@ -26,6 +26,7 @@ import com.fptu.eduBoostBackend.repositories.StudentRepository;
 import com.fptu.eduBoostBackend.repositories.TeacherRepository;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
 import com.fptu.eduBoostBackend.service.ExamAttemptService;
+import com.fptu.eduBoostBackend.service.ScoreRevealPolicyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -55,14 +56,14 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
     private final StudentExamResultRepository studentExamResultRepository;
     private final TeacherRepository teacherRepository;
     private final UserRepository userRepository;
+    private final ScoreRevealPolicyService scoreRevealPolicyService;
 
     private static final int DEFAULT_DURATION_MINUTES = 45;
-    private static final int HEARTBEAT_IDLE_TIMEOUT_MINUTES = 10;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public AttemptStartResponse startAttempt(Long examId, Long scheduleId) {
+    public AttemptStartResponse startAttempt(Long examId, Long scheduleId, String schedulePassword) {
         Student student = getCurrentStudent();
 
         Exam exam = examRepository.findById(examId)
@@ -78,12 +79,15 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
 
         // Find existing in-progress attempt to verify if the student is resuming
         List<ExamAttempt> inProgressAttempts;
+        List<ExamAttempt> allScheduleAttempts = Collections.emptyList();
         if (scheduleId != null) {
             schedule = examScheduleRepository.findById(scheduleId)
                     .orElseThrow(() -> new ResourceNotFoundException("Exam schedule not found with id: " + scheduleId));
             inProgressAttempts =
                     examAttemptRepository.findByStudent_StudentIdAndSchedule_IdAndStatus(
                             student.getStudentId(), scheduleId, ExamAttemptStatus.IN_PROGRESS);
+            allScheduleAttempts = examAttemptRepository.findByStudent_StudentIdAndSchedule_Id(
+                    student.getStudentId(), scheduleId);
         } else {
             inProgressAttempts =
                     examAttemptRepository.findByStudent_StudentIdAndExam_IdAndStatus(
@@ -94,6 +98,13 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         if (scheduleId != null) {
             if (!schedule.getExam().getId().equals(examId)) {
                 throw new ForbiddenException("Schedule does not belong to this exam");
+            }
+
+            // Validate schedule password before starting/resuming.
+            if (schedule.getPassword() != null && !schedule.getPassword().isBlank()) {
+                if (schedulePassword == null || !schedule.getPassword().equals(schedulePassword.trim())) {
+                    throw new ForbiddenException("Mật khẩu bài thi không đúng");
+                }
             }
 
             // Only allow late start within [startTime, startTime + allowLateMinutes]
@@ -120,10 +131,14 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
                 durationMinutes = schedule.getDurationMinutes();
             }
 
-            // Enforce maxAttempts (only when starting a new attempt)
-            if (!hasInProgress && schedule.getMaxAttempts() != null && schedule.getMaxAttempts() > 0) {
-                long existing = examAttemptRepository.countByStudent_StudentIdAndSchedule_Id(student.getStudentId(), scheduleId);
-                if (existing >= schedule.getMaxAttempts()) {
+            // Enforce maxAttempts by completed rounds (even if there is a stale IN_PROGRESS duplicate).
+            if (schedule.getMaxAttempts() != null && schedule.getMaxAttempts() > 0) {
+                long submittedRounds = allScheduleAttempts.stream()
+                        .filter(a -> a.getStatus() == ExamAttemptStatus.SUBMITTED)
+                        .map(a -> a.getAttemptNumber() != null ? a.getAttemptNumber() : 1)
+                        .distinct()
+                        .count();
+                if (submittedRounds >= schedule.getMaxAttempts()) {
                     throw new ForbiddenException("You have reached the maximum number of attempts for this schedule");
                 }
             }
@@ -143,7 +158,11 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         } else {
             Integer attemptNumber;
             if (scheduleId != null) {
-                attemptNumber = (int) examAttemptRepository.countByStudent_StudentIdAndSchedule_Id(student.getStudentId(), scheduleId) + 1;
+                attemptNumber = allScheduleAttempts.stream()
+                        .map(ExamAttempt::getAttemptNumber)
+                        .filter(Objects::nonNull)
+                        .max(Integer::compareTo)
+                        .orElse(0) + 1;
             } else {
                 attemptNumber = (int) examAttemptRepository.countByStudent_StudentIdAndExam_Id(student.getStudentId(), examId) + 1;
             }
@@ -393,9 +412,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         studentExamResultRepository.save(result);
 
         ExamSchedule sched = attempt.getSchedule();
-        boolean scoresHidden = sched != null
-                && sched.getScoreRevealMode() == ScoreRevealMode.AFTER_ANNOUNCE
-                && sched.getResultsAnnouncedAt() == null;
+        boolean scoresHidden = !scoreRevealPolicyService.areScoresVisible(sched);
 
         AttemptSubmitResponse.AttemptSubmitResponseBuilder b = AttemptSubmitResponse.builder()
                 .attemptCode(attempt.getAttemptCode())
@@ -500,9 +517,7 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
         }
 
         ExamSchedule sched = attempt.getSchedule();
-        boolean answerKeyRevealed = sched == null
-                || sched.getScoreRevealMode() == ScoreRevealMode.IMMEDIATE
-                || sched.getResultsAnnouncedAt() != null;
+        boolean answerKeyRevealed = scoreRevealPolicyService.areScoresVisible(sched);
 
         Exam exam = attempt.getExam();
         List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(exam.getId());
@@ -567,6 +582,84 @@ public class ExamAttemptServiceImpl implements ExamAttemptService {
             rb.score(null).maxScore(null).percentage(null);
         }
         return rb.build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentExamAttemptHistoryResponse> getStudentScheduleAttempts(Long scheduleId) {
+        Student student = getCurrentStudent();
+        ExamSchedule schedule = examScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam schedule not found with id: " + scheduleId));
+
+        if (student.getSchoolClass() == null
+                || !student.getSchoolClass().getClassId().equals(schedule.getSchoolClass().getClassId())) {
+            throw new ForbiddenException("Bạn không có quyền xem lịch sử bài làm của lịch thi này");
+        }
+
+        boolean scoresVisible = scoreRevealPolicyService.areScoresVisible(schedule);
+        Map<Integer, ExamAttempt> bestByRound = new HashMap<>();
+        for (ExamAttempt attempt : examAttemptRepository.findByStudent_StudentIdAndSchedule_Id(student.getStudentId(), scheduleId)) {
+            int round = attempt.getAttemptNumber() != null ? attempt.getAttemptNumber() : 1;
+            ExamAttempt current = bestByRound.get(round);
+            if (current == null) {
+                bestByRound.put(round, attempt);
+                continue;
+            }
+            int newRank = rankAttempt(attempt);
+            int currentRank = rankAttempt(current);
+            if (newRank > currentRank) {
+                bestByRound.put(round, attempt);
+                continue;
+            }
+            if (newRank == currentRank) {
+                LocalDateTime aTime = attempt.getSubmittedAt() != null ? attempt.getSubmittedAt() : attempt.getStartedAt();
+                LocalDateTime cTime = current.getSubmittedAt() != null ? current.getSubmittedAt() : current.getStartedAt();
+                if (aTime != null && (cTime == null || aTime.isAfter(cTime))) {
+                    bestByRound.put(round, attempt);
+                }
+            }
+        }
+
+        return bestByRound.values().stream()
+                .sorted(Comparator.comparing(a -> a.getAttemptNumber() != null ? a.getAttemptNumber() : 0, Comparator.reverseOrder()))
+                .map(attempt -> {
+                    StudentExamAttemptHistoryResponse.StudentExamAttemptHistoryResponseBuilder b =
+                            StudentExamAttemptHistoryResponse.builder()
+                                    .attemptCode(attempt.getAttemptCode())
+                                    .attemptNumber(attempt.getAttemptNumber())
+                                    .status(attempt.getStatus() != null ? attempt.getStatus().name() : null)
+                                    .startedAt(attempt.getStartedAt())
+                                    .submittedAt(attempt.getSubmittedAt())
+                                    .violationCount(attempt.getViolationCount())
+                                    .scoresHidden(!scoresVisible);
+
+                    if (!scoresVisible || attempt.getStatus() != ExamAttemptStatus.SUBMITTED) {
+                        return b.score(null).maxScore(null).percentage(null).build();
+                    }
+
+                    Integer attemptNumber = attempt.getAttemptNumber() != null ? attempt.getAttemptNumber() : 1;
+                    Optional<StudentExamResult> resultOpt =
+                            studentExamResultRepository.findFirstByStudentAndExamAndAttemptNumberOrderByResultIdDesc(
+                                    student, schedule.getExam(), attemptNumber);
+                    if (resultOpt.isPresent()) {
+                        StudentExamResult result = resultOpt.get();
+                        b.score(result.getScore())
+                                .maxScore(result.getMaxScore())
+                                .percentage(result.getPercentage());
+                    } else {
+                        b.score(null).maxScore(null).percentage(null);
+                    }
+                    return b.build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private int rankAttempt(ExamAttempt attempt) {
+        if (attempt == null || attempt.getStatus() == null) return 0;
+        if (attempt.getStatus() == ExamAttemptStatus.SUBMITTED) return 3;
+        if (attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS) return 2;
+        if (attempt.getStatus() == ExamAttemptStatus.EXPIRED) return 1;
+        return 0;
     }
 
     // ─── Teacher operations ────────────────────────────────────────────────────

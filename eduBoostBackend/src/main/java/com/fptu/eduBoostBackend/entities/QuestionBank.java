@@ -27,8 +27,7 @@ public class QuestionBank {
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(name = "question_text", columnDefinition = "TEXT", nullable = false)
     private String questionText;
 
     @Column(name = "correct_answer", columnDefinition = "TEXT", nullable = false)
@@ -55,6 +54,12 @@ public class QuestionBank {
 
     @Column(name = "source_reference", length = 500)
     private String sourceReference;
+
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
+    @Column(name = "answer_image_url", columnDefinition = "TEXT")
+    private String answerImageUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)

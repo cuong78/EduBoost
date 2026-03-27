@@ -30,13 +30,13 @@ const GradeLevelManagement = () => {
 
   // Soft Pastel Color System
   const gradeColors = {
-    6: { bg: "rgba(59, 130, 246, 0.1)", icon: "#3b82f6", accent: "#60a5fa" }, // Blue
-    7: { bg: "rgba(139, 92, 246, 0.1)", icon: "#8b5cf6", accent: "#a78bfa" }, // Purple
+    6: { bg: "rgba(59, 130, 246, 0.1)", icon: "var(--ds-info)", accent: "#60a5fa" }, // Blue
+    7: { bg: "rgba(139, 92, 246, 0.1)", icon: "var(--ds-secondary)", accent: "#a78bfa" }, // Purple
     8: { bg: "rgba(236, 72, 153, 0.1)", icon: "#ec4899", accent: "#f472b6" }, // Rose
-    9: { bg: "rgba(245, 158, 11, 0.1)", icon: "#f59e0b", accent: "#fbbf24" }, // Amber
-    10: { bg: "rgba(16, 185, 129, 0.1)", icon: "#10b981", accent: "#34d399" }, // Emerald
+    9: { bg: "rgba(245, 158, 11, 0.1)", icon: "var(--ds-warning)", accent: "#fbbf24" }, // Amber
+    10: { bg: "rgba(16, 185, 129, 0.1)", icon: "var(--ds-success)", accent: "#34d399" }, // Emerald
     11: { bg: "rgba(6, 182, 212, 0.1)", icon: "#06b6d4", accent: "#22d3ee" }, // Cyan
-    12: { bg: "rgba(239, 68, 68, 0.1)", icon: "#ef4444", accent: "#f87171" }, // Red
+    12: { bg: "rgba(239, 68, 68, 0.1)", icon: "var(--ds-error)", accent: "#f87171" }, // Red
   };
 
   const getGradeColor = (gradeName) => {
@@ -504,17 +504,17 @@ const GradeLevelManagement = () => {
         }
 
         .stat-icon-wrapper.primary {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           color: white;
         }
 
         .stat-icon-wrapper.secondary {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, var(--ds-success), var(--ds-success-text));
           color: white;
         }
 
         .stat-icon-wrapper.accent {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
+          background: linear-gradient(135deg, var(--ds-warning), var(--ds-warning-text));
           color: white;
         }
 
@@ -525,7 +525,7 @@ const GradeLevelManagement = () => {
         .stat-value {
           font-size: 2rem;
           font-weight: 800;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           line-height: 1;
@@ -556,7 +556,7 @@ const GradeLevelManagement = () => {
           padding: 0.625rem 0.875rem;
           background: white;
           border-radius: 8px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--ds-border);
           transition: all 0.2s;
         }
 
@@ -566,7 +566,7 @@ const GradeLevelManagement = () => {
         }
 
         .search-box-compact svg {
-          color: #9ca3af;
+          color: var(--ds-text-muted);
           flex-shrink: 0;
         }
 
@@ -576,11 +576,11 @@ const GradeLevelManagement = () => {
           background: transparent;
           outline: none;
           font-size: 0.875rem;
-          color: #1f2937;
+          color: var(--ds-text);
         }
 
         .search-box-compact input::placeholder {
-          color: #9ca3af;
+          color: var(--ds-text-muted);
         }
 
         .filters-inline {
@@ -591,11 +591,11 @@ const GradeLevelManagement = () => {
 
         .filter-select-compact {
           padding: 0.625rem 0.875rem;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--ds-border);
           border-radius: 8px;
           background: white;
           font-size: 0.875rem;
-          color: #1f2937;
+          color: var(--ds-text);
           cursor: pointer;
           outline: none;
           font-weight: 500;
@@ -603,7 +603,7 @@ const GradeLevelManagement = () => {
         }
 
         .filter-select-compact:hover {
-          background: #f9fafb;
+          background: var(--ds-bg-subtle);
           border-color: #d1d5db;
         }
 
@@ -679,7 +679,7 @@ const GradeLevelManagement = () => {
           margin: 0;
           font-size: 1.25rem;
           font-weight: 700;
-          color: #1f2937;
+          color: var(--ds-text);
           letter-spacing: -0.02em;
         }
 
@@ -699,7 +699,7 @@ const GradeLevelManagement = () => {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          color: #9ca3af;
+          color: var(--ds-text-muted);
           transition: all 0.2s;
           backdrop-filter: blur(10px);
         }
@@ -712,13 +712,13 @@ const GradeLevelManagement = () => {
         }
 
         .btn-delete-round:hover {
-          background: #ef4444;
+          background: var(--ds-error);
         }
 
         .grade-description-pastel {
           margin: 0 0 1.25rem 0;
           font-size: 0.875rem;
-          color: #6b7280;
+          color: var(--ds-text-secondary);
           line-height: 1.6;
           position: relative;
           z-index: 1;
@@ -760,7 +760,7 @@ const GradeLevelManagement = () => {
 
         .stat-label-soft {
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--ds-text-secondary);
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -782,7 +782,7 @@ const GradeLevelManagement = () => {
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, var(--ds-primary), var(--ds-secondary));
           color: white;
           box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
@@ -799,7 +799,7 @@ const GradeLevelManagement = () => {
 
         .btn-glass {
           background: rgba(255, 255, 255, 0.9);
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--ds-border);
           color: var(--color-text);
         }
 
@@ -811,22 +811,22 @@ const GradeLevelManagement = () => {
 
         .btn-danger-outline {
           background: transparent;
-          border: 1px solid #ef4444;
-          color: #ef4444;
+          border: 1px solid var(--ds-error);
+          color: var(--ds-error);
         }
 
         .btn-danger-outline:hover {
-          background: #ef4444;
+          background: var(--ds-error);
           color: white;
         }
 
         .btn-secondary {
-          background: #f3f4f6;
+          background: var(--ds-border-light);
           color: var(--color-text);
         }
 
         .btn-secondary:hover {
-          background: #e5e7eb;
+          background: var(--ds-border);
         }
 
         /* Glass Effect */
@@ -934,7 +934,7 @@ const GradeLevelManagement = () => {
           justify-content: space-between;
           align-items: center;
           padding: 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--ds-border);
         }
 
         .modal-header h2 {
@@ -958,7 +958,7 @@ const GradeLevelManagement = () => {
         }
 
         .modal-close:hover {
-          background: #f3f4f6;
+          background: var(--ds-border-light);
           color: var(--color-text);
         }
 
@@ -982,7 +982,7 @@ const GradeLevelManagement = () => {
         .form-textarea {
           width: 100%;
           padding: 0.75rem 1rem;
-          border: 2px solid #e5e7eb;
+          border: 2px solid var(--ds-border);
           border-radius: 10px;
           font-size: 0.9375rem;
           color: var(--color-text);
@@ -1007,7 +1007,7 @@ const GradeLevelManagement = () => {
           justify-content: flex-end;
           gap: 1rem;
           padding: 1.5rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--ds-border);
         }
 
         /* Responsive */

@@ -51,8 +51,11 @@ export function useAuth() {
                 return null;
             }
 
-            // Lưu token vào localStorage
+            // Lưu token và refreshToken vào localStorage
             localStorage.setItem("token", res.token);
+            if (res.refreshToken) {
+                localStorage.setItem("refreshToken", res.refreshToken);
+            }
             
             // Fetch thông tin user đầy đủ từ API profile
             const profileData = await authService.getMyInfo();
@@ -163,6 +166,9 @@ export function useAuth() {
             if (response.code === 200) {
                 const token = response.data.token;
                 localStorage.setItem("token", token);
+                if (response.data.refreshToken) {
+                    localStorage.setItem("refreshToken", response.data.refreshToken);
+                }
                 
                 // Fetch thông tin user đầy đủ từ API profile
                 const profileData = await authService.getMyInfo();

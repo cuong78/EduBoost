@@ -7,6 +7,7 @@ const RESOURCE_API = {
   CREATE: "/resources",
   DOWNLOAD: (id) => `/resources/${id}/download`,
   DELETE: (id) => `/resources/${id}`,
+  BULK_UPLOAD: "/resources/bulk-import",
 };
 
 export const adminResourceService = {
@@ -69,6 +70,23 @@ export const adminResourceService = {
    */
   deleteResource: async (id) => {
     const response = await apiClient.delete(RESOURCE_API.DELETE(id));
+    return response.data;
+  },
+
+  /**
+   * Bulk import resources from zip file
+   * ZIP structure: Lớp X / Môn / Chương N / Bài M / file.docx
+   */
+  bulkImportResources: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post(RESOURCE_API.BULK_UPLOAD, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 7200000, // 2 hours — large ZIPs can take a long time
+    });
     return response.data;
   },
 };

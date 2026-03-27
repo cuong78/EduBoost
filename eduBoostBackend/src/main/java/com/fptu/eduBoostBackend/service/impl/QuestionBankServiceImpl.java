@@ -1,28 +1,12 @@
 package com.fptu.eduBoostBackend.service.impl;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.DataValidation;
-import org.apache.poi.ss.usermodel.DataValidationConstraint;
-import org.apache.poi.ss.usermodel.DataValidationHelper;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.util.CellRangeAddressList;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
-import com.fptu.eduBoostBackend.dto.response.QuestionBankImportResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
 import com.fptu.eduBoostBackend.entities.CognitiveLevel;
@@ -45,7 +28,6 @@ import com.fptu.eduBoostBackend.repositories.CognitiveLevelRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.QuestionBankRepository;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
-import com.fptu.eduBoostBackend.service.ExcelImportService;
 import com.fptu.eduBoostBackend.service.QuestionBankService;
 
 import lombok.RequiredArgsConstructor;
@@ -60,7 +42,6 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final LessonRepository lessonRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final UserRepository userRepository;
-    private final ExcelImportService excelImportService;
 
     @Override
     @Transactional(readOnly = true)
@@ -72,6 +53,18 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         return questions.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<QuestionBankResponse> getQuestionsPaged(Long lessonId, Long cognitiveLevelId, 
+            QuestionSourceType sourceType, Long chapterId, Long createdById, Pageable pageable) {
+        log.info("Fetching questions paged - lessonId: {}, cognitiveLevelId: {}, sourceType: {}, chapterId: {}, createdById: {}, page: {}, size: {}",
+                lessonId, cognitiveLevelId, sourceType, chapterId, createdById, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<QuestionBank> questions = questionBankRepository.findWithFiltersPaged(
+                lessonId, cognitiveLevelId, sourceType, chapterId, createdById, pageable);
+        return questions.map(this::mapToResponse);
     }
 
     @Override
@@ -111,6 +104,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .difficultyLevel(request.getDifficultyLevel() != null ? request.getDifficultyLevel() : DifficultyLevel.MEDIUM)
                 .sourceType(request.getSourceType() != null ? request.getSourceType() : QuestionSourceType.MANUAL)
                 .createdBy(currentUser)
+                .imageUrl(request.getImageUrl())
+                .answerImageUrl(request.getAnswerImageUrl())
                 .usageCount(0)
                 .build();
 
@@ -166,6 +161,12 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         if (request.getSourceType() != null) {
             question.setSourceType(request.getSourceType());
         }
+        if (request.getImageUrl() != null) {
+            question.setImageUrl(request.getImageUrl());
+        }
+        if (request.getAnswerImageUrl() != null) {
+            question.setAnswerImageUrl(request.getAnswerImageUrl());
+        }
 
         question = questionBankRepository.save(question);
         return mapToResponse(question);
@@ -190,109 +191,6 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         }
 
         questionBankRepository.delete(question);
-    }
-
-    @Override
-    @Transactional
-    public QuestionBankImportResponse importFromExcel(MultipartFile file, Long lessonId) {
-        log.info("Importing questions from Excel file for lesson: {}", lessonId);
-        return excelImportService.parseExcelFile(file, lessonId);
-    }
-
-    @Override
-    public Resource downloadTemplate() {
-        log.info("Generating Excel template for question import");
-        
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Question Import Template");
-            
-            // Create header style
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setFontHeightInPoints((short) 12);
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
-            headerStyle.setBorderTop(BorderStyle.THIN);
-            headerStyle.setBorderLeft(BorderStyle.THIN);
-            headerStyle.setBorderRight(BorderStyle.THIN);
-            
-            // Create header row
-            Row headerRow = sheet.createRow(0);
-            String[] headers = {"Câu hỏi", "Câu trả lời", "Giải thích", "Dạng câu hỏi", "Mức độ nhận biết"};
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-            
-            // Create example style
-            CellStyle exampleStyle = workbook.createCellStyle();
-            exampleStyle.setBorderBottom(BorderStyle.THIN);
-            exampleStyle.setBorderTop(BorderStyle.THIN);
-            exampleStyle.setBorderLeft(BorderStyle.THIN);
-            exampleStyle.setBorderRight(BorderStyle.THIN);
-            exampleStyle.setWrapText(true);
-            
-            // Add example rows
-            String[][] examples = {
-                {"Tìm $x$ sao cho $2x + 5 = 15$", "$x = 5$", "$2x = 15 - 5 = 10$, suy ra $x = 5$", "Trắc nghiệm", "Thông hiểu"},
-                {"Việt Nam độc lập năm nào?", "1945", "Ngày 2/9/1945, Bác Hồ đọc Tuyên ngôn độc lập", "Trắc nghiệm", "Nhận biết"},
-                {"Nước sôi ở 100°C là đúng hay sai?", "Đúng", "Ở áp suất khí quyển tiêu chuẩn", "Đúng/Sai", "Nhận biết"},
-                {"Thủ đô của Pháp là ___", "Paris", "", "Điền khuyết", "Nhận biết"},
-                {"Cho tam giác ABC với $AB = 3$, $BC = 4$, $AC = 5$. Tính diện tích?", "$S = 6$", "Tam giác vuông tại B, $S = \\frac{1}{2} \\times 3 \\times 4 = 6$", "Trắc nghiệm", "Vận dụng"}
-            };
-            
-            for (int i = 0; i < examples.length; i++) {
-                Row row = sheet.createRow(i + 1);
-                for (int j = 0; j < examples[i].length; j++) {
-                    Cell cell = row.createCell(j);
-                    cell.setCellValue(examples[i][j]);
-                    cell.setCellStyle(exampleStyle);
-                }
-            }
-            
-            // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.setColumnWidth(i, 8000); // ~30 characters width
-            }
-            sheet.setColumnWidth(0, 15000); // Wider for question text
-            sheet.setColumnWidth(2, 12000); // Wider for explanation
-            sheet.setColumnWidth(4, 6000); // Mức độ nhận biết
-            
-            // Add Data Validation for 'Dạng câu hỏi'
-            String[] questionTypeNames = {"Trắc nghiệm", "Đúng/Sai", "Điền khuyết"};
-            DataValidationHelper validationHelper = sheet.getDataValidationHelper();
-            CellRangeAddressList typeAddressList = new CellRangeAddressList(1, 1000, 3, 3);
-            DataValidationConstraint typeConstraint = validationHelper.createExplicitListConstraint(questionTypeNames);
-            DataValidation typeValidation = validationHelper.createValidation(typeConstraint, typeAddressList);
-            typeValidation.setShowErrorBox(true);
-            sheet.addValidationData(typeValidation);
-            
-            // Add Data Validation for 'Mức độ nhận biết'
-            List<CognitiveLevel> levels = cognitiveLevelRepository.findAll();
-            String[] cognitiveLevelNames = levels.stream().map(CognitiveLevel::getLevel).toArray(String[]::new);
-            if (cognitiveLevelNames.length > 0) {
-                DataValidationHelper levelValidationHelper = sheet.getDataValidationHelper();
-                CellRangeAddressList addressList = new CellRangeAddressList(1, 1000, 4, 4);
-                DataValidationConstraint constraint = levelValidationHelper.createExplicitListConstraint(cognitiveLevelNames);
-                DataValidation dataValidation = levelValidationHelper.createValidation(constraint, addressList);
-                dataValidation.setShowErrorBox(true);
-                sheet.addValidationData(dataValidation);
-            }
-            
-            // Write to ByteArrayOutputStream
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            workbook.write(outputStream);
-            
-            return new ByteArrayResource(outputStream.toByteArray());
-            
-        } catch (IOException e) {
-            log.error("Error generating Excel template", e);
-            throw new RuntimeException("Error generating Excel template: " + e.getMessage());
-        }
     }
 
     @Override
@@ -351,6 +249,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                     .difficultyLevel(request.getDifficultyLevel() != null ? request.getDifficultyLevel() : DifficultyLevel.MEDIUM)
                     .sourceType(request.getSourceType() != null ? request.getSourceType() : QuestionSourceType.IMPORTED)
                     .createdBy(currentUser)
+                    .imageUrl(request.getImageUrl())
+                    .answerImageUrl(request.getAnswerImageUrl())
                     .usageCount(0)
                     .build();
         }).collect(Collectors.toList());
@@ -378,6 +278,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .createdById(question.getCreatedBy().getUserId())
                 .createdByName(question.getCreatedBy().getFullName())
                 .usageCount(question.getUsageCount())
+                .imageUrl(question.getImageUrl())
+                .answerImageUrl(question.getAnswerImageUrl())
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
