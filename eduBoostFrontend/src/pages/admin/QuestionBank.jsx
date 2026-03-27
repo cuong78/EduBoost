@@ -55,6 +55,10 @@ const QuestionBank = () => {
   const [bulkImportResult, setBulkImportResult] = useState(null);
   const [bulkUseAi, setBulkUseAi] = useState(true);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
+
   // Form data
   const [formData, setFormData] = useState({
     lessonId: "",
@@ -97,8 +101,9 @@ const QuestionBank = () => {
   }, [selectedChapter]);
 
   useEffect(() => {
+    setCurrentPage(1); // reset page on filter change
     fetchQuestions();
-  }, [selectedLesson, selectedCognitiveLevel, selectedSourceType]);
+  }, [selectedLesson, selectedChapter, selectedCognitiveLevel, selectedSourceType]);
 
   const fetchInitialData = async () => {
     try {
@@ -152,14 +157,14 @@ const QuestionBank = () => {
     try {
       const filters = {};
       if (selectedLesson) filters.lessonId = selectedLesson;
-      if (selectedCognitiveLevel)
-        filters.cognitiveLevelId = selectedCognitiveLevel;
+      else if (selectedChapter) filters.chapterId = selectedChapter; // chapter-level filter
+      if (selectedCognitiveLevel) filters.cognitiveLevelId = selectedCognitiveLevel;
       if (selectedSourceType) filters.sourceType = selectedSourceType;
 
       const data = await questionBankService.getQuestions(filters);
-      // Backend returns Page<T> object with .content array
       const list = Array.isArray(data) ? data : (data?.content || data?.data?.content || []);
       setQuestions(list);
+      setCurrentPage(1);
     } catch (error) {
       console.error("Error fetching questions:", error);
       setQuestions([]);
@@ -343,6 +348,9 @@ const QuestionBank = () => {
     (q.questionText || "").toLowerCase().includes(searchTerm.toLowerCase()),
   ) : [];
 
+  const totalPages = Math.ceil(filteredQuestions.length / PAGE_SIZE);
+  const pagedQuestions = filteredQuestions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   if (loading) {
     return (
       <div className="question-bank-page">
@@ -503,7 +511,7 @@ const QuestionBank = () => {
         </div>
       ) : (
         <div className="questions-list glass">
-          {filteredQuestions.map((q) => (
+          {pagedQuestions.map((q) => (
             <div key={q.id} className="question-item">
               <div className="question-main">
                 <div className="question-badges">
@@ -557,6 +565,39 @@ const QuestionBank = () => {
               </div>
             </div>
           ))}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination-bar">
+              <span className="pagination-info">
+                {filteredQuestions.length} câu hỏi • Trang {currentPage}/{totalPages}
+              </span>
+              <div className="pagination-controls">
+                <button
+                  className="btn btn-glass btn-sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                >← Trước</button>
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  const page = totalPages <= 7 ? i + 1 :
+                    currentPage <= 4 ? i + 1 :
+                    currentPage >= totalPages - 3 ? totalPages - 6 + i :
+                    currentPage - 3 + i;
+                  return (
+                    <button
+                      key={page}
+                      className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-glass'}`}
+                      onClick={() => setCurrentPage(page)}
+                    >{page}</button>
+                  );
+                })}
+                <button
+                  className="btn btn-glass btn-sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                >Sau →</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

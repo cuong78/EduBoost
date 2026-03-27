@@ -11,7 +11,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "question_bank")
+@Table(name = "question_bank", indexes = {
+    @Index(name = "idx_qb_lesson", columnList = "lesson_id"),
+    @Index(name = "idx_qb_cognitive", columnList = "cognitive_level_id"),
+    @Index(name = "idx_qb_source_type", columnList = "source_type"),
+    @Index(name = "idx_qb_created_by", columnList = "created_by"),
+    @Index(name = "idx_qb_created_at", columnList = "created_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor

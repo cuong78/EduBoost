@@ -8,7 +8,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "lesson_resource")
+@Table(name = "lesson_resource", indexes = {
+    @Index(name = "idx_lr_lesson", columnList = "lesson_id"),
+    @Index(name = "idx_lr_resource_type", columnList = "resource_type")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -41,6 +44,7 @@ public class LessonResource {
     @Column(name = "mime_type", length = 100)
     private String mimeType;
 
+    @Basic(fetch = FetchType.LAZY)
     @Column(name = "extracted_content", columnDefinition = "TEXT")
     private String extractedContent;
 
