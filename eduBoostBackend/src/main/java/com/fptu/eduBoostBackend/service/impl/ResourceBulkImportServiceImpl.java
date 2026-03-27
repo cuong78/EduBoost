@@ -305,7 +305,7 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
 
     private byte[] readZipEntryBytes(ZipInputStream zis) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buf = new byte[4096];
+        byte[] buf = new byte[65536]; // 64KB buffer for faster I/O
         int len;
         while ((len = zis.read(buf)) > 0) baos.write(buf, 0, len);
         return baos.toByteArray();

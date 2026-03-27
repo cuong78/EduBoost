@@ -105,6 +105,15 @@ services:
     restart: always
     volumes:
       - ./logs:/app/logs
+    # Resource allocation for backend (4GB VPS)
+    deploy:
+      resources:
+        limits:
+          memory: 2560M
+          cpus: '1.5'
+        reservations:
+          memory: 768M
+          cpus: '0.5'
     # Không expose port, chỉ dùng qua nginx
     # ports:
     #   - "8080:8080"
