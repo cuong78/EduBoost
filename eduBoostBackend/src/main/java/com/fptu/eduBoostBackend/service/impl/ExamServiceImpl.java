@@ -591,25 +591,39 @@ public class ExamServiceImpl implements ExamService {
                 return generated;
             }
             
-            // Use first resource with content
-            LessonResource resource = resources.stream()
-                    .filter(r -> r.getExtractedContent() != null && !r.getExtractedContent().isEmpty())
-                    .findFirst()
-                    .orElse(null);
+            // Merge ALL resources' extracted content (not just the first one)
+            StringBuilder mergedContent = new StringBuilder();
+            for (LessonResource r : resources) {
+                if (r.getExtractedContent() != null && !r.getExtractedContent().isEmpty()) {
+                    if (mergedContent.length() > 0) {
+                        mergedContent.append("\n\n--- TÀI LIỆU: ").append(r.getResourceName()).append(" ---\n\n");
+                    }
+                    mergedContent.append(r.getExtractedContent());
+                }
+            }
             
-            if (resource == null) {
+            if (mergedContent.length() == 0) {
                 log.warn("No resource with extracted content for lesson {}", lessonId);
                 return generated;
             }
             
-            // Call AI service to generate questions
+            log.info("Merged {} resources for lesson {}, total content length: {}", 
+                    resources.size(), lessonId, mergedContent.length());
+            
+            // Call AI service to generate questions using merged content
             AIGenerateFromResourceRequest aiRequest = new AIGenerateFromResourceRequest();
-            aiRequest.setResourceId(resource.getId());
             aiRequest.setLessonId(lessonId);
             aiRequest.setNumberOfQuestions(count);
             aiRequest.setAiProvider("DEEPSEEK");
             
-            AIGenerateFromResourceResponse aiResponse = aiQuestionGeneratorService.generateFromResource(aiRequest);
+            // Use the first resource's ID for backward compat, but pass merged content
+            LessonResource firstResource = resources.stream()
+                    .filter(r -> r.getExtractedContent() != null && !r.getExtractedContent().isEmpty())
+                    .findFirst().orElse(resources.get(0));
+            aiRequest.setResourceId(firstResource.getId());
+            
+            AIGenerateFromResourceResponse aiResponse = aiQuestionGeneratorService
+                    .generateFromMergedContent(mergedContent.toString(), aiRequest);
             
             int orderNumber = startOrder;
             

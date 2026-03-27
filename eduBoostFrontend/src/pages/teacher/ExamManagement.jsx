@@ -11,6 +11,7 @@ import { examService } from "../../services/examService";
 import { knowledgeService } from "../../services/knowledgeService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import { exportHtmlToPdf } from "../../utils/pdfExport";
+import MathRenderer from "../../components/common/MathRenderer";
 import "./ExamManagement.css";
 
 /* ─────────────────────────── constants ─────────────────────────── */
@@ -525,7 +526,7 @@ const ExamManagement = () => {
                           </span>
                           <span className="em-q-pts">{fmtPoints(q.points)} đ</span>
                         </div>
-                        <div className="em-q-text" dangerouslySetInnerHTML={{ __html: q.questionText || "" }}/>
+                        <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
                         <div className="em-answers">
                           {["A","B","C","D"].map((lbl, idx) => {
                             const ans = [q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3][idx];
@@ -533,7 +534,7 @@ const ExamManagement = () => {
                             return (
                               <div key={lbl} className={`em-ans ${idx === 0 ? "em-ans--correct" : ""}`}>
                                 <span className="em-ans-lbl">{lbl}.</span>
-                                <span dangerouslySetInnerHTML={{ __html: ans }}/>
+                                <MathRenderer content={ans} />
                               </div>
                             );
                           })}
@@ -669,7 +670,7 @@ const ExamManagement = () => {
                           {q.cognitiveLevelName && <span className="em-chip em-chip--level">{q.cognitiveLevelName}</span>}
                           <span className="em-q-pts">{fmtPoints(q.points)} đ</span>
                         </div>
-                        <div className="em-q-text" dangerouslySetInnerHTML={{ __html: q.questionText || "" }}/>
+                        <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
                         <div className="em-answers">
                           {[q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3].map((ans, idx) => {
                             if (!ans) return null;
@@ -677,7 +678,7 @@ const ExamManagement = () => {
                             return (
                               <div key={idx} className="em-ans">
                                 <span className="em-ans-lbl">{labels[idx]}.</span>
-                                <span dangerouslySetInnerHTML={{ __html: ans }}/>
+                                <MathRenderer content={ans} />
                               </div>
                             );
                           })}
@@ -746,7 +747,7 @@ const ExamManagement = () => {
                 <div className="q-top" style={{ marginBottom: "2px" }}>
                   <span className="q-num">Câu {q.orderNumber || idx + 1}: </span>
                 </div>
-                <div className="q-text" dangerouslySetInnerHTML={{ __html: q.questionText || "" }} />
+                <div className="q-text"><MathRenderer content={q.questionText || ""} /></div>
                 
                 <div className="exam-answers">
                   {["A", "B", "C", "D"].map((lbl, aIdx) => {
@@ -756,7 +757,7 @@ const ExamManagement = () => {
                     return (
                       <div key={lbl} className={`exam-option ${isCorrect ? "correct-marked" : ""}`}>
                         <span className="option-label">{lbl}.</span>
-                        <span className="option-content" dangerouslySetInnerHTML={{ __html: ans }} />
+                        <span className="option-content"><MathRenderer content={ans} /></span>
                       </div>
                     );
                   })}

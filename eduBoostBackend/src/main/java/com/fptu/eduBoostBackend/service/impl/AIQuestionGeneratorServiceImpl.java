@@ -103,7 +103,45 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
                 .build();
     }
 
-    private String buildPrompt(String content, AIGenerateFromResourceRequest request, 
+    @Override
+    public AIGenerateFromResourceResponse generateFromMergedContent(String mergedContent, AIGenerateFromResourceRequest request) {
+        long startTime = System.currentTimeMillis();
+        log.info("Starting AI question generation from merged content for lesson: {}, content length: {}", 
+                request.getLessonId(), mergedContent.length());
+
+        if (mergedContent == null || mergedContent.trim().isEmpty()) {
+            throw new BadRequestException("Merged content is empty. No resources have extracted content.");
+        }
+
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));
+
+        List<CognitiveLevel> cognitiveLevels = cognitiveLevelRepository.findAll();
+
+        String prompt = buildPrompt(mergedContent, request, cognitiveLevels, lesson);
+
+        AIResponse aiResponse = callDeepSeekAPI(prompt, request.getNumberOfQuestions());
+
+        List<AIGeneratedQuestionResponse> questions = parseAIResponse(aiResponse.content, request.getQuestionType());
+
+        long generationTime = System.currentTimeMillis() - startTime;
+        log.info("AI generation from merged content completed in {}ms, generated {} questions", generationTime, questions.size());
+
+        return AIGenerateFromResourceResponse.builder()
+                .resourceId(request.getResourceId())
+                .lessonId(lesson.getId())
+                .resourceName("Merged (" + mergedContent.length() + " chars)")
+                .lessonName(lesson.getLessonName())
+                .generatedQuestions(questions)
+                .totalQuestionsGenerated(questions.size())
+                .tokensUsed(aiResponse.totalTokens)
+                .generationTimeMs(generationTime)
+                .aiProvider("DEEPSEEK")
+                .warnings(new ArrayList<>())
+                .build();
+    }
+
+    private String buildPrompt(String content, AIGenerateFromResourceRequest request,
                                List<CognitiveLevel> cognitiveLevels, Lesson lesson) {
         
         StringBuilder sb = new StringBuilder();

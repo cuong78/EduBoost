@@ -688,10 +688,16 @@ public class WordImportServiceImpl implements WordImportService {
         text = text.replaceAll("\\[\\[HL\\]\\]", "");
 
         if (type == QuestionType.MULTIPLE_CHOICE) {
-            // Keep question + options, remove from "Lời giải:" or "Đáp án:" onward
+            // Step 1: Remove everything from "Lời giải:", "Đáp án đúng", "Chọn X" onwards
             Matcher m = Pattern.compile("(Lời giải:|Đáp án đúng|Chọn [A-D])", Pattern.CASE_INSENSITIVE).matcher(text);
             if (m.find()) {
                 text = text.substring(0, m.start());
+            }
+            // Step 2: Remove the A./B./C./D. option lines — keep only lines BEFORE the first option
+            // Find the position of the first option line (A. or A))
+            Matcher optionStart = Pattern.compile("^\\s*[A-D][.)\\s]", Pattern.MULTILINE).matcher(text);
+            if (optionStart.find()) {
+                text = text.substring(0, optionStart.start());
             }
         } else {
             Matcher m = Pattern.compile("(Lời giải:|Đáp án:)", Pattern.CASE_INSENSITIVE).matcher(text);

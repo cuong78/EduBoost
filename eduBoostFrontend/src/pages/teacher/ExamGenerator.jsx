@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   Layers,
@@ -236,6 +237,33 @@ const ExamGenerator = () => {
   useEffect(() => {
     loadSubjects().catch(() => setSubjects([]));
     loadExamTypes().catch(() => setExamTypes([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load existing exam when ?examId=XX is in the URL (edit mode)
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const editExamId = searchParams.get("examId");
+    if (editExamId) {
+      setLoadingPreview(true);
+      examService.getExamById(editExamId)
+        .then((exam) => {
+          setCurrentExam(exam);
+          setExamTitle(exam.examTitle || "");
+          if (exam.subjectId) setSubjectId(String(exam.subjectId));
+          if (exam.gradeLevel) setGradeLevel(Number(exam.gradeLevel));
+          if (exam.examTypeCode) setExamType(exam.examTypeCode);
+          const qs = Array.isArray(exam.questions) ? [...exam.questions] : [];
+          qs.sort((a, b) => Number(a.orderNumber || 0) - Number(b.orderNumber || 0));
+          setPreviewQuestions(qs);
+          setStep(3);
+        })
+        .catch((e) => {
+          console.error(e);
+          showErrorToast("Không thể tải đề thi để chỉnh sửa");
+        })
+        .finally(() => setLoadingPreview(false));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -635,6 +663,104 @@ const ExamGenerator = () => {
     } catch (e) {
       console.error(e);
       showErrorToast("Không thể xóa câu hỏi");
+    }
+  };
+
+  // ── AI Regenerate: delete current question, generate 1 new one via AI ──
+  const handleAiRegenerate = async (q) => {
+    if (!currentExam?.id) return;
+    setGeneratingAiId(q.id);
+    try {
+      // Delete the old question first
+      await examService.deleteExamQuestion(currentExam.id, q.id);
+      // Generate 1 replacement via AI using same lesson + cognitive level
+      await examService.aiGenerateQuestionsForExam(currentExam.id, {
+        lessonId: q.lessonId,
+        cognitiveLevelId: q.cognitiveLevelId,
+        numberOfQuestions: 1,
+        pointsPerQuestion: q.points,
+      });
+      await refreshExam(currentExam.id);
+      showSuccessToast("AI đã tạo lại câu hỏi mới thành công!");
+    } catch (e) {
+      console.error(e);
+      showErrorToast(e?.response?.data?.message || "Không thể tạo lại câu hỏi bằng AI");
+      // Refresh anyway in case the delete succeeded but generate failed
+      try { await refreshExam(currentExam.id); } catch {}
+    } finally {
+      setGeneratingAiId(null);
+    }
+  };
+
+  // ── Open Bank Modal: load questions from bank with same filters ──
+  const handleOpenBankModal = async (q) => {
+    setQToReplace(q);
+    setBankModalOpen(true);
+    setLoadingBank(true);
+    setBankQuestions([]);
+    try {
+      const filters = {
+        lessonId: q.lessonId,
+        cognitiveLevelId: q.cognitiveLevelId,
+        size: 50,
+        page: 0,
+      };
+      const data = await questionBankService.getQuestions(filters);
+      const list = Array.isArray(data) ? data : (data?.content ?? data?.data ?? []);
+      // Filter out questions already in the current exam
+      const existingQIds = new Set(previewQuestions.map((pq) => pq.questionId).filter(Boolean));
+      const filtered = list.filter((bq) => !existingQIds.has(bq.id));
+      setBankQuestions(filtered);
+    } catch (e) {
+      console.error(e);
+      showErrorToast("Không thể tải câu hỏi từ ngân hàng");
+    } finally {
+      setLoadingBank(false);
+    }
+  };
+
+  // ── Select from Bank: replace old question with one from bank ──
+  const handleSelectFromBank = async (bankQuestion) => {
+    if (!currentExam?.id || !qToReplace) return;
+    try {
+      // Delete old question
+      await examService.deleteExamQuestion(currentExam.id, qToReplace.id);
+      // Add new question from bank
+      await examService.addQuestionToExam(currentExam.id, {
+        questionId: bankQuestion.id,
+        orderNumber: qToReplace.orderNumber,
+        points: qToReplace.points,
+      });
+      setBankModalOpen(false);
+      setQToReplace(null);
+      await refreshExam(currentExam.id);
+      showSuccessToast("Đã thay thế câu hỏi từ ngân hàng!");
+    } catch (e) {
+      console.error(e);
+      showErrorToast(e?.response?.data?.message || "Không thể thay thế câu hỏi");
+    }
+  };
+
+  // ── Save to Bank: save AI/edited question to QuestionBank ──
+  const handleSaveToBank = async (q) => {
+    if (!currentExam?.id) return;
+    setSavingBankId(q.id);
+    try {
+      await questionBankService.createQuestion({
+        lessonId: q.lessonId,
+        questionText: q.questionText,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || "",
+        questionType: "MULTIPLE_CHOICE",
+        cognitiveLevelId: q.cognitiveLevelId,
+        sourceType: q.sourceFlag === "AI_GENERATED" ? "AI_GENERATED" : "TEACHER_CREATED",
+      });
+      showSuccessToast("Đã lưu câu hỏi vào ngân hàng thành công!");
+    } catch (e) {
+      console.error(e);
+      showErrorToast(e?.response?.data?.message || "Không thể lưu vào ngân hàng");
+    } finally {
+      setSavingBankId(null);
     }
   };
 
@@ -1259,48 +1385,51 @@ const ExamGenerator = () => {
 
                     <div className="q-actions">
                       <button
-                        className="btn btn-outline btn-xs"
+                        className="btn-action btn-action-edit"
                         onClick={() => startEdit(q)}
-                        title="Sửa"
+                        title="Sửa câu hỏi"
                         disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        <Pencil size={14} />
+                        <Pencil size={15} />
+                        <span className="btn-action-label">Sửa</span>
                       </button>
                       <button
-                        className="btn btn-outline btn-xs"
+                        className="btn-action btn-action-ai"
                         onClick={() => handleAiRegenerate(q)}
-                        title="AI tạo lại"
-                        style={{ color: "var(--color-accent-1)", borderColor: "rgba(99,102,241,0.3)" }}
+                        title="AI tạo lại câu hỏi mới"
                         disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        {generatingAiId === q.id ? <RefreshCw className="spin" size={14} /> : <RefreshCcw size={14} />}
+                        {generatingAiId === q.id ? <RefreshCw className="spin" size={15} /> : <RefreshCcw size={15} />}
+                        <span className="btn-action-label">{generatingAiId === q.id ? "Đang tạo..." : "AI tạo lại"}</span>
                       </button>
                       <button
-                        className="btn btn-outline btn-xs"
+                        className="btn-action btn-action-bank"
                         onClick={() => handleOpenBankModal(q)}
-                        title="Đổi từ ngân hàng"
+                        title="Đổi câu từ ngân hàng"
                         disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        <Library size={14} />
+                        <Library size={15} />
+                        <span className="btn-action-label">Đổi câu</span>
                       </button>
                       {(q.sourceFlag === "AI_GENERATED" || q.sourceFlag === "TEACHER_EDITED") && (
                         <button
-                          className="btn btn-outline btn-xs"
+                          className="btn-action btn-action-save"
                           onClick={() => handleSaveToBank(q)}
-                          title="Lưu vào ngân hàng"
-                          style={{ color: "var(--ds-success-text)", borderColor: "rgba(16,185,129,0.3)" }}
+                          title="Lưu câu hỏi vào ngân hàng đề"
                           disabled={generatingAiId === q.id || savingBankId === q.id}
                         >
-                          {savingBankId === q.id ? <RefreshCw className="spin" size={14} /> : <Save size={14} />}
+                          {savingBankId === q.id ? <RefreshCw className="spin" size={15} /> : <Save size={15} />}
+                          <span className="btn-action-label">{savingBankId === q.id ? "Đang lưu..." : "Lưu vào NH"}</span>
                         </button>
                       )}
                       <button
-                        className="btn btn-outline btn-xs danger"
-                        onClick={() => handleDeleteQuestion(q)}
-                        title="Xóa"
+                        className="btn-action btn-action-delete"
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        title="Xóa câu hỏi"
                         disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
+                        <span className="btn-action-label">Xóa</span>
                       </button>
                     </div>
                   </div>
@@ -1572,9 +1701,40 @@ const ExamGenerator = () => {
         .q-num { font-weight: 800; }
         .q-meta { font-size: 0.9rem; margin-bottom: 8px; }
         .q-text { font-size: 0.98rem; }
-        .q-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .q-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .btn-xs { padding: 6px 8px; border-radius: 10px; }
         .danger { border-color: rgba(239,68,68,0.35); color: var(--ds-error); }
+
+        /* ── Professional Action Buttons ── */
+        .btn-action {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 7px 14px; border-radius: 10px; border: 1.5px solid;
+          font-size: 0.82rem; font-weight: 600; cursor: pointer;
+          background: transparent; transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-action:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+
+        .btn-action-edit { color: #475569; border-color: rgba(71,85,105,0.25); background: rgba(71,85,105,0.04); }
+        .btn-action-edit:hover:not(:disabled) { background: rgba(71,85,105,0.1); border-color: rgba(71,85,105,0.4); }
+
+        .btn-action-ai { color: #6366f1; border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.05); }
+        .btn-action-ai:hover:not(:disabled) { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.5); }
+
+        .btn-action-bank { color: #0ea5e9; border-color: rgba(14,165,233,0.3); background: rgba(14,165,233,0.05); }
+        .btn-action-bank:hover:not(:disabled) { background: rgba(14,165,233,0.12); border-color: rgba(14,165,233,0.5); }
+
+        .btn-action-save { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
+        .btn-action-save:hover:not(:disabled) { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.5); }
+
+        .btn-action-delete { color: #ef4444; border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.04); }
+        .btn-action-delete:hover:not(:disabled) { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.45); }
+
+        @media (max-width: 768px) {
+          .btn-action { padding: 6px 10px; font-size: 0.78rem; }
+          .btn-action-label { display: none; }
+        }
 
         .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
         .badge.ai { background: rgba(99,102,241,0.12); color: var(--color-accent-1); }

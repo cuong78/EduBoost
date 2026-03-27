@@ -2,6 +2,7 @@ package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.response.BulkImportResponse;
 import com.fptu.eduBoostBackend.service.BulkImportService;
+import com.fptu.eduBoostBackend.service.impl.ResourceBulkImportServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class BulkImportController {
 
     private final BulkImportService bulkImportService;
+    private final ResourceBulkImportServiceImpl resourceBulkImportService;
 
     @PostMapping(value = "/question-bank/bulk-import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Bulk import questions from ZIP",
@@ -49,5 +51,32 @@ public class BulkImportController {
 
         BulkImportResponse response = bulkImportService.bulkImportFromZip(file, useAiClassification);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/resources/bulk-import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Bulk import resources from ZIP",
+            description = "Imports DOCX lesson resources from a ZIP with folder structure: "
+                    + "Lớp X / Môn / Chương N / Bài M / file.docx. "
+                    + "Creates LessonResource records, uploads to storage, and extracts content for AI.")
+    public ResponseEntity<ResourceBulkImportServiceImpl.BulkResourceResult> bulkImportResources(
+            @Parameter(description = "ZIP file containing .docx resources in folder structure", required = true)
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Bulk resource import request: file={}", file.getOriginalFilename());
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || !fileName.endsWith(".zip")) {
+            return ResponseEntity.badRequest().body(
+                    new ResourceBulkImportServiceImpl.BulkResourceResult(0, 0, 0,
+                            java.util.List.of("File phải là định dạng ZIP (.zip)"),
+                            new java.util.HashMap<>()));
+        }
+
+        ResourceBulkImportServiceImpl.BulkResourceResult result = resourceBulkImportService.importResourcesFromZip(file);
+        return ResponseEntity.ok(result);
     }
 }
