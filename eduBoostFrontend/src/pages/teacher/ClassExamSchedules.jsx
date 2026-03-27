@@ -1,10 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Calendar, Clock, Loader2, Plus, ChevronRight, List as ListIcon, Megaphone, X, Pencil } from 'lucide-react';
+import {
+    Calendar,
+    Clock,
+    Loader2,
+    Plus,
+    ChevronRight,
+    Megaphone,
+    X,
+    Pencil,
+    Search,
+    LayoutGrid,
+    Rows3,
+    Eye,
+    Filter,
+} from 'lucide-react';
 import { teacherService } from '../../services/teacherService';
 import { examService } from '../../services/examService';
 import { showErrorToast, showSuccessToast } from '../../utils/show-toast';
 import ExamScheduleDetailModal from './ExamScheduleDetailModal';
+import './ClassExamSchedules.css';
 
 export default function ClassExamSchedules() {
     const { classId } = useParams();
@@ -17,6 +32,9 @@ export default function ClassExamSchedules() {
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [exams, setExams] = useState([]);
     const [selectedScheduleForDetail, setSelectedScheduleForDetail] = useState(null);
+    const [query, setQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [viewMode, setViewMode] = useState('grid');
 
     const [form, setForm] = useState({
         examId: '',
@@ -209,10 +227,63 @@ export default function ClassExamSchedules() {
     const totalSchedules = schedules.length;
     const activeSchedules = schedules.filter((s) => (s.status || 'SCHEDULED') === 'SCHEDULED').length;
     const announcedSchedules = schedules.filter((s) => s.resultsAnnouncedAt).length;
+    const pendingAnnounce = schedules.filter((s) => s.scoreRevealMode === 'AFTER_ANNOUNCE' && !s.resultsAnnouncedAt).length;
+
+    const filteredSchedules = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        return (schedules || [])
+            .filter((s) => {
+                if (statusFilter !== 'ALL' && (s.status || 'SCHEDULED') !== statusFilter) return false;
+                if (!q) return true;
+                return [s.title, s.examTitle, String(s.examId)]
+                    .filter(Boolean)
+                    .some((x) => String(x).toLowerCase().includes(q));
+            })
+            .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    }, [schedules, query, statusFilter]);
+
+    const renderScheduleActions = (s) => (
+        <div className="tes-actions">
+            {s.scoreRevealMode === 'AFTER_ANNOUNCE' && !s.resultsAnnouncedAt && s.status !== 'CANCELLED' && (
+                <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleAnnounce(s.id);
+                    }}
+                >
+                    <Megaphone size={14} /> Công bố
+                </button>
+            )}
+            {!s.resultsAnnouncedAt && s.status !== 'CANCELLED' && (
+                <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(s.id);
+                    }}
+                >
+                    <Pencil size={14} /> Sửa
+                </button>
+            )}
+            <button
+                type="button"
+                className="btn btn-outline"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedScheduleForDetail(s);
+                }}
+            >
+                <Eye size={14} /> Chi tiết
+            </button>
+        </div>
+    );
 
     return (
-        <div className="schedule-page">
-            <nav className="schedule-breadcrumb">
+        <div className="tes-page">
+            <nav className="tes-breadcrumb">
                 <Link to="/teacher/classes">Lớp học</Link>
                 <ChevronRight size={16} />
                 <Link to={`/teacher/classes/${classId}/students`}>{classInfo?.className ?? 'Lớp'}</Link>
@@ -220,41 +291,68 @@ export default function ClassExamSchedules() {
                 <span>Lịch thi</span>
             </nav>
 
-            <div className="schedule-header">
+            <div className="tes-header">
                 <div>
-                    <h2>Lịch thi - {classInfo?.className ?? ''}</h2>
-                    <p>Quản lý lịch kiểm tra/thi cho lớp này.</p>
+                    <h2 className="tes-title">Exam Schedule Space - {classInfo?.className ?? ''}</h2>
+                    <p className="tes-subtitle">Quản lý toàn bộ lịch thi, công bố kết quả và theo dõi trạng thái trong một không gian thống nhất.</p>
                 </div>
-            </div>
-
-            <div className="schedule-toolbar glass">
-                <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem' }}>
-                    <Calendar size={18} /> Danh sách lịch thi
-                </h3>
                 <button type="button" className="btn btn-primary" onClick={openCreateModal}>
                     <Plus size={18} /> Tạo lịch thi mới
                 </button>
             </div>
 
-            <div className="schedule-stats">
-                <div className="schedule-stat-card glass">
-                    <span>Tổng lịch thi</span>
-                    <strong>{totalSchedules}</strong>
+            <div className="tes-kpis">
+                <div className="tes-kpi">
+                    <div className="tes-kpi-label">Tổng lịch thi</div>
+                    <div className="tes-kpi-value">{totalSchedules}</div>
                 </div>
-                <div className="schedule-stat-card glass">
-                    <span>Đang hiệu lực</span>
-                    <strong>{activeSchedules}</strong>
+                <div className="tes-kpi">
+                    <div className="tes-kpi-label">Đang hiệu lực</div>
+                    <div className="tes-kpi-value">{activeSchedules}</div>
                 </div>
-                <div className="schedule-stat-card glass">
-                    <span>Đã công bố điểm</span>
-                    <strong>{announcedSchedules}</strong>
+                <div className="tes-kpi">
+                    <div className="tes-kpi-label">Đã công bố điểm</div>
+                    <div className="tes-kpi-value">{announcedSchedules}</div>
+                </div>
+                <div className="tes-kpi">
+                    <div className="tes-kpi-label">Chờ công bố</div>
+                    <div className="tes-kpi-value">{pendingAnnounce}</div>
+                </div>
+            </div>
+
+            <div className="tes-toolbar">
+                <div className="tes-controls">
+                    <div className="tes-search">
+                        <Search size={16} />
+                        <input
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Tìm theo tên lịch thi, đề thi hoặc exam ID..."
+                        />
+                    </div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Filter size={14} />
+                        <select className="tes-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                            <option value="ALL">Tất cả trạng thái</option>
+                            <option value="SCHEDULED">SCHEDULED</option>
+                            <option value="CANCELLED">CANCELLED</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="tes-view-toggle">
+                    <button className={`tes-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+                        <LayoutGrid size={16} />
+                    </button>
+                    <button className={`tes-toggle-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
+                        <Rows3 size={16} />
+                    </button>
                 </div>
             </div>
 
             {isCreateModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content schedule-modal-content">
-                        <div className="modal-header">
+                <div className="tes-modal-overlay">
+                    <div className="tes-modal">
+                        <div className="tes-modal-header">
                             <h2>{scheduleModalMode === 'edit' ? 'Chỉnh sửa lịch thi' : 'Tạo lịch thi mới'}</h2>
                             <button
                                 className="btn-icon"
@@ -270,14 +368,14 @@ export default function ClassExamSchedules() {
                             </button>
                         </div>
 
-                        <form className="exam-schedule-form" onSubmit={scheduleModalMode === 'edit' ? handleUpdate : handleCreate}>
-                            <div className="schedule-form-subtitle">
+                        <form className="tes-modal-body" onSubmit={scheduleModalMode === 'edit' ? handleUpdate : handleCreate}>
+                            <div className="tes-subtitle" style={{ marginBottom: '0.9rem' }}>
                                 {scheduleModalMode === 'edit'
                                     ? 'Cập nhật thông tin lịch thi và thời gian làm bài cho lớp.'
                                     : 'Thiết lập đề thi, mốc thời gian và quy định làm bài cho lịch thi mới.'}
                             </div>
-                            <div className="form-grid">
-                                <div className="form-group">
+                            <div className="tes-form-grid">
+                                <div className="tes-field">
                                     <label>Đề thi</label>
                                     <select
                                         name="examId"
@@ -293,7 +391,7 @@ export default function ClassExamSchedules() {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Tiêu đề lịch thi (tuỳ chọn)</label>
                                     <input
                                         type="text"
@@ -303,7 +401,7 @@ export default function ClassExamSchedules() {
                                         placeholder="Ví dụ: Kiểm tra 1 tiết Chương 2"
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Thời gian bắt đầu</label>
                                     <input
                                         type="datetime-local"
@@ -312,7 +410,7 @@ export default function ClassExamSchedules() {
                                         onChange={handleChange}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Thời gian kết thúc</label>
                                     <input
                                         type="datetime-local"
@@ -321,7 +419,7 @@ export default function ClassExamSchedules() {
                                         onChange={handleChange}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Thời lượng (phút)</label>
                                     <input
                                         type="number"
@@ -331,7 +429,7 @@ export default function ClassExamSchedules() {
                                         min={5}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Cho phép trễ (phút, tuỳ chọn)</label>
                                     <input
                                         type="number"
@@ -341,7 +439,7 @@ export default function ClassExamSchedules() {
                                         min={0}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Số lần làm tối đa (tuỳ chọn)</label>
                                     <input
                                         type="number"
@@ -351,7 +449,7 @@ export default function ClassExamSchedules() {
                                         min={1}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Mật khẩu bài thi (tuỳ chọn)</label>
                                     <input
                                         type="text"
@@ -361,7 +459,7 @@ export default function ClassExamSchedules() {
                                         placeholder="Để trống nếu không dùng mật khẩu"
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="tes-field">
                                     <label>Hiển thị điểm cho học sinh</label>
                                     <select
                                         name="scoreRevealMode"
@@ -374,7 +472,7 @@ export default function ClassExamSchedules() {
                                 </div>
                             </div>
 
-                            <div className="schedule-form-actions">
+                            <div className="tes-modal-actions">
                                 <button
                                     type="button"
                                     className="btn btn-outline"
@@ -398,92 +496,73 @@ export default function ClassExamSchedules() {
             )}
 
             {loading ? (
-                <div className="empty-state glass">
+                <div className="tes-empty">
                     <Loader2 size={40} style={{ animation: 'spin 1s linear infinite' }} />
                     <p>Đang tải lịch thi...</p>
                 </div>
-            ) : schedules.length === 0 ? (
-                <div className="empty-state glass">
+            ) : filteredSchedules.length === 0 ? (
+                <div className="tes-empty">
                     <Calendar size={48} />
-                    <p>Chưa có lịch thi nào cho lớp này.</p>
+                    <p>Không có lịch thi nào phù hợp bộ lọc hiện tại.</p>
                 </div>
-            ) : (
-                <div className="schedule-grid">
-                    {schedules.map((s) => {
-                        const scoreLabel =
-                            s.scoreRevealMode === 'AFTER_ANNOUNCE'
-                                ? s.resultsAnnouncedAt
-                                    ? 'Đã công bố'
-                                    : 'Chờ công bố'
-                                : 'Ngay khi nộp';
-
+            ) : viewMode === 'grid' ? (
+                <div className="tes-grid">
+                    {filteredSchedules.map((s) => {
+                        const scoreLabel = s.scoreRevealMode === 'AFTER_ANNOUNCE'
+                            ? (s.resultsAnnouncedAt ? 'Đã công bố' : 'Chờ công bố')
+                            : 'Ngay khi nộp';
                         return (
-                            <div
-                                key={s.id}
-                                className="glass schedule-card"
-                                onClick={() => setSelectedScheduleForDetail(s)}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') setSelectedScheduleForDetail(s);
-                                }}
-                            >
-                                <div className="schedule-card-header">
-                                    <div className="schedule-card-title-group">
-                                        <span style={{ fontWeight: 700 }}>{s.title || s.examTitle}</span>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                                            Exam ID: {s.examId}
-                                        </span>
+                            <div key={s.id} className="tes-card">
+                                <div className="tes-card-top">
+                                    <div>
+                                        <h4 className="tes-card-title">{s.title || s.examTitle}</h4>
+                                        <div className="tes-subtitle" style={{ marginTop: '0.15rem' }}>Exam ID: {s.examId}</div>
                                     </div>
                                     <span className="status-badge">{s.status || 'SCHEDULED'}</span>
                                 </div>
-
-                                <div className="schedule-card-body">
-                                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                                        <Clock size={14} style={{ marginRight: 6, display: 'inline-block' }} />
-                                        {s.durationMinutes} phút
-                                    </div>
-                                    <div style={{ fontSize: '0.9rem' }}>
-                                        {new Date(s.startTime).toLocaleString()} - {new Date(s.endTime).toLocaleString()}
-                                    </div>
-                                    <div style={{ fontSize: '0.85rem' }}>{scoreLabel}</div>
+                                <div className="tes-meta">
+                                    <div className="tes-meta-row"><Clock size={14} /> {s.durationMinutes} phút</div>
+                                    <div className="tes-meta-row"><Calendar size={14} /> {new Date(s.startTime).toLocaleString()} - {new Date(s.endTime).toLocaleString()}</div>
+                                    <div className="tes-meta-row">Điểm: {scoreLabel}</div>
                                 </div>
-
-                                {s.scoreRevealMode === 'AFTER_ANNOUNCE' && !s.resultsAnnouncedAt && s.status !== 'CANCELLED' && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-primary"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleAnnounce(s.id);
-                                        }}
-                                        style={{ marginTop: '0.85rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                    >
-                                        <Megaphone size={14} /> Công bố kết quả
-                                    </button>
-                                )}
-
-                                {!s.resultsAnnouncedAt && s.status !== 'CANCELLED' && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            openEditModal(s.id);
-                                        }}
-                                        style={{ marginTop: '0.85rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                    >
-                                        <Pencil size={14} /> Sửa
-                                    </button>
-                                )}
-
-                                <div className="schedule-card-footer">
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Click để xem chi tiết</span>
-                                    <ListIcon size={16} />
-                                </div>
+                                {renderScheduleActions(s)}
                             </div>
                         );
                     })}
+                </div>
+            ) : (
+                <div className="tes-table-wrap">
+                    <table className="tes-table">
+                        <thead>
+                            <tr>
+                                <th>Lịch thi</th>
+                                <th>Exam ID</th>
+                                <th>Thời gian</th>
+                                <th>Thời lượng</th>
+                                <th>Điểm</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredSchedules.map((s) => {
+                                const scoreLabel = s.scoreRevealMode === 'AFTER_ANNOUNCE'
+                                    ? (s.resultsAnnouncedAt ? 'Đã công bố' : 'Chờ công bố')
+                                    : 'Ngay khi nộp';
+                                return (
+                                    <tr key={s.id}>
+                                        <td>{s.title || s.examTitle}</td>
+                                        <td>{s.examId}</td>
+                                        <td>{new Date(s.startTime).toLocaleString()} - {new Date(s.endTime).toLocaleString()}</td>
+                                        <td>{s.durationMinutes} phút</td>
+                                        <td>{scoreLabel}</td>
+                                        <td><span className="status-badge">{s.status || 'SCHEDULED'}</span></td>
+                                        <td>{renderScheduleActions(s)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
@@ -495,199 +574,6 @@ export default function ClassExamSchedules() {
                 />
             )}
 
-            <style>{`
-                .schedule-page {
-                    padding: 1.5rem 2rem;
-                    max-width: 1360px;
-                    margin: 0 auto;
-                }
-                .schedule-breadcrumb {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.45rem;
-                    margin-bottom: 1rem;
-                    color: var(--ds-text-secondary);
-                    font-size: 0.86rem;
-                    font-weight: 600;
-                }
-                .schedule-breadcrumb a {
-                    color: var(--ds-secondary-hover);
-                    text-decoration: none;
-                }
-                .schedule-breadcrumb a:hover {
-                    text-decoration: underline;
-                }
-                .schedule-header {
-                    margin-bottom: 1rem;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    gap: 0.75rem;
-                }
-                .schedule-header h2 {
-                    margin: 0;
-                    font-size: 1.5rem;
-                    color: var(--ds-text);
-                    font-weight: 800;
-                }
-                .schedule-header p {
-                    margin: 0.25rem 0 0;
-                    color: var(--ds-text-secondary);
-                    font-size: 0.9rem;
-                }
-                .schedule-toolbar {
-                    background: rgba(255,255,255,0.72);
-                    border: 1px solid rgba(255,255,255,0.85);
-                    box-shadow: 0 4px 24px rgba(0,0,0,0.05);
-                    padding: 1rem 1.25rem;
-                    margin-bottom: 1rem;
-                    border-radius: 14px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 1rem;
-                }
-                .schedule-stats {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                    gap: 0.75rem;
-                    margin-bottom: 1.25rem;
-                }
-                .schedule-stat-card {
-                    background: rgba(255,255,255,0.72);
-                    border: 1px solid rgba(255,255,255,0.85);
-                    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-                    border-radius: 12px;
-                    padding: 0.85rem 1rem;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.2rem;
-                }
-                .schedule-stat-card span {
-                    font-size: 0.85rem;
-                    color: var(--color-text-secondary);
-                }
-                .schedule-stat-card strong {
-                    font-size: 1.35rem;
-                    line-height: 1.1;
-                }
-                .schedule-modal-content {
-                    max-width: 980px;
-                    width: 95%;
-                    border-radius: 16px;
-                }
-                .schedule-form-subtitle {
-                    font-size: 0.92rem;
-                    color: var(--color-text-secondary);
-                    margin-bottom: 0.8rem;
-                    padding: 0.65rem 0.8rem;
-                    border-radius: 0.7rem;
-                    background: rgba(255, 255, 255, 0.35);
-                }
-                .schedule-form-actions {
-                    margin-top: 1rem;
-                    display: flex;
-                    justify-content: flex-end;
-                    gap: 0.65rem;
-                }
-                .schedule-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-                    gap: 1rem;
-                }
-                .schedule-card {
-                    background: rgba(255,255,255,0.72);
-                    border: 1px solid rgba(255,255,255,0.85);
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-                    padding: 1rem;
-                    border-radius: 14px;
-                    cursor: pointer;
-                    transition: transform 0.15s ease, box-shadow 0.15s ease;
-                }
-                .schedule-card:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 12px 26px rgba(31, 41, 55, 0.12);
-                }
-                .schedule-card-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    gap: 0.75rem;
-                }
-                .schedule-card-title-group {
-                    display: flex;
-                    flex-direction: column;
-                }
-                .schedule-card-body {
-                    margin-top: 0.75rem;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.45rem;
-                }
-                .schedule-card-footer {
-                    margin-top: 0.75rem;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 0.5rem;
-                    padding-top: 0.65rem;
-                    border-top: 1px dashed var(--glass-border);
-                }
-                .modal-overlay {
-                    position: fixed;
-                    inset: 0;
-                    background: rgba(0, 0, 0, 0.45);
-                    backdrop-filter: blur(4px);
-                    z-index: 1000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 1rem;
-                }
-                .modal-content {
-                    background: #fff;
-                    border-radius: 16px;
-                    width: 100%;
-                    max-height: 90vh;
-                    overflow: auto;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-                }
-                .modal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 1rem 1.2rem;
-                    border-bottom: 1px solid var(--ds-border-light);
-                }
-                .modal-header h2 {
-                    margin: 0;
-                    font-size: 1.1rem;
-                }
-                .btn-icon {
-                    border: 1px solid var(--ds-border);
-                    background: var(--ds-bg-subtle);
-                    border-radius: 10px;
-                    width: 34px;
-                    height: 34px;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                }
-                @media (max-width: 768px) {
-                    .schedule-page {
-                        padding: 1rem;
-                    }
-                    .schedule-toolbar {
-                        flex-direction: column;
-                        align-items: stretch;
-                    }
-                    .schedule-toolbar .btn {
-                        width: 100%;
-                        justify-content: center;
-                    }
-                }
-            `}</style>
         </div>
     );
 }
