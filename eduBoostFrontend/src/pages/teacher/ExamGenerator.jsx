@@ -13,9 +13,13 @@ import {
   LayoutGrid,
   ExternalLink,
   Check,
+  RefreshCcw,
+  Library,
+  Save,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
 import { examService } from "../../services/examService";
+import { questionBankService } from "../../services/questionBankService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import RichTextEditor from "../../components/common/RichTextEditor";
 import { exportHtmlToPdf } from "../../utils/pdfExport";
@@ -115,7 +119,6 @@ const ExamGenerator = () => {
   const [currentExam, setCurrentExam] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [replacingQuestion, setReplacingQuestion] = useState(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(true); // Toggle hiển thị đáp án đúng
   const [editForm, setEditForm] = useState({
     modifiedQuestionText: "",
@@ -125,6 +128,14 @@ const ExamGenerator = () => {
     wrongAnswer2: "",
     wrongAnswer3: "",
   });
+
+  // Action states
+  const [generatingAiId, setGeneratingAiId] = useState(null);
+  const [savingBankId, setSavingBankId] = useState(null);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [loadingBank, setLoadingBank] = useState(false);
+  const [bankQuestions, setBankQuestions] = useState([]);
+  const [qToReplace, setQToReplace] = useState(null);
 
   // Drag and Drop State
   const [draggedIdx, setDraggedIdx] = useState(null);
@@ -1251,13 +1262,43 @@ const ExamGenerator = () => {
                         className="btn btn-outline btn-xs"
                         onClick={() => startEdit(q)}
                         title="Sửa"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
                         <Pencil size={14} />
                       </button>
                       <button
+                        className="btn btn-outline btn-xs"
+                        onClick={() => handleAiRegenerate(q)}
+                        title="AI tạo lại"
+                        style={{ color: "var(--color-accent-1)", borderColor: "rgba(99,102,241,0.3)" }}
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
+                      >
+                        {generatingAiId === q.id ? <RefreshCw className="spin" size={14} /> : <RefreshCcw size={14} />}
+                      </button>
+                      <button
+                        className="btn btn-outline btn-xs"
+                        onClick={() => handleOpenBankModal(q)}
+                        title="Đổi từ ngân hàng"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
+                      >
+                        <Library size={14} />
+                      </button>
+                      {(q.sourceFlag === "AI_GENERATED" || q.sourceFlag === "TEACHER_EDITED") && (
+                        <button
+                          className="btn btn-outline btn-xs"
+                          onClick={() => handleSaveToBank(q)}
+                          title="Lưu vào ngân hàng"
+                          style={{ color: "var(--ds-success-text)", borderColor: "rgba(16,185,129,0.3)" }}
+                          disabled={generatingAiId === q.id || savingBankId === q.id}
+                        >
+                          {savingBankId === q.id ? <RefreshCw className="spin" size={14} /> : <Save size={14} />}
+                        </button>
+                      )}
+                      <button
                         className="btn btn-outline btn-xs danger"
-                        onClick={() => setReplacingQuestion(q)}
-                        title="Xóa / Thay thế"
+                        onClick={() => handleDeleteQuestion(q)}
+                        title="Xóa"
+                        disabled={generatingAiId === q.id || savingBankId === q.id}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -1403,77 +1444,53 @@ const ExamGenerator = () => {
         </div>
       )}
 
-      {replacingQuestion && (
+      {bankModalOpen && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
           display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)"
         }}>
           <div style={{
-            background: "#fff", padding: "24px", borderRadius: "16px", width: "400px", maxWidth: "90%",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.1)", textAlign: "center"
+            background: "#fff", padding: "24px", borderRadius: "16px", width: "700px", maxWidth: "90%", maxHeight: "85vh",
+            display: "flex", flexDirection: "column", boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
           }}>
-            <h3 style={{ marginTop: 0, marginBottom: "12px", color: "var(--ds-text)" }}>Tùy chọn Câu hỏi</h3>
-            <p style={{ color: "#4b5563", fontSize: "0.95rem", marginBottom: "20px" }}>
-              Bạn muốn xử lý câu hỏi này như thế nào?
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0 }}>Chọn câu hỏi thay thế</h3>
+              <button className="btn btn-secondary btn-xs" onClick={() => { setBankModalOpen(false); setQToReplace(null); }}>Đóng</button>
+            </div>
+            
+            <p className="muted" style={{ marginBottom: "16px" }}>
+              Đang lọc theo: <strong>{qToReplace?.lessonName || "Bài học"}</strong> • <strong>{qToReplace?.cognitiveLevelName || "Mức độ"}</strong>
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <button 
-                className="btn btn-outline"
-                style={{ justifyContent: "center" }}
-                onClick={() => {
-                  setEditingId(replacingQuestion.id);
-                  setEditForm({
-                    modifiedQuestionText: "",
-                    modifiedCorrectAnswer: "",
-                    modifiedExplanation: "",
-                    wrongAnswer1: "",
-                    wrongAnswer2: "",
-                    wrongAnswer3: "",
-                  });
-                  setReplacingQuestion(null);
-                }}
-              >
-                ✏️ Nhập tay câu hỏi mới (Trống)
-              </button>
-              
-              <button 
-                className="btn btn-primary"
-                style={{ justifyContent: "center", background: "linear-gradient(135deg, #f97316, #fb923c)" }}
-                onClick={async () => {
-                  if (!replacingQuestion.lessonId || !replacingQuestion.cognitiveLevelId) {
-                    showErrorToast("Câu hỏi này thiếu thông tin để AI tạo mới. Vui lòng nhập tay.");
-                    return;
-                  }
-                  setReplacingQuestion(null);
-                  setLoadingPreview(true);
-                  try {
-                    await examService.aiGenerateQuestionsForExam(currentExam.id, {
-                      lessonId: replacingQuestion.lessonId,
-                      cognitiveLevelId: replacingQuestion.cognitiveLevelId,
-                      numberOfQuestions: 1,
-                      pointsPerQuestion: replacingQuestion.points
-                    });
-                    await examService.deleteExamQuestion(currentExam.id, replacingQuestion.id);
-                    await refreshExam(currentExam.id);
-                    showSuccessToast("Đã thay thế câu hỏi bằng AI!");
-                  } catch (e) {
-                    console.error(e);
-                    showErrorToast("Không thể gọi AI thay thế câu hỏi.");
-                  } finally {
-                    setLoadingPreview(false);
-                  }
-                }}
-              >
-                ✨ Nhờ AI tự tạo câu hỏi khác
-              </button>
-              
-              <button 
-                className="btn"
-                style={{ justifyContent: "center", marginTop: "5px", background: "transparent", color: "var(--ds-text-secondary)" }}
-                onClick={() => setReplacingQuestion(null)}
-              >
-                Hủy bỏ
-              </button>
+
+            <div style={{ overflowY: "auto", flex: 1, paddingRight: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {loadingBank ? (
+                <div style={{ textAlign: "center", padding: "3rem" }} className="muted">
+                  <RefreshCw className="spin" size={24} style={{ marginBottom: "10px" }} />
+                  <br />Đang tải dữ liệu...
+                </div>
+              ) : bankQuestions.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "3rem", background: "rgba(0,0,0,0.03)", borderRadius: "12px" }} className="muted">
+                  Ngân hàng không còn câu hỏi nào phù hợp với bộ lọc hiện tại.
+                </div>
+              ) : (
+                bankQuestions.map((bq, i) => (
+                  <div key={bq.id} style={{ padding: "12px", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", background: "rgba(255,255,255,0.8)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                      <div style={{ flex: 1, overflow: "hidden" }}>
+                        <div style={{ fontWeight: 600, marginBottom: "8px", fontSize: "0.95rem" }}>
+                          <MathRenderer content={bq.questionText} />
+                        </div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--ds-success-text)", marginBottom: "4px" }}>
+                          ✓ <MathRenderer content={bq.correctAnswer} />
+                        </div>
+                      </div>
+                      <button className="btn btn-primary" onClick={() => handleSelectFromBank(bq)}>
+                        Chọn
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
