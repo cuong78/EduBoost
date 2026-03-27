@@ -92,7 +92,7 @@ export const questionBankService = {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'multipart/form-data'
             },
-            timeout: 900000 // 15 minutes - AI classification can take time
+            timeout: 7200000 // 2 hours - large ZIPs with AI classification can take a long time
         });
         return response.data;
     },
