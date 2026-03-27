@@ -8,6 +8,8 @@ const RESOURCE_API = {
   DOWNLOAD: (id) => `/resources/${id}/download`,
   DELETE: (id) => `/resources/${id}`,
   BULK_UPLOAD: "/resources/bulk-import",
+  LESSONS_WITHOUT_RESOURCES: "/resources/lessons-without-resources",
+  LESSONS_WITHOUT_QUESTIONS: "/question-bank/lessons-without-questions",
 };
 
 export const adminResourceService = {
@@ -87,6 +89,18 @@ export const adminResourceService = {
       },
       timeout: 7200000, // 2 hours — large ZIPs can take a long time
     });
+    return response.data;
+  },
+
+  /** Trả về danh sách bài học chưa có tài nguyên */
+  getLessonsWithoutResources: async () => {
+    const response = await apiClient.get(RESOURCE_API.LESSONS_WITHOUT_RESOURCES);
+    return response.data;
+  },
+
+  /** Trả về danh sách bài học chưa có câu hỏi */
+  getLessonsWithoutQuestions: async () => {
+    const response = await apiClient.get(RESOURCE_API.LESSONS_WITHOUT_QUESTIONS);
     return response.data;
   },
 };

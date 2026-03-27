@@ -74,6 +74,7 @@ import SubscriptionManagement from "./pages/teacher/SubscriptionManagement";
 import SubscriptionAdmin from "./pages/admin/SubscriptionAdmin";
 import FeedbackPage from "./pages/teacher/FeedbackPage";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
+import LessonCoverage from "./pages/admin/LessonCoverage";
 
 const Home = () => (
   <>
@@ -230,6 +231,7 @@ function App() {
               <Route path="question-bank" element={<QuestionBank />} />
               <Route path="subscriptions" element={<SubscriptionAdmin />} />
               <Route path="feedback" element={<FeedbackAdmin />} />
+              <Route path="lesson-coverage" element={<LessonCoverage />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>

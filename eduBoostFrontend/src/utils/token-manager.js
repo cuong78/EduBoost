@@ -142,7 +142,8 @@ class TokenManager {
     }
 
     /**
-     * Kiểm tra và refresh token nếu cần
+     * Kiểm tra và refresh token nếu cần.
+     * Chỉ gọi authService.refreshToken() MỘT LẦN nếu nhiều requests xảy ra cùng lúc.
      * @returns {Promise<boolean>}
      */
     async checkAndRefreshToken() {
@@ -156,28 +157,31 @@ class TokenManager {
             return false;
         }
 
-        // Nếu token sắp hết hạn (trong vòng 5 phút), thử refresh
+        // Nếu token sắp hết hạn, refresh — nhưng chỉ 1 lần dù nhiều requests cùng lúc
         if (this.isTokenExpiringSoon(token)) {
-            // Chỉ log một lần khi bắt đầu refresh, không spam
-            if (!this.isRefreshing) {
-                console.log('🔄 Token sắp hết hạn, đang thử refresh...');
-                this.isRefreshing = true;
+            // Nếu đang refresh rồi, chờ promise đó thay vì gọi thêm (fix race condition)
+            if (this.isRefreshing && this._refreshPromise) {
+                return this._refreshPromise;
             }
 
-            try {
-                const { authService } = await import('../services/authService');
-                const newToken = await authService.refreshToken();
-                this.saveToken(newToken);
-                console.log('✅ Refresh token thành công');
-                this.isRefreshing = false;
-                return true;
-            } catch (error) {
-                console.error('❌ Failed to refresh token:', error);
-                this.isRefreshing = false;
-                // Không clear token ngay lập tức, để user vẫn có thể sử dụng cho đến khi thực sự hết hạn
-                // Chỉ clear khi token thực sự hết hạn
-                return false; // Return false để không tiếp tục vòng lặp
-            }
+            console.log('🔄 Token sắp hết hạn, đang thử refresh...');
+            this.isRefreshing = true;
+            this._refreshPromise = (async () => {
+                try {
+                    const { authService } = await import('../services/authService');
+                    const newToken = await authService.refreshToken();
+                    this.saveToken(newToken);
+                    console.log('✅ Refresh token thành công');
+                    return true;
+                } catch (error) {
+                    console.error('❌ Failed to refresh token:', error);
+                    return false;
+                } finally {
+                    this.isRefreshing = false;
+                    this._refreshPromise = null;
+                }
+            })();
+            return this._refreshPromise;
         }
 
         return true;

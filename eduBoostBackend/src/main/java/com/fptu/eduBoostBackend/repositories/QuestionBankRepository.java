@@ -78,4 +78,17 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     List<QuestionBank> findByLessonIdAndCognitiveLevelId(
             @Param("lessonId") Long lessonId,
             @Param("cognitiveLevelId") Long cognitiveLevelId);
+    @Query("""
+        SELECT l.id AS lessonId, l.lessonName AS lessonName, l.lessonNumber AS lessonNumber,
+               c.id AS chapterId, c.chapterNumber AS chapterNumber, c.chapterName AS chapterName,
+               s.id AS subjectId, s.subjectName AS subjectName, c.gradeLevel AS gradeLevel
+        FROM Lesson l
+        JOIN l.chapter c
+        JOIN c.subject s
+        WHERE NOT EXISTS (
+            SELECT 1 FROM QuestionBank q WHERE q.lesson.id = l.id
+        )
+        ORDER BY c.gradeLevel, s.subjectName, c.chapterNumber, l.lessonNumber
+    """)
+    List<Object[]> findLessonsWithoutQuestions();
 }

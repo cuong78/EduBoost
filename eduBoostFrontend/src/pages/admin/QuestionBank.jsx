@@ -101,9 +101,22 @@ const QuestionBank = () => {
   }, [selectedChapter]);
 
   useEffect(() => {
-    setCurrentPage(1); // reset page on filter change
+    setCurrentPage(1);
     fetchQuestions();
+    // Refresh stats theo subject đang chọn
+    if (stats !== null) {
+      questionBankService.getStats(selectedSubject || undefined)
+        .then(setStats)
+        .catch(() => {});
+    }
   }, [selectedLesson, selectedChapter, selectedCognitiveLevel, selectedSourceType]);
+
+  // Re-fetch stats khi chọn môn học khác
+  useEffect(() => {
+    questionBankService.getStats(selectedSubject || undefined)
+      .then(setStats)
+      .catch(() => {});
+  }, [selectedSubject]);
 
   const fetchInitialData = async () => {
     try {
