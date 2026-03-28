@@ -55,7 +55,8 @@ public class BulkImportServiceImpl implements BulkImportService {
     private static final int AI_BATCH_SIZE = 20;
 
     @Override
-    @Transactional(noRollbackFor = Exception.class)
+    // NO @Transactional here — each file runs its own transaction via importFromWord/saveAll
+    // This prevents rollback-only poisoning from inner @Transactional methods
     public BulkImportResponse bulkImportFromZip(MultipartFile zipFile, boolean useAiClassification) {
         log.info("Starting bulk import from ZIP: {}, AI classification: {}", zipFile.getOriginalFilename(), useAiClassification);
 
@@ -120,8 +121,10 @@ public class BulkImportServiceImpl implements BulkImportService {
                         aiClassifiedCount += classified;
                     }
 
-                    // Save all questions
+                    // Save all questions (for Excel files that aren't saved by importFromWord)
+                    // For Word files, questions are already saved by importFromWord — this updates cognitive levels
                     questionBankRepository.saveAll(questions);
+                    questionBankRepository.flush();
                     int count = questions.size();
                     successCount += count;
                     totalQuestions += count;
