@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
                 version = "1.0"
         ),
         servers = {
+                @io.swagger.v3.oas.annotations.servers.Server(url = "/", description = "Current Host (auto)"),
                 @io.swagger.v3.oas.annotations.servers.Server(url = "https://eduboost.school", description = "Production"),
                 @io.swagger.v3.oas.annotations.servers.Server(url = "http://localhost:8080", description = "Local Dev")
         }
