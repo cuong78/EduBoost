@@ -114,9 +114,9 @@ services:
         reservations:
           memory: 768M
           cpus: '0.5'
-    # Không expose port, chỉ dùng qua nginx
-    # ports:
-    #   - "8080:8080"
+    # Expose port 8080 để dùng Swagger upload trực tiếp (bypass nginx)
+    ports:
+      - "8080:8080"
 
   # Frontend Service
   frontend:

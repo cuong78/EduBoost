@@ -17,12 +17,17 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# Create temp directory for large file uploads BEFORE switching to non-root user
+RUN mkdir -p /tmp/spring-upload && chmod 777 /tmp/spring-upload
+
 # Create non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 # Copy JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
+
+# Switch to non-root user
+USER spring:spring
 
 # Expose port
 EXPOSE 8080
@@ -30,9 +35,6 @@ EXPOSE 8080
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
-
-# Create temp directory for large file uploads (multipart)
-RUN mkdir -p /tmp/spring-upload
 
 # Run application with optimized JVM settings for 4GB VPS
 # -Xms512m: initial heap 512MB
