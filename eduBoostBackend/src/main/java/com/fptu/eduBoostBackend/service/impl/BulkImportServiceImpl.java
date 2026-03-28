@@ -87,7 +87,8 @@ public class BulkImportServiceImpl implements BulkImportService {
 
                 try {
                     // Parse folder structure: Lop X/MonHoc/Chuong N/Bai M.xlsx
-                    FolderContext ctx = parseFolderStructure(entryName, errors);
+                    // OR: MonHoc/Chuong N/Bai M/file.xlsx (grade from ZIP filename)
+                    FolderContext ctx = parseFolderStructure(entryName, zipFile.getOriginalFilename(), errors);
                     if (ctx == null) continue;
 
                     // Match to DB entities
@@ -166,10 +167,10 @@ public class BulkImportServiceImpl implements BulkImportService {
         String lessonName;
     }
 
-    private FolderContext parseFolderStructure(String entryName, List<String> errors) {
-        // Supports two structures:
-        // 5 levels: Lớp 6/KHTN/Chương 1_ Tên chương/Bài 1_ Tên bài/file.xlsx
-        // 4 levels: Lớp 6/Toán/Chương 1_ Tên chương/Bài 1_ Tên bài.xlsx
+    private FolderContext parseFolderStructure(String entryName, String zipFileName, List<String> errors) {
+        // Supports multiple structures:
+        // With grade folder: Lớp 6/KHTN/Chương 1_ Tên/Bài 1_ Tên/file.xlsx
+        // Without grade (from ZIP name): Môn/Chương 1_ Tên/Bài 1_ Tên/file.xlsx
         String normalized = entryName.replace("\\", "/");
         String[] parts = normalized.split("/");
 
@@ -177,19 +178,18 @@ public class BulkImportServiceImpl implements BulkImportService {
         if (normalized.startsWith("__MACOSX") || normalized.startsWith(".")) {
             return null;
         }
-        // Skip hidden files within folders
         for (String part : parts) {
             if (part.startsWith(".")) return null;
         }
 
-        if (parts.length < 4) {
-            errors.add("File '" + entryName + "': Cấu trúc folder phải là Lớp X/Môn/Chương N/Bài M/file.xlsx hoặc Lớp X/Môn/Chương N/Bài M.xlsx");
+        if (parts.length < 3) {
+            errors.add("File '" + entryName + "': Cấu trúc folder quá ngắn");
             return null;
         }
 
         FolderContext ctx = new FolderContext();
 
-        // Find grade folder - look for folder containing "Lớp" or "Lop" with a number
+        // Find grade folder inside ZIP
         int gradeIdx = -1;
         for (int i = 0; i < parts.length; i++) {
             String lower = removeVietnameseDiacritics(parts[i]).toLowerCase();
@@ -198,20 +198,20 @@ public class BulkImportServiceImpl implements BulkImportService {
                 break;
             }
         }
-        if (gradeIdx == -1) {
-            // Fallback: first folder with a number
-            for (int i = 0; i < parts.length - 1; i++) {
-                if (parseNumber(parts[i]) != null) {
-                    gradeIdx = i;
-                    break;
-                }
+
+        if (gradeIdx != -1 && gradeIdx + 2 < parts.length) {
+            // Grade folder found inside ZIP
+            ctx.gradeLevel = parseNumber(parts[gradeIdx]);
+        } else {
+            // No grade folder inside ZIP → extract from ZIP filename (e.g. "Lớp 10.zip")
+            gradeIdx = -1; // reset — treat as no grade folder
+            Integer gradeFromZip = (zipFileName != null) ? parseNumber(zipFileName) : null;
+            if (gradeFromZip == null) {
+                errors.add("File '" + entryName + "': Không tìm thấy Lớp trong folder hoặc tên file ZIP");
+                return null;
             }
+            ctx.gradeLevel = gradeFromZip;
         }
-        if (gradeIdx == -1 || gradeIdx + 2 >= parts.length) {
-            errors.add("File '" + entryName + "': Không tìm thấy folder Lớp (ví dụ: Lớp 6)");
-            return null;
-        }
-        ctx.gradeLevel = parseNumber(parts[gradeIdx]);
 
         // Subject = folder right after grade
         int subjectIdx = gradeIdx + 1;
@@ -229,7 +229,8 @@ public class BulkImportServiceImpl implements BulkImportService {
             return null;
         }
         ctx.chapterNumber = chapterNum;
-        ctx.chapterName = parts[chapterIdx].trim();
+        ctx.chapterName = parts[chapterIdx].trim()
+                .replaceAll("^[Cc]h[uư][oơ]ng\\s*\\d+[_:\\s-]*\\s*", "").trim();
 
         // Lesson: could be in folder (5-level) or in filename (4-level)
         int lessonIdx = chapterIdx + 1;
