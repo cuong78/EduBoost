@@ -55,7 +55,7 @@ public class BulkImportServiceImpl implements BulkImportService {
     private static final int AI_BATCH_SIZE = 20;
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public BulkImportResponse bulkImportFromZip(MultipartFile zipFile, boolean useAiClassification) {
         log.info("Starting bulk import from ZIP: {}, AI classification: {}", zipFile.getOriginalFilename(), useAiClassification);
 
