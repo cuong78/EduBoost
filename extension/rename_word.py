@@ -10,7 +10,7 @@ import os
 import sys
 import re
 
-WORD_DIR = r"D:\EXE201\resource"
+WORD_DIR = r"D:\EXE201\resource\word"
 MAX_FILENAME_LEN = 50  # Tên file tối đa (không tính .docx)
 
 
