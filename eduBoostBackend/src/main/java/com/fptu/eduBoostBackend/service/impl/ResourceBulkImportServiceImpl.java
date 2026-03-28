@@ -58,9 +58,10 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
      * Main entry point: parse ZIP and create LessonResources.
      * ZIP structure: Lop X / Mon / Chuong N / Bai M / file.docx
      */
-    @Transactional
+    // NO @Transactional here — prevents rollback-only poisoning
     public BulkResourceResult importResourcesFromZip(MultipartFile zipFile) {
         log.info("Starting bulk resource import from ZIP: {}", zipFile.getOriginalFilename());
+        String zipFileName = zipFile.getOriginalFilename();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
@@ -86,8 +87,8 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
                 log.info("Processing ZIP entry: {}", entryName);
 
                 try {
-                    // Parse structure
-                    EntryContext ctx = parseEntryPath(entryName, errors);
+                    // Parse structure (pass ZIP filename for grade fallback)
+                    EntryContext ctx = parseEntryPath(entryName, zipFileName, errors);
                     if (ctx == null) { skipped++; continue; }
 
                     // Match DB
@@ -152,7 +153,7 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
         int lessonNumber;
     }
 
-    private EntryContext parseEntryPath(String entryName, List<String> errors) {
+    private EntryContext parseEntryPath(String entryName, String zipFileName, List<String> errors) {
         String normalized = entryName.replace("\\", "/");
         String[] parts = normalized.split("/");
 
@@ -161,7 +162,14 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
             if (p.startsWith(".")) return null;
         }
 
-        // Find grade folder index
+        if (parts.length < 3) {
+            errors.add("'" + entryName + "': Cấu trúc folder quá ngắn");
+            return null;
+        }
+
+        EntryContext ctx = new EntryContext();
+
+        // Find grade folder index inside ZIP
         int gradeIdx = -1;
         for (int i = 0; i < parts.length; i++) {
             String lower = removeDiacritics(parts[i]).toLowerCase();
@@ -170,53 +178,54 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
                 break;
             }
         }
-        if (gradeIdx == -1) {
-            // Fallback: first folder with a leading number
-            for (int i = 0; i < parts.length - 1; i++) {
-                if (extractNumber(parts[i]) != null) { gradeIdx = i; break; }
+
+        if (gradeIdx != -1 && gradeIdx + 3 <= parts.length) {
+            // Grade folder found inside ZIP
+            ctx.gradeLevel = extractNumber(parts[gradeIdx]);
+        } else {
+            // No grade folder → extract from ZIP filename (e.g. "Lớp 8.zip")
+            gradeIdx = -1;
+            Integer gradeFromZip = (zipFileName != null) ? extractNumber(zipFileName) : null;
+            if (gradeFromZip == null) {
+                errors.add("'" + entryName + "': Không tìm thấy Lớp trong folder hoặc tên file ZIP");
+                return null;
             }
-        }
-        // Need at least: grade / subject / chapter / [lesson/] file
-        if (gradeIdx == -1 || gradeIdx + 3 > parts.length) {
-            errors.add("'" + entryName + "': Cấu trúc thiếu — cần Lớp/Môn/Chương/Bài/file.docx");
-            return null;
+            ctx.gradeLevel = gradeFromZip;
         }
 
-        EntryContext ctx = new EntryContext();
-        ctx.gradeLevel = extractNumber(parts[gradeIdx]);
-        ctx.subjectName = parts[gradeIdx + 1].trim();
+        // Subject = folder right after grade (or first folder if no grade folder)
+        int subjectIdx = gradeIdx + 1;
+        ctx.subjectName = parts[subjectIdx].trim();
 
         // Chapter folder
-        Integer chapterNum = extractNumber(parts[gradeIdx + 2]);
+        int chapterIdx = subjectIdx + 1;
+        if (chapterIdx >= parts.length - 1) {
+            errors.add("'" + entryName + "': Không tìm thấy folder Chương");
+            return null;
+        }
+        Integer chapterNum = extractNumber(parts[chapterIdx]);
         if (chapterNum == null) {
-            errors.add("'" + entryName + "': Không đọc được số chương từ '" + parts[gradeIdx + 2] + "'");
+            errors.add("'" + entryName + "': Không đọc được số chương từ '" + parts[chapterIdx] + "'");
             return null;
         }
         ctx.chapterNumber = chapterNum;
 
-        // Lesson: either from folder (5-level) or from file name (4-level)
-        if (parts.length == gradeIdx + 5) {
-            // 5-level: grade/subject/chapter/lesson_folder/file.docx
-            Integer lessonNum = extractNumber(parts[gradeIdx + 3]);
+        // Lesson: either from folder or from file name
+        int lessonIdx = chapterIdx + 1;
+        if (lessonIdx < parts.length - 1) {
+            // Lesson is a folder: .../Chương N/Bài M/file.docx
+            Integer lessonNum = extractNumber(parts[lessonIdx]);
             if (lessonNum == null) {
-                errors.add("'" + entryName + "': Không đọc được số bài từ '" + parts[gradeIdx + 3] + "'");
-                return null;
-            }
-            ctx.lessonNumber = lessonNum;
-        } else if (parts.length == gradeIdx + 4) {
-            // 4-level: grade/subject/chapter/file.docx — use file name for lesson number
-            String fileNameNoExt = parts[parts.length - 1].replaceAll("\\.docx$", "");
-            Integer lessonNum = extractNumber(fileNameNoExt);
-            if (lessonNum == null) {
-                errors.add("'" + entryName + "': Không đọc được số bài từ tên file '" + parts[parts.length - 1] + "'");
+                errors.add("'" + entryName + "': Không đọc được số bài từ '" + parts[lessonIdx] + "'");
                 return null;
             }
             ctx.lessonNumber = lessonNum;
         } else {
-            // More than 5 levels — lesson is at gradeIdx+3
-            Integer lessonNum = extractNumber(parts[gradeIdx + 3]);
+            // Lesson from filename: .../Chương N/Bài_M.docx
+            String fileNameNoExt = parts[parts.length - 1].replaceAll("\\.docx$", "");
+            Integer lessonNum = extractNumber(fileNameNoExt);
             if (lessonNum == null) {
-                errors.add("'" + entryName + "': Không đọc được số bài từ '" + parts[gradeIdx + 3] + "'");
+                errors.add("'" + entryName + "': Không đọc được số bài từ tên file '" + parts[parts.length - 1] + "'");
                 return null;
             }
             ctx.lessonNumber = lessonNum;
@@ -270,7 +279,9 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
         aliases.put("toan hoc", "toan");
         aliases.put("vat li", "ly");
         aliases.put("vat ly", "ly");
+        aliases.put("hoa", "hoa");
         aliases.put("hoa hoc", "hoa");
+        aliases.put("ly", "ly");
         aliases.put("sinh hoc", "sinh");
 
         String aliasCode = aliases.get(norm);

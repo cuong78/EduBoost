@@ -113,7 +113,7 @@ def zip_by_subject(source_dir: str, output_dir: str):
 if __name__ == "__main__":
     # Default paths
     default_source = r"D:\EXE201\resource\word"
-    default_output = r"D:\EXE201\resource\word_zips"
+    default_output = r"D:\EXE201\resource\resource_zips"
 
     source = sys.argv[1] if len(sys.argv) > 1 else default_source
     output = sys.argv[2] if len(sys.argv) > 2 else default_output

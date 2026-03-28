@@ -607,3 +607,5 @@ docker system prune -a
 
 
 git pull && docker-compose -f docker-compose.prod.yml build frontend backend && docker-compose -f docker-compose.prod.yml up -d frontend backend
+
+docker-compose -f docker-compose.prod.yml up -d frontend backend
