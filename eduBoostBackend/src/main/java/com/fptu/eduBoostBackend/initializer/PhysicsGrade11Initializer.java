@@ -17,14 +17,10 @@ public class PhysicsGrade11Initializer {
         Subject physics = subjectRepository.findBySubjectCode("LY").orElse(null);
         if (physics == null) return;
 
+        // Chương 1: Dao động
         Chapter chap1 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(11)
-                .chapterNumber(1)
-                .chapterName("Dao động")
-                .description("Chương 1: Dao động")
-                .build());
-
+                .subject(physics).gradeLevel(11).chapterNumber(1)
+                .chapterName("Dao động").description("Chương 1: Dao động").build());
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(1)
                 .lessonName("Dao động điều hòa").build());
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(2)
@@ -40,14 +36,10 @@ public class PhysicsGrade11Initializer {
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(7)
                 .lessonName("Bài tập về sự chuyển năng lượng trong dao động điều hòa").build());
 
+        // Chương 2: Sóng
         Chapter chap2 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(11)
-                .chapterNumber(2)
-                .chapterName("Sóng")
-                .description("Chương 2: Sóng")
-                .build());
-
+                .subject(physics).gradeLevel(11).chapterNumber(2)
+                .chapterName("Sóng").description("Chương 2: Sóng").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(8)
                 .lessonName("Mô tả sóng").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(9)
@@ -65,14 +57,10 @@ public class PhysicsGrade11Initializer {
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(15)
                 .lessonName("Thực hành: Đo tốc độ truyền âm").build());
 
+        // Chương 3: Điện trường
         Chapter chap3 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(11)
-                .chapterNumber(3)
-                .chapterName("Điện trường")
-                .description("Chương 3: Điện trường")
-                .build());
-
+                .subject(physics).gradeLevel(11).chapterNumber(3)
+                .chapterName("Điện trường").description("Chương 3: Điện trường").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(16)
                 .lessonName("Lực tương tác giữa hai điện tích").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(17)
@@ -86,14 +74,10 @@ public class PhysicsGrade11Initializer {
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(21)
                 .lessonName("Tụ điện").build());
 
+        // Chương 4: Dòng điện. Mạch điện
         Chapter chap4 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(11)
-                .chapterNumber(4)
-                .chapterName("Dòng điện. Mạch điện")
-                .description("Chương 4: Dòng điện. Mạch điện")
-                .build());
-
+                .subject(physics).gradeLevel(11).chapterNumber(4)
+                .chapterName("Dòng điện. Mạch điện").description("Chương 4: Dòng điện. Mạch điện").build());
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(22)
                 .lessonName("Cường độ dòng điện").build());
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(23)

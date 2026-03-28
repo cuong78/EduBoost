@@ -17,14 +17,10 @@ public class PhysicsGrade12Initializer {
         Subject physics = subjectRepository.findBySubjectCode("LY").orElse(null);
         if (physics == null) return;
 
+        // Chương 1: Vật lí nhiệt
         Chapter chap1 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(12)
-                .chapterNumber(1)
-                .chapterName("Vật lí nhiệt")
-                .description("Chương 1: Vật lí nhiệt")
-                .build());
-
+                .subject(physics).gradeLevel(12).chapterNumber(1)
+                .chapterName("Vật lí nhiệt").description("Chương 1: Vật lí nhiệt").build());
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(1)
                 .lessonName("Cấu trúc của chất. Sự chuyển thể").build());
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(2)
@@ -36,18 +32,12 @@ public class PhysicsGrade12Initializer {
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(5)
                 .lessonName("Nhiệt nóng chảy riêng").build());
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(6)
-                .lessonName("Nhiệt hóa hơi riêng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(7)
-                .lessonName("Ôn tập cuối chương 1").build());
+                .lessonName("Nhiệt hoá hơi riêng").build());
 
+        // Chương 2: Khí lí tưởng
         Chapter chap2 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(12)
-                .chapterNumber(2)
-                .chapterName("Khí lí tưởng")
-                .description("Chương 2: Khí lí tưởng")
-                .build());
-
+                .subject(physics).gradeLevel(12).chapterNumber(2)
+                .chapterName("Khí lí tưởng").description("Chương 2: Khí lí tưởng").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(8)
                 .lessonName("Mô hình động học phân tử chất khí").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(9)
@@ -58,17 +48,11 @@ public class PhysicsGrade12Initializer {
                 .lessonName("Phương trình trạng thái của khí lí tưởng").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(12)
                 .lessonName("Áp suất khí theo mô hình động học phân tử. Quan hệ giữa động năng phân tử và nhiệt độ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(13)
-                .lessonName("Ôn tập cuối chương 2").build());
 
+        // Chương 3: Từ trường
         Chapter chap3 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(12)
-                .chapterNumber(3)
-                .chapterName("Từ trường")
-                .description("Chương 3: Từ trường")
-                .build());
-
+                .subject(physics).gradeLevel(12).chapterNumber(3)
+                .chapterName("Từ trường").description("Chương 3: Từ trường").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(14)
                 .lessonName("Từ trường").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(15)
@@ -81,17 +65,11 @@ public class PhysicsGrade12Initializer {
                 .lessonName("Ứng dụng hiện tượng cảm ứng điện từ").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(19)
                 .lessonName("Điện từ trường. Mô hình sóng điện từ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(20)
-                .lessonName("Ôn tập cuối chương 3").build());
 
+        // Chương 4: Vật lí hạt nhân
         Chapter chap4 = chapterRepository.save(Chapter.builder()
-                .subject(physics)
-                .gradeLevel(12)
-                .chapterNumber(4)
-                .chapterName("Vật lí hạt nhân")
-                .description("Chương 4: Vật lí hạt nhân")
-                .build());
-
+                .subject(physics).gradeLevel(12).chapterNumber(4)
+                .chapterName("Vật lí hạt nhân").description("Chương 4: Vật lí hạt nhân").build());
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(21)
                 .lessonName("Cấu trúc hạt nhân").build());
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(22)
@@ -100,7 +78,5 @@ public class PhysicsGrade12Initializer {
                 .lessonName("Hiện tượng phóng xạ").build());
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(24)
                 .lessonName("Công nghiệp hạt nhân").build());
-        lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(25)
-                .lessonName("Ôn tập cuối chương 4").build());
     }
 }

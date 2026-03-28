@@ -124,7 +124,6 @@ public class BulkImportServiceImpl implements BulkImportService {
                     // Save all questions (for Excel files that aren't saved by importFromWord)
                     // For Word files, questions are already saved by importFromWord — this updates cognitive levels
                     questionBankRepository.saveAll(questions);
-                    questionBankRepository.flush();
                     int count = questions.size();
                     successCount += count;
                     totalQuestions += count;

@@ -66,60 +66,70 @@ public class MathGrade7Initializer {
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(16)
                 .lessonName("Tam giác cân. Đường trung trực của đoạn thẳng").build());
 
+        // Chương 5: Thu thập và biểu diễn dữ liệu
+        Chapter chap5 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(7).chapterNumber(5)
+                .chapterName("Thu thập và biểu diễn dữ liệu").description("Chương 5: Thu thập và biểu diễn dữ liệu").build());
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(17)
+                .lessonName("Thu thập và phân loại dữ liệu").build());
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(18)
+                .lessonName("Biểu đồ hình quạt tròn").build());
+        lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(19)
+                .lessonName("Biểu đồ đoạn thẳng").build());
+
         // Chương 6: Tỉ lệ thức và đại lượng tỉ lệ
         Chapter chap6 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(7).chapterNumber(6)
                 .chapterName("Tỉ lệ thức và đại lượng tỉ lệ").description("Chương 6: Tỉ lệ thức và đại lượng tỉ lệ").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(17)
-                .lessonName("Tỉ lệ thức").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(18)
-                .lessonName("Tính chất của dãy tỉ số bằng nhau").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(19)
-                .lessonName("Đại lượng tỉ lệ thuận").build());
         lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(20)
+                .lessonName("Tỉ lệ thức").build());
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(21)
+                .lessonName("Tính chất của dãy tỉ số bằng nhau").build());
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(22)
+                .lessonName("Đại lượng tỉ lệ thuận").build());
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(23)
                 .lessonName("Đại lượng tỉ lệ nghịch").build());
 
         // Chương 7: Biểu thức đại số và đa thức một biến
         Chapter chap7 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(7).chapterNumber(7)
                 .chapterName("Biểu thức đại số và đa thức một biến").description("Chương 7: Biểu thức đại số và đa thức một biến").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(21)
-                .lessonName("Biểu thức đại số").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(22)
-                .lessonName("Đa thức một biến").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(23)
-                .lessonName("Phép cộng và phép trừ đa thức một biến").build());
         lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(24)
-                .lessonName("Phép nhân đa thức một biến").build());
+                .lessonName("Biểu thức đại số").build());
         lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(25)
+                .lessonName("Đa thức một biến").build());
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(26)
+                .lessonName("Phép cộng và phép trừ đa thức một biến").build());
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(27)
+                .lessonName("Phép nhân đa thức một biến").build());
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(28)
                 .lessonName("Phép chia đa thức một biến").build());
 
         // Chương 8: Làm quen với biến cố và xác suất của biến cố
         Chapter chap8 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(7).chapterNumber(8)
                 .chapterName("Làm quen với biến cố và xác suất của biến cố").description("Chương 8: Làm quen với biến cố và xác suất của biến cố").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(26)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(29)
                 .lessonName("Làm quen với biến cố").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(27)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(30)
                 .lessonName("Làm quen với xác suất của biến cố").build());
 
         // Chương 9: Quan hệ giữa các yếu tố trong một tam giác
         Chapter chap9 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(7).chapterNumber(9)
                 .chapterName("Quan hệ giữa các yếu tố trong một tam giác").description("Chương 9: Quan hệ giữa các yếu tố trong một tam giác").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(28)
-                .lessonName("Quan hệ giữa góc và cạnh đối diện trong một tam giác").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(29)
-                .lessonName("Quan hệ giữa đường vuông góc và đường xiên").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(30)
-                .lessonName("Quan hệ giữa ba cạnh của một tam giác").build());
         lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(31)
-                .lessonName("Sự đồng quy của ba đường trung tuyến, ba đường phân giác trong một tam giác").build());
+                .lessonName("Quan hệ giữa góc và cạnh đối diện trong một tam giác").build());
         lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(32)
+                .lessonName("Quan hệ giữa đường vuông góc và đường xiên").build());
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(33)
+                .lessonName("Quan hệ giữa ba cạnh của một tam giác").build());
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(34)
+                .lessonName("Sự đồng quy của ba đường trung tuyến, ba đường phân giác trong một tam giác").build());
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(35)
                 .lessonName("Sự đồng quy của ba đường trung trực, ba đường cao trong một tam giác").build());
 
         // Chương 10: Một số hình khối trong thực tiễn
         Chapter chap10 = chapterRepository.save(Chapter.builder().subject(math).gradeLevel(7).chapterNumber(10)
                 .chapterName("Một số hình khối trong thực tiễn").description("Chương 10: Một số hình khối trong thực tiễn").build());
-        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(33)
+        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(36)
                 .lessonName("Hình hộp chữ nhật và hình lập phương").build());
-        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(34)
+        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(37)
                 .lessonName("Hình lăng trụ đứng tam giác và hình lăng trụ đứng tứ giác").build());
     }
 }

@@ -84,9 +84,9 @@ def zip_by_subject(source_dir: str, output_dir: str):
                     long_path = str(file_path)
                     if os.name == "nt" and not long_path.startswith("\\\\?\\"):
                         long_path = "\\\\?\\" + str(file_path.resolve())
-                    # Đường dẫn relative từ thư mục MÔN
-                    # Để trong ZIP có: Chương/Bài/file.docx
-                    rel_path = file_path.relative_to(subject_folder)
+                    # Đường dẫn relative từ thư mục LỚP
+                    # Để trong ZIP có: Môn/Chương/Bài/file.docx
+                    rel_path = file_path.relative_to(grade_folder)
                     files_to_zip.append((long_path, str(rel_path)))
 
             if not files_to_zip:
@@ -112,8 +112,8 @@ def zip_by_subject(source_dir: str, output_dir: str):
 
 if __name__ == "__main__":
     # Default paths
-    default_source = r"D:\EXE201\resource"
-    default_output = r"D:\EXE201\resource_zips"
+    default_source = r"D:\EXE201\word"
+    default_output = r"D:\EXE201\word_zips"
 
     source = sys.argv[1] if len(sys.argv) > 1 else default_source
     output = sys.argv[2] if len(sys.argv) > 2 else default_output
