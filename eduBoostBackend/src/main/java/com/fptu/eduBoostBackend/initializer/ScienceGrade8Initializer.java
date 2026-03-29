@@ -18,7 +18,7 @@ public class ScienceGrade8Initializer {
         Subject sc = subjectRepository.findBySubjectCode("SCI").orElse(null);
         if (sc == null) return;
 
-        // Lời nói đầu (chapterNumber = 0 to avoid shifting)
+        // Lời nói đầu (chapterNumber = 0)
         Chapter preface = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(8).chapterNumber(0)
                 .chapterName("Lời nói đầu").description("Bài 1: Sử dụng một số hóa chất, thiết bị cơ bản trong phòng thí nghiệm").build());
         lessonRepository.save(Lesson.builder().chapter(preface).lessonNumber(1)
@@ -68,13 +68,12 @@ public class ScienceGrade8Initializer {
         lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(24).lessonName("Cường độ dòng điện và hiệu điện thế").build());
         lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(25).lessonName("Thực hành đo cường độ dòng điện và hiệu điện thế").build());
 
-        // Chương 6: Nhiệt
+        // Chương 6: Nhiệt (Bài 27 skip theo chương trình chính thức)
         Chapter chap6 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(8).chapterNumber(6)
                 .chapterName("Nhiệt").description("Chương 6: Nhiệt").build());
         lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(26).lessonName("Năng lượng nhiệt và nội năng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(27).lessonName("Sự truyền nhiệt").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(28).lessonName("Sự nở vì nhiệt").build());
-        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(29).lessonName("Nhiệt dung riêng").build());
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(28).lessonName("Sự truyền nhiệt").build());
+        lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(29).lessonName("Sự nở vì nhiệt").build());
 
         // Chương 7: Sinh học cơ thể người
         Chapter chap7 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(8).chapterNumber(7)
