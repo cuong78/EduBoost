@@ -206,10 +206,10 @@ const ExamManagement = () => {
   const handleUnpublish = async (exam) => {
     setActionFor(exam.id, "unpublish");
     try {
-      await examService.changeExamStatus(exam.id, { newStatus: "DRAFT" });
-      showSuccessToast("Đã bỏ xuất bản");
+      await examService.changeExamStatus(exam.id, { newStatus: "USED" });
+      showSuccessToast("Đã ngừng xuất bản — đề thi chuyển sang trạng thái Đã dùng");
       loadExams();
-    } catch (e) { showErrorToast(e?.response?.data?.message || "Không thể bỏ xuất bản"); }
+    } catch (e) { showErrorToast(e?.response?.data?.message || "Không thể ngừng xuất bản"); }
     finally { setActionFor(exam.id, null); }
   };
 
@@ -446,7 +446,7 @@ const ExamManagement = () => {
                               </button>
                             )}
                             {exam.status === "PUBLISHED" && (
-                              <button className="em-icon-btn" title="Bỏ xuất bản" disabled={busy} onClick={() => handleUnpublish(exam)}>
+                              <button className="em-icon-btn" title="Ngừng xuất bản" disabled={busy} onClick={() => handleUnpublish(exam)}>
                                 <Clock size={15}/>
                               </button>
                             )}

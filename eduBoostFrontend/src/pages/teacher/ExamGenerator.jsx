@@ -19,6 +19,7 @@ import {
   Library,
   Save,
   Shuffle,
+  Clock,
   X,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
@@ -361,10 +362,9 @@ const ExamGenerator = () => {
     if (!subjectId) return;
     setLoadingMatrices(true);
     const examTypeId = getSelectedExamTypeId();
-    // NOTE: we intentionally do NOT filter by gradeLevel here so teachers can
-    // select matrices created for any grade of the same subject+examType.
+    // Filter by subjectId AND gradeLevel
     examService
-      .getMatrixTemplates({ examTypeId, subjectId: Number(subjectId) })
+      .getMatrixTemplates({ examTypeId, subjectId: Number(subjectId), gradeLevel: Number(gradeLevel) })
       .then((data) => {
         const list = Array.isArray(data) ? data : data?.data || [];
         setMatrixTemplates(list);
@@ -379,7 +379,7 @@ const ExamGenerator = () => {
       .catch(() => setMatrixTemplates([]))
       .finally(() => setLoadingMatrices(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMatrixType, subjectId]);
+  }, [isMatrixType, subjectId, gradeLevel]);
 
   useEffect(() => {
     loadLessons().catch(() => setLessons([]));
@@ -657,10 +657,12 @@ const ExamGenerator = () => {
       setExportingPdf(true);
       try {
         await exportHtmlToPdf(pdfContainerRef.current, `${currentExam.examCode || "de-thi"}.pdf`);
-        showSuccessToast("Đã xuất PDF đề thi thành công! Trạng thái đề thi đã được cập nhật USED.");
-        // Notify backend to mark as USED
-        await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
-        await refreshExam(currentExam.id);
+        showSuccessToast("Đã xuất PDF đề thi thành công!");
+        // Only change status to USED if currently DRAFT
+        if (currentExam?.status === "DRAFT") {
+          await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+          await refreshExam(currentExam.id);
+        }
       } catch (e) {
         showErrorToast("Xuất PDF thất bại");
       } finally {
@@ -683,10 +685,12 @@ const ExamGenerator = () => {
       setExportingPdf(true);
       try {
         await exportHtmlToPdf(pdfContainerRef.current, `${currentExam.examCode || "de-thi"}-dap-an.pdf`);
-        showSuccessToast("Đã xuất đáp án PDF thành công! Trạng thái đề thi đã được cập nhật USED.");
-        // Notify backend to mark as USED
-        await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
-        await refreshExam(currentExam.id);
+        showSuccessToast("Đã xuất đáp án PDF thành công!");
+        // Only change status to USED if currently DRAFT
+        if (currentExam?.status === "DRAFT") {
+          await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+          await refreshExam(currentExam.id);
+        }
       } catch (e) {
         showErrorToast("Xuất đáp án thất bại");
       } finally {
@@ -1032,38 +1036,92 @@ const ExamGenerator = () => {
               ) : matrixTemplates.length === 0 ? (
                 <div className="matrix-empty-notice">
                   <LayoutGrid size={36} style={{ opacity: 0.35 }} />
-                  <p>Chưa có ma trận nào phù hợp với môn học và khối này.</p>
+                  <p>Chưa có ma trận nào phù hợp với môn {subjects.find(s => String(s.id) === String(subjectId))?.subjectCode || "học"} - Khối {gradeLevel}.</p>
                   <a href="/teacher/matrix-templates" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                     <LayoutGrid size={15} /> Tạo ma trận mới
                   </a>
                 </div>
-              ) : (
-                <div className="matrix-select-grid">
-                  {matrixTemplates.map((t) => (
-                    <div
-                      key={t.id}
-                      className={`matrix-card ${String(matrixTemplateId) === String(t.id) ? "selected" : ""}`}
-                      onClick={() => { setMatrixTemplateId(String(t.id)); setSelectedMatrix(t); }}
-                    >
-                      <div className="mc-check">{String(matrixTemplateId) === String(t.id) && <Check size={14} />}</div>
-                      <div className="mc-name">{t.templateName}</div>
-                      <div className="mc-meta">
-                        Khối {t.gradeLevel} • {t.totalQuestions} câu • {t.totalPoints} điểm
-                        {t.isDefault && <span className="badge-default">Mặc định</span>}
-                      </div>
-                      {t.details?.length > 0 && (
-                        <div className="mc-levels">
-                          {t.details.map((d) => (
-                            <span key={d.id} className="mc-level-tag">
-                              {d.cognitiveLevelName}: {d.numberOfQuestions}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+              ) : (() => {
+                const myMatrices = matrixTemplates.filter(t => t.createdById === user?.userId);
+                const communityMatrices = matrixTemplates.filter(t => t.createdById !== user?.userId);
+                const renderCard = (t) => (
+                  <div
+                    key={t.id}
+                    className={`matrix-card ${String(matrixTemplateId) === String(t.id) ? "selected" : ""}`}
+                    onClick={() => { setMatrixTemplateId(String(t.id)); setSelectedMatrix(t); }}
+                  >
+                    <div className="mc-check">{String(matrixTemplateId) === String(t.id) && <Check size={14} />}</div>
+                    <div className="mc-name">{t.templateName}</div>
+                    <div className="mc-meta">
+                      Khối {t.gradeLevel} • {t.totalQuestions} câu • {t.totalPoints} điểm
+                      {t.isDefault && <span className="badge-default">Mặc định</span>}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {t.createdByName && (
+                      <div style={{ fontSize: "0.75rem", color: "var(--ds-text-secondary)", marginTop: 2 }}>
+                        GV: {t.createdByName}
+                      </div>
+                    )}
+                    {t.details?.length > 0 && (
+                      <div className="mc-levels">
+                        {t.details.map((d) => (
+                          <span key={d.id} className="mc-level-tag">
+                            {d.cognitiveLevelName}: {d.numberOfQuestions}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Expandable detail when selected */}
+                    {String(matrixTemplateId) === String(t.id) && t.details?.length > 0 && (
+                      <div style={{ marginTop: 8, padding: "8px 0", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+                        <table style={{ width: "100%", fontSize: "0.8rem", borderCollapse: "collapse" }}>
+                          <thead>
+                            <tr style={{ textAlign: "left", opacity: 0.7 }}>
+                              <th style={{ padding: "4px 6px" }}>Mức độ</th>
+                              <th style={{ padding: "4px 6px", textAlign: "center" }}>Số câu</th>
+                              <th style={{ padding: "4px 6px", textAlign: "center" }}>Điểm/câu</th>
+                              <th style={{ padding: "4px 6px", textAlign: "center" }}>Tổng</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {t.details.map((d, i) => (
+                              <tr key={i}>
+                                <td style={{ padding: "3px 6px" }}>{d.cognitiveLevelName}</td>
+                                <td style={{ padding: "3px 6px", textAlign: "center" }}>{d.numberOfQuestions}</td>
+                                <td style={{ padding: "3px 6px", textAlign: "center" }}>{d.pointsPerQuestion}</td>
+                                <td style={{ padding: "3px 6px", textAlign: "center", fontWeight: 600 }}>{Number(d.totalPoints || 0).toFixed(1)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+                return (
+                  <>
+                    {myMatrices.length > 0 && (
+                      <>
+                        <p style={{ fontWeight: 600, fontSize: "0.9rem", margin: "0.5rem 0 0.5rem", color: "var(--color-accent-1)" }}>
+                          📋 Ma trận của tôi ({myMatrices.length})
+                        </p>
+                        <div className="matrix-select-grid">
+                          {myMatrices.map(renderCard)}
+                        </div>
+                      </>
+                    )}
+                    {communityMatrices.length > 0 && (
+                      <>
+                        <p style={{ fontWeight: 600, fontSize: "0.9rem", margin: "1rem 0 0.5rem", color: "var(--ds-info)" }}>
+                          🌐 Cộng đồng ({communityMatrices.length})
+                        </p>
+                        <div className="matrix-select-grid">
+                          {communityMatrices.map(renderCard)}
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
               {matrixTemplates.length > 0 && !matrixTemplateId && (
                 <p style={{ color: "var(--ds-error)", fontSize: "0.85rem", marginTop: "0.5rem" }}>⚠️ Vui lòng chọn một ma trận để tiếp tục</p>
               )}
@@ -1399,9 +1457,21 @@ const ExamGenerator = () => {
                     : <><Sparkles size={16} /> Công bố</>}
                 </button>
               ) : canEdit && currentExam?.status === "PUBLISHED" ? (
-                <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "var(--ds-info)", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
-                  ✓ Đã công bố
-                </span>
+                <button
+                  className="btn btn-outline"
+                  style={{ borderColor: "var(--ds-warning)", color: "var(--ds-warning)" }}
+                  onClick={async () => {
+                    try {
+                      await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
+                      showSuccessToast("Đã ngừng xuất bản — đề thi chuyển sang trạng thái Đã dùng");
+                      await refreshExam(currentExam.id);
+                    } catch (e) {
+                      showErrorToast(e?.response?.data?.message || "Không thể ngừng xuất bản");
+                    }
+                  }}
+                >
+                  <Clock size={16} /> Ngừng xuất bản
+                </button>
               ) : null}
 
               {/* Export button - everyone can export */}

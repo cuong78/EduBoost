@@ -962,9 +962,11 @@ const MatrixManagement = () => {
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setViewTemplate(null)}>Đóng</button>
-              <button className="btn btn-primary" onClick={() => { setViewTemplate(null); openEdit(viewTemplate); }}>
-                <Edit size={15} /> Chỉnh sửa
-              </button>
+              {viewTemplate.createdById === user?.userId && (
+                <button className="btn btn-primary" onClick={() => { setViewTemplate(null); openEdit(viewTemplate); }}>
+                  <Edit size={15} /> Chỉnh sửa
+                </button>
+              )}
             </div>
           </div>
         </div>

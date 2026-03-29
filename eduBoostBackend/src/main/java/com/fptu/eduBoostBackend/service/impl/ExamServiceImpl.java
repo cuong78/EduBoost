@@ -1023,11 +1023,11 @@ public class ExamServiceImpl implements ExamService {
     }
     
     private void validateStatusTransition(ExamStatus current, ExamStatus newStatus) {
-        // New simplified transitions: DRAFT/USED -> PUBLISHED, PUBLISHED -> DRAFT (unpublish)
+        // Transitions: DRAFT->PUBLISHED, DRAFT->USED(export), USED->PUBLISHED, PUBLISHED->USED(unpublish)
         boolean valid = switch (current) {
             case DRAFT -> newStatus == ExamStatus.PUBLISHED || newStatus == ExamStatus.USED;
             case USED -> newStatus == ExamStatus.PUBLISHED;
-            case PUBLISHED -> newStatus == ExamStatus.DRAFT || newStatus == ExamStatus.USED;
+            case PUBLISHED -> newStatus == ExamStatus.USED;
         };
         if (!valid) {
             throw new IllegalStateException(
