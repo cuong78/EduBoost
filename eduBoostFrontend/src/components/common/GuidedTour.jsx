@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import Joyride, { STATUS } from "react-joyride";
+import { Joyride, STATUS } from "react-joyride";
 
 /**
  * GuidedTour — wrapper cho react-joyride
