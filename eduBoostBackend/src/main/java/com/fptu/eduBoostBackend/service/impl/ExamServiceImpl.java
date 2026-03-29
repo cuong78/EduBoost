@@ -212,14 +212,20 @@ public class ExamServiceImpl implements ExamService {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
         
-        if (exam.getStatus() == ExamStatus.PUBLISHED) {
-            throw new IllegalStateException("Cannot delete a PUBLISHED exam. Unpublish it first.");
+        // Delete exam_questions for all variant (child) exams first
+        List<Exam> variants = examRepository.findByParentExamIdOrderByVariantNumber(id);
+        for (Exam variant : variants) {
+            examQuestionRepository.deleteByExamId(variant.getId());
+            log.info("Deleted exam questions for variant: {}", variant.getExamCode());
         }
         
+        // Delete exam_questions for the parent exam
         examQuestionRepository.deleteByExamId(id);
+        
+        // Delete the exam — cascade will remove variant exams
         examRepository.delete(exam);
         
-        log.info("Deleted exam: {}", exam.getExamCode());
+        log.info("Deleted exam {} with {} variants", exam.getExamCode(), variants.size());
     }
 
     @Override

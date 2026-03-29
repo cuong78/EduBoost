@@ -87,7 +87,7 @@ public class Exam {
     @Column(name = "variant_number")
     private Integer variantNumber;
 
-    @OneToMany(mappedBy = "parentExam", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "parentExam", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Exam> variants;
 }
 
