@@ -847,6 +847,12 @@ public class ExamServiceImpl implements ExamService {
         
         User currentUser = getCurrentUser();
         
+        // If this is a variant (child) exam, redirect status change to its parent
+        // Variants should not be changed independently — their status follows the parent
+        if (exam.getParentExam() != null) {
+            throw new IllegalStateException("Đề trộn không thể thay đổi trạng thái riêng. Vui lòng thay đổi trạng thái đề gốc.");
+        }
+        
         // Ownership check: only creator or admin can change status
         boolean isOwner = exam.getCreatedBy() != null &&
                 exam.getCreatedBy().getUserId().equals(currentUser.getUserId());
@@ -866,6 +872,20 @@ public class ExamServiceImpl implements ExamService {
         }
         
         exam = examRepository.save(exam);
+        
+        // ─── Cascade status to all variants (child exams) ───
+        List<Exam> variants = examRepository.findByParentExamIdOrderByVariantNumber(examId);
+        if (!variants.isEmpty()) {
+            for (Exam variant : variants) {
+                variant.setStatus(request.getNewStatus());
+                if (request.getNewStatus() == ExamStatus.PUBLISHED) {
+                    variant.setPublishedAt(LocalDateTime.now());
+                }
+            }
+            examRepository.saveAll(variants);
+            log.info("Cascaded status {} to {} variants of exam {}", 
+                    request.getNewStatus(), variants.size(), exam.getExamCode());
+        }
         
         log.info("Changed exam {} status from {} to {} by user: {}",
                 exam.getExamCode(), exam.getStatus(), request.getNewStatus(), currentUser.getUsername());

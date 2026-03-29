@@ -628,7 +628,7 @@ const ExamGenerator = () => {
     setPublishingExam(true);
     try {
       await examService.changeExamStatus(currentExam.id, { newStatus: "PUBLISHED" });
-      showSuccessToast("Đã công bố đề thi thành công! Giờ đây mọi người có thể xem được đề này.");
+      showSuccessToast("Đã công bố đề thi và các đề trộn thành công!");
       // Refresh exam to get updated status
       await refreshExam(currentExam.id);
     } catch (e) {
@@ -1080,7 +1080,16 @@ const ExamGenerator = () => {
                     {t.details?.length > 0 && (
                       <button
                         className="btn-matrix-detail"
-                        onClick={(e) => { e.stopPropagation(); setMatrixDetailModal(t); }}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setMatrixDetailModal({ ...t, _loading: true });
+                          try {
+                            const full = await examService.getMatrixTemplateById(t.id);
+                            setMatrixDetailModal(full);
+                          } catch {
+                            setMatrixDetailModal(t);
+                          }
+                        }}
                       >
                         <Eye size={13} /> Xem chi tiết ma trận
                       </button>
@@ -1418,6 +1427,11 @@ const ExamGenerator = () => {
                   ⚠️ Số câu thực tế ({previewQuestions.length}) ít hơn ma trận yêu cầu ({selectedMatrix.totalQuestions}). Có thể ngân hàng chưa đủ câu hỏi hoặc AI không tạo đủ.
                 </p>
               )}
+              {currentExam?.parentExamId && (
+                <p style={{ color: "var(--ds-info)", fontSize: "0.82rem", marginTop: 4 }}>
+                  ℹ️ Đây là đề trộn — trạng thái xuất bản được đồng bộ từ đề gốc.
+                </p>
+              )}
             </div>
             <div className="actions" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
               {/* Back button for view mode */}
@@ -1441,8 +1455,8 @@ const ExamGenerator = () => {
                 </button>
               )}
 
-              {/* Publish button - owner only */}
-              {canEdit && currentExam?.status !== "PUBLISHED" ? (
+              {/* Publish button - owner only, not for variants (variants follow parent) */}
+              {canEdit && !currentExam?.parentExamId && currentExam?.status !== "PUBLISHED" ? (
                 <button
                   className="btn btn-primary"
                   onClick={handlePublish}
@@ -1452,14 +1466,14 @@ const ExamGenerator = () => {
                     ? <><RefreshCw size={16} className="spin" /> Đang công bố...</>
                     : <><Sparkles size={16} /> Công bố</>}
                 </button>
-              ) : canEdit && currentExam?.status === "PUBLISHED" ? (
+              ) : canEdit && !currentExam?.parentExamId && currentExam?.status === "PUBLISHED" ? (
                 <button
                   className="btn btn-outline"
                   style={{ borderColor: "var(--ds-warning)", color: "var(--ds-warning)" }}
                   onClick={async () => {
                     try {
                       await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
-                      showSuccessToast("Đã ngừng xuất bản — đề thi chuyển sang trạng thái Đã dùng");
+                      showSuccessToast("Đã ngừng xuất bản — đề thi và các đề trộn chuyển sang trạng thái Đã dùng");
                       await refreshExam(currentExam.id);
                     } catch (e) {
                       showErrorToast(e?.response?.data?.message || "Không thể ngừng xuất bản");
@@ -1879,19 +1893,11 @@ const ExamGenerator = () => {
                   <button
                     className="btn btn-secondary"
                     style={{ flex: 1, fontSize: "0.8rem", padding: "0.4rem" }}
-                    onClick={() => navigate(`/teacher/create-exam?examId=${v.id}&mode=view`)}
-                  >
-                    <Eye size={14} /> Xem
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    style={{ flex: 1, fontSize: "0.8rem", padding: "0.4rem" }}
                     onClick={() => {
-                      // Navigate to variant in view mode — user can export from there
                       window.open(`/teacher/create-exam?examId=${v.id}&mode=view`, '_blank');
                     }}
                   >
-                    <Download size={14} /> PDF
+                    <Eye size={14} /> Xem
                   </button>
                 </div>
               </div>
@@ -1961,43 +1967,113 @@ const ExamGenerator = () => {
               <button className="btn-close" onClick={() => setMatrixDetailModal(null)}><X size={20} /></button>
             </div>
             <div className="shuffle-modal-body">
-              <div className="shuffle-info">
-                <p><strong>Tên:</strong> {matrixDetailModal.templateName}</p>
-                <p><strong>Khối:</strong> {matrixDetailModal.gradeLevel}</p>
-                <p><strong>Tổng số câu:</strong> {matrixDetailModal.totalQuestions} câu</p>
-                <p><strong>Tổng điểm:</strong> {matrixDetailModal.totalPoints} điểm</p>
-                {matrixDetailModal.createdByName && <p><strong>Tác giả:</strong> {matrixDetailModal.createdByName}</p>}
-              </div>
-              {matrixDetailModal.details?.length > 0 && (
-                <div>
-                  <h3 style={{ fontSize: "0.95rem", margin: "1rem 0 0.5rem" }}>Phân bố theo mức độ nhận thức</h3>
-                  <table className="summary-table">
-                    <thead>
-                      <tr>
-                        <th>Mức độ</th>
-                        <th style={{ textAlign: "center" }}>Số câu</th>
-                        <th style={{ textAlign: "center" }}>Điểm/câu</th>
-                        <th style={{ textAlign: "center" }}>Tổng điểm</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {matrixDetailModal.details.map((d, i) => (
-                        <tr key={i}>
-                          <td>{d.cognitiveLevelName}</td>
-                          <td style={{ textAlign: "center" }}>{d.numberOfQuestions}</td>
-                          <td style={{ textAlign: "center" }}>{d.pointsPerQuestion}</td>
-                          <td style={{ textAlign: "center", fontWeight: 700 }}>{Number(d.totalPoints || d.numberOfQuestions * d.pointsPerQuestion || 0).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                      <tr style={{ fontWeight: 700, borderTop: "2px solid rgba(0,0,0,0.1)" }}>
-                        <td>Tổng</td>
-                        <td style={{ textAlign: "center" }}>{matrixDetailModal.totalQuestions}</td>
-                        <td style={{ textAlign: "center" }}>—</td>
-                        <td style={{ textAlign: "center" }}>{matrixDetailModal.totalPoints}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              {matrixDetailModal._loading ? (
+                <div style={{ textAlign: "center", padding: "2rem" }}>
+                  <RefreshCw size={24} className="spin" style={{ color: "var(--ds-primary)" }} />
+                  <p className="muted" style={{ marginTop: "0.75rem" }}>Đang tải chi tiết ma trận...</p>
                 </div>
+              ) : (
+                <>
+                  <div className="shuffle-info">
+                    <p><strong>Tên:</strong> {matrixDetailModal.templateName}</p>
+                    <p><strong>Khối:</strong> {matrixDetailModal.gradeLevel}</p>
+                    <p><strong>Tổng số câu:</strong> {matrixDetailModal.totalQuestions} câu</p>
+                    <p><strong>Tổng điểm:</strong> {matrixDetailModal.totalPoints} điểm</p>
+                    {matrixDetailModal.createdByName && <p><strong>Tác giả:</strong> {matrixDetailModal.createdByName}</p>}
+                  </div>
+
+                  {/* ── Part 1: Cognitive Level Distribution ── */}
+                  {matrixDetailModal.details?.length > 0 && (
+                    <div>
+                      <h3 style={{ fontSize: "0.95rem", margin: "1rem 0 0.5rem", color: "#4338ca", background: "rgba(99,102,241,0.05)", padding: "0.45rem 0.75rem", borderRadius: 8, borderLeft: "3px solid var(--ds-primary, #6366f1)" }}>
+                        Phần 1: Phân bố theo mức độ
+                      </h3>
+                      <table className="summary-table">
+                        <thead>
+                          <tr>
+                            <th>Mức độ</th>
+                            <th style={{ textAlign: "center" }}>Số câu</th>
+                            <th style={{ textAlign: "center" }}>Điểm/câu</th>
+                            <th style={{ textAlign: "center" }}>Tổng điểm</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {matrixDetailModal.details.map((d, i) => (
+                            <tr key={i}>
+                              <td>{d.cognitiveLevelName}</td>
+                              <td style={{ textAlign: "center" }}>{d.numberOfQuestions}</td>
+                              <td style={{ textAlign: "center" }}>{d.pointsPerQuestion}</td>
+                              <td style={{ textAlign: "center", fontWeight: 700 }}>{Number(d.totalPoints || d.numberOfQuestions * d.pointsPerQuestion || 0).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ fontWeight: 700, borderTop: "2px solid rgba(0,0,0,0.1)" }}>
+                            <td>Tổng</td>
+                            <td style={{ textAlign: "center" }}>{matrixDetailModal.totalQuestions}</td>
+                            <td style={{ textAlign: "center" }}>—</td>
+                            <td style={{ textAlign: "center" }}>{matrixDetailModal.totalPoints}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* ── Part 2: Lesson × Cognitive Level Distribution ── */}
+                  {matrixDetailModal.lessonDetails?.length > 0 && (() => {
+                    const byLesson = {};
+                    const clSet = new Map();
+                    matrixDetailModal.lessonDetails.forEach((ld) => {
+                      if (!byLesson[ld.lessonId]) byLesson[ld.lessonId] = { lessonName: ld.lessonName, lessonContent: ld.lessonContent, cols: {} };
+                      byLesson[ld.lessonId].cols[ld.cognitiveLevelId] = ld.numberOfQuestions;
+                      clSet.set(ld.cognitiveLevelId, ld.cognitiveLevelName);
+                    });
+                    const clKeys = [...clSet.keys()];
+                    const lessonEntries = Object.entries(byLesson);
+                    return (
+                      <div>
+                        <h3 style={{ fontSize: "0.95rem", margin: "1.25rem 0 0.5rem", color: "#4338ca", background: "rgba(99,102,241,0.05)", padding: "0.45rem 0.75rem", borderRadius: 8, borderLeft: "3px solid var(--ds-primary, #6366f1)" }}>
+                          Phần 2: Chi tiết theo Bài học × Mức độ
+                        </h3>
+                        <div style={{ overflowX: "auto" }}>
+                          <table className="summary-table" style={{ minWidth: "100%" }}>
+                            <thead>
+                              <tr>
+                                <th>Bài học</th>
+                                <th>Nội dung chính</th>
+                                {clKeys.map((clId) => <th key={clId} style={{ textAlign: "center" }}>{clSet.get(clId)}</th>)}
+                                <th style={{ textAlign: "center" }}>Tổng</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {lessonEntries.map(([lid, row]) => {
+                                const rowTotal = clKeys.reduce((s, clId) => s + Number(row.cols[clId] || 0), 0);
+                                return (
+                                  <tr key={lid}>
+                                    <td style={{ fontWeight: 500 }}>{row.lessonName || `Bài ${lid}`}</td>
+                                    <td style={{ color: "var(--color-text-secondary, #6b7280)", fontSize: "0.85rem" }}>{row.lessonContent || "—"}</td>
+                                    {clKeys.map((clId) => <td key={clId} style={{ textAlign: "center" }}>{row.cols[clId] ?? 0}</td>)}
+                                    <td style={{ textAlign: "center", fontWeight: 700 }}>{rowTotal}</td>
+                                  </tr>
+                                );
+                              })}
+                              {/* Footer totals row */}
+                              <tr style={{ fontWeight: 700, borderTop: "2px solid rgba(0,0,0,0.1)" }}>
+                                <td>Tổng</td>
+                                <td></td>
+                                {clKeys.map((clId) => {
+                                  const colTotal = lessonEntries.reduce((s, [, row]) => s + Number(row.cols[clId] || 0), 0);
+                                  return <td key={clId} style={{ textAlign: "center" }}>{colTotal}</td>;
+                                })}
+                                <td style={{ textAlign: "center" }}>
+                                  {lessonEntries.reduce((s, [, row]) => s + clKeys.reduce((ss, clId) => ss + Number(row.cols[clId] || 0), 0), 0)}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
               )}
             </div>
             <div className="shuffle-modal-footer">
@@ -2049,7 +2125,7 @@ const ExamGenerator = () => {
         .btn-matrix-detail { margin-top: 8px; width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(99,102,241,0.25); background: rgba(99,102,241,0.05); color: var(--ds-primary); font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.18s; }
         .btn-matrix-detail:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.4); }
 
-        .matrix-detail-modal { background: white; border-radius: 20px; width: 560px; max-width: 95vw; box-shadow: 0 25px 70px rgba(0,0,0,0.15); overflow: hidden; max-height: 85vh; display: flex; flex-direction: column; }
+        .matrix-detail-modal { background: white; border-radius: 20px; width: 800px; max-width: 95vw; box-shadow: 0 25px 70px rgba(0,0,0,0.15); overflow: hidden; max-height: 85vh; display: flex; flex-direction: column; }
         .matrix-detail-modal .shuffle-modal-body { overflow-y: auto; }
 
         /* Matrix summary */
