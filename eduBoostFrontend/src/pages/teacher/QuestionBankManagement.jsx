@@ -25,7 +25,7 @@ const GRADE_OPTIONS = [6, 7, 8, 9, 10, 11, 12];
 
 // Keyword match theo nhóm khối
 const SUBJECT_KEYWORDS_BY_GRADE = {
-  middle: ["toán", "khoa học tự nhiên"], // Lớp 6-9
+  middle: ["toán", "khoa học tự nhiên", "vật lý", "hóa học"], // Lớp 6-9
   high: ["toán", "vật lý", "hóa học"],   // Lớp 10-12
 };
 
