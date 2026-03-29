@@ -758,11 +758,16 @@ public class ExamServiceImpl implements ExamService {
             throw new IllegalArgumentException("Question does not belong to this exam");
         }
         
-        if (eq.getExam().getStatus() != ExamStatus.DRAFT) {
-            throw new IllegalStateException("Can only edit questions in DRAFT exams");
-        }
-        
+        // Ownership check: only the exam creator can edit questions
         User currentUser = getCurrentUser();
+        Exam exam = eq.getExam();
+        boolean isOwner = exam.getCreatedBy() != null &&
+                exam.getCreatedBy().getUserId().equals(currentUser.getUserId());
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isOwner && !isAdmin) {
+            throw new IllegalStateException("Chỉ chủ sở hữu đề thi mới có thể chỉnh sửa câu hỏi");
+        }
         
         eq.setQuestionText(request.getModifiedQuestionText());
         eq.setCorrectAnswer(request.getModifiedCorrectAnswer());
