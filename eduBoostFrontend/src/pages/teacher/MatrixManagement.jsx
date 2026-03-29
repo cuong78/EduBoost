@@ -435,13 +435,13 @@ const MatrixManagement = () => {
           <h1><LayoutGrid size={24} /> Quản lý ma trận đề thi</h1>
           <p className="subtitle">Tạo và quản lý các ma trận phân bố câu hỏi</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>
+        <button className="btn btn-primary" onClick={openCreate} data-tour="mm-create-btn">
           <Plus size={16} /> Tạo ma trận mới
         </button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }} data-tour="mm-tabs">
         <button
           className={`btn ${activeTab === "mine" ? "btn-primary" : "btn-outline"}`}
           onClick={() => setActiveTab("mine")}
@@ -459,7 +459,7 @@ const MatrixManagement = () => {
       </div>
 
       {/* Filters */}
-      <div className="filters glass">
+      <div className="filters glass" data-tour="mm-filters">
         <div className="search-box">
           <Search size={16} />
           <input
@@ -495,7 +495,7 @@ const MatrixManagement = () => {
       </div>
 
       {/* Table */}
-      <div className="matrix-list glass">
+      <div className="matrix-list glass" data-tour="mm-list">
         {loading ? (
           <div className="empty-state"><RefreshCw className="spin" size={28} /><p>Đang tải...</p></div>
         ) : displayTemplates.length === 0 ? (

@@ -396,7 +396,7 @@ const QuestionBankManagement = () => {
 
       {/* Stats */}
       {stats && (
-        <div className="stats-row glass">
+        <div className="stats-row glass" data-tour="qb-stats">
           <div className="stat-card">
             <span className="stat-value">{stats.totalQuestions || 0}</span>
             <span className="stat-label">Tổng câu hỏi</span>
@@ -417,7 +417,7 @@ const QuestionBankManagement = () => {
       )}
 
       {/* Filters */}
-      <div className="filters-section glass">
+      <div className="filters-section glass" data-tour="qb-filters">
         <h3>
           <Filter size={18} /> Bộ lọc
         </h3>
@@ -526,7 +526,7 @@ const QuestionBankManagement = () => {
       </div>
 
       {/* My/All tabs */}
-      <div className="question-tabs glass" style={{ display: 'flex', gap: '0', marginBottom: '16px', borderRadius: '12px', overflow: 'hidden' }}>
+      <div className="question-tabs glass" data-tour="qb-tabs" style={{ display: 'flex', gap: '0', marginBottom: '16px', borderRadius: '12px', overflow: 'hidden' }}>
         <button
           className={`tab ${showMyQuestionsOnly ? 'active' : ''}`}
           onClick={() => { setShowMyQuestionsOnly(true); setCurrentPage(0); }}
@@ -554,7 +554,7 @@ const QuestionBankManagement = () => {
       </div>
 
       {/* Questions list */}
-      <div className="questions-section glass">
+      <div className="questions-section glass" data-tour="qb-list">
         <h3>
           <BookOpen size={18} /> Danh sách câu hỏi ({totalElements})
         </h3>

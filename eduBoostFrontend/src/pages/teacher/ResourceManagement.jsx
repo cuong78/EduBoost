@@ -274,7 +274,7 @@ const ResourceManagement = () => {
   };
 
   return (
-    <div className="resource-management-page">
+    <div className="resource-management-page" data-tour="rm-page">
       <div className="page-header">
         <h2>
           <FileText size={24} /> Quản lý tài nguyên

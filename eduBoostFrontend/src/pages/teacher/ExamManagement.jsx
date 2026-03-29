@@ -266,13 +266,13 @@ const ExamManagement = () => {
           <h1 className="em-title"><FileText size={22}/> Quản lý đề thi</h1>
           <p className="em-sub">Xem, chỉnh sửa, xuất bản và xuất đề thi của bạn</p>
         </div>
-        <button className="em-btn em-btn-primary" onClick={() => navigate("/teacher/create-exam")}>
+        <button className="em-btn em-btn-primary" onClick={() => navigate("/teacher/create-exam")} data-tour="em-create-btn">
           <Plus size={16}/> Tạo đề mới
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="em-tabs">
+      <div className="em-tabs" data-tour="em-tabs">
         <button className={`em-tab ${activeTab === "mine" ? "em-tab--active" : ""}`} onClick={() => setActiveTab("mine")}>
           <FileText size={15}/> Đề của tôi
         </button>
@@ -354,7 +354,7 @@ const ExamManagement = () => {
       {/* ══════════ MINE TAB ══════════ */}
       {activeTab === "mine" && (
         <div>
-          <div className="em-filters">
+          <div className="em-filters" data-tour="em-filters">
             <div className="em-search">
               <Search size={16}/>
               <input placeholder="Tìm theo tên / mã đề..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
@@ -393,7 +393,7 @@ const ExamManagement = () => {
                 </button>
               </div>
             ) : (
-              <table className="em-table">
+              <table className="em-table" data-tour="em-table">
                 <thead>
                   <tr>
                     <th>Mã đề</th><th>Tên đề thi</th><th>Môn / Khối</th>

@@ -50,6 +50,7 @@ import StudentDetail from "./pages/teacher/StudentDetail";
 import StudentInvitations from "./pages/teacher/StudentInvitations";
 import EditStudent from "./pages/teacher/EditStudent";
 import MatrixManagement from "./pages/teacher/MatrixManagement";
+import TeacherGuide from "./pages/teacher/TeacherGuide";
 import LinkStudent from "./pages/parent/LinkStudent";
 import MyStudents from "./pages/parent/MyStudents";
 import ParentStudentDetail from "./pages/parent/StudentDetail";
@@ -194,6 +195,7 @@ function App() {
               <Route path="matrix-templates" element={<MatrixManagement />} />
               <Route path="subscription" element={<SubscriptionManagement />} />
               <Route path="feedback" element={<FeedbackPage />} />
+              <Route path="guide" element={<TeacherGuide />} />
               <Route path="profile" element={<UserProfile />} />
             </Route>
           </Route>

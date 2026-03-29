@@ -660,31 +660,35 @@ const CreateQuestion = () => {
         <button
           className={`tab ${activeTab === "manual" ? "active" : ""}`}
           onClick={() => setActiveTab("manual")}
+          data-tour="cq-tab-manual"
         >
           <FileText size={18} /> Nhập tay
         </button>
         <button
           className={`tab ${activeTab === "import" ? "active" : ""}`}
           onClick={() => setActiveTab("import")}
+          data-tour="cq-tab-import"
         >
           <FileUp size={18} /> Import từ file
         </button>
         <button
           className={`tab ${activeTab === "ai-resource" ? "active" : ""}`}
           onClick={() => setActiveTab("ai-resource")}
+          data-tour="cq-tab-ai-resource"
         >
           <Sparkles size={18} /> AI từ tài nguyên
         </button>
         <button
           className={`tab ${activeTab === "ai-variation" ? "active" : ""}`}
           onClick={() => setActiveTab("ai-variation")}
+          data-tour="cq-tab-ai-variation"
         >
           <Copy size={18} /> AI biến thể
         </button>
       </div>
 
       {/* Common: Knowledge structure picker */}
-      <div className="knowledge-picker glass">
+      <div className="knowledge-picker glass" data-tour="cq-knowledge-picker">
         <h3>
           <BookOpen size={18} /> Chọn môn học, khối, chương, bài học
         </h3>

@@ -98,7 +98,7 @@ export default function ClassList() {
   };
 
   return (
-    <div className="class-list-page">
+    <div className="class-list-page" data-tour="cl-list">
       <div className="page-header">
         <div>
           <h2>Lớp học</h2>

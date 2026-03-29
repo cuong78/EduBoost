@@ -967,7 +967,7 @@ const ExamGenerator = () => {
       )}
 
       {step === 1 && (
-        <div className="panel glass">
+        <div className="panel glass" data-tour="eg-config">
           <h2>
             <Layers size={20} /> Tạo đề thi
           </h2>
@@ -1188,7 +1188,7 @@ const ExamGenerator = () => {
           )}
 
           <div className="actions">
-            <button className="btn btn-primary" onClick={goStep2}>
+            <button className="btn btn-primary" onClick={goStep2} data-tour="eg-generate-btn">
               Tiếp tục <ArrowRight size={16} />
             </button>
           </div>
