@@ -1,37 +1,30 @@
 import { useState } from "react";
 import {
   BookOpen,
-  GraduationCap,
-  FileQuestion,
-  Database,
+  Users,
+  PenLine,
+  Library,
   FolderOpen,
-  LayoutGrid,
-  FileText,
-  PenTool,
-  MessageSquare,
+  Table2,
+  ClipboardList,
+  FilePlus,
+  Send,
   ChevronDown,
   ChevronUp,
-  Sparkles,
-  FileUp,
-  Copy,
-  Eye,
-  Edit2,
-  Trash2,
-  Download,
-  Globe,
-  BarChart2,
-  Shuffle,
-  RefreshCw,
+  Lightbulb,
+  Upload,
   ArrowRight,
   CheckCircle,
   HelpCircle,
+  Globe,
+  Workflow,
 } from "lucide-react";
 
 /* ─── Data hướng dẫn ──────────────────────────────────────────────────────────── */
 const GUIDE_SECTIONS = [
   {
     id: "classes",
-    icon: GraduationCap,
+    icon: Users,
     title: "Lớp học",
     path: "/teacher/classes",
     color: "#10b981",
@@ -45,7 +38,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "create-question",
-    icon: FileQuestion,
+    icon: PenLine,
     title: "Tạo câu hỏi",
     path: "/teacher/create-question",
     color: "#6366f1",
@@ -61,16 +54,16 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "question-bank",
-    icon: Database,
+    icon: Library,
     title: "Ngân hàng câu hỏi",
     path: "/teacher/question-bank",
     color: "#f59e0b",
     summary: "Quản lý tất cả câu hỏi: lọc, xem chi tiết, sửa, xóa.",
     steps: [
-      "**Thống kê** hiển thị tổng số câu, phân theo AI/nhập tay/import.",
+      "**Thống kê** hiển thị tổng số câu, phân theo AI / nhập tay / import.",
       "**Bộ lọc**: Khối, Môn, Chương, Bài, Nguồn gốc, Mức nhận thức.",
       "Tab **Câu hỏi của tôi** — chỉ xem câu bạn tạo. **Tất cả** — xem toàn hệ thống.",
-      "👁️ Xem chi tiết | ✏️ Sửa nội dung | 🗑️ Xóa (chỉ câu do bạn tạo).",
+      "Xem chi tiết, Sửa nội dung, Xóa (chỉ câu do bạn tạo) qua các nút thao tác.",
     ],
   },
   {
@@ -83,12 +76,12 @@ const GUIDE_SECTIONS = [
     steps: [
       "Chọn **Khối → Môn → Chương → Bài** để xác định vị trí upload.",
       "Nhấn **Tải lên** và chọn file (.docx, .pdf).",
-      "Tài liệu sẽ được AI phân tích khi bạn dùng chức năng 'AI từ tài nguyên' ở trang Tạo câu hỏi.",
+      "Tài liệu sẽ được AI phân tích khi bạn dùng chức năng 'AI từ tài nguyên'.",
     ],
   },
   {
     id: "matrix",
-    icon: LayoutGrid,
+    icon: Table2,
     title: "Quản lý ma trận đề thi",
     path: "/teacher/matrix-templates",
     color: "#ec4899",
@@ -103,7 +96,7 @@ const GUIDE_SECTIONS = [
   },
   {
     id: "exam-management",
-    icon: FileText,
+    icon: ClipboardList,
     title: "Quản lý đề thi",
     path: "/teacher/exams",
     color: "#0ea5e9",
@@ -112,16 +105,16 @@ const GUIDE_SECTIONS = [
       "Tab **Đề của tôi**: Danh sách đề với trạng thái Nháp → Đã dùng → Đã xuất bản.",
       "Tab **Cộng đồng**: Đề thi đã xuất bản bởi giáo viên khác.",
       "Bộ lọc: Môn, Khối, Loại đề, Trạng thái.",
-      "👁️ **Xem đề** — mở trong trình xem đầy đủ.",
-      "📊 **Thống kê** — phân bố theo mức nhận thức và bài học.",
-      "⬇️ **Xuất PDF** — 2 lựa chọn: Đề thi (không đáp án) hoặc Đáp án (kèm đáp án đúng).",
-      "🌐 **Xuất bản** — công bố cho giáo viên khác xem.",
-      "🗑️ **Xóa** — chỉ khi ở trạng thái Nháp hoặc Đã dùng.",
+      "**Xem đề** — mở trong trình xem đầy đủ.",
+      "**Thống kê** — phân bố theo mức nhận thức và bài học.",
+      "**Xuất PDF** — 2 lựa chọn: Đề thi (không đáp án) hoặc Đáp án (kèm đáp án đúng).",
+      "**Xuất bản** — công bố cho giáo viên khác xem.",
+      "**Xóa** — chỉ khi ở trạng thái Nháp hoặc Đã dùng.",
     ],
   },
   {
     id: "create-exam",
-    icon: PenTool,
+    icon: FilePlus,
     title: "Tạo đề thi",
     path: "/teacher/create-exam",
     color: "#ef4444",
@@ -131,20 +124,20 @@ const GUIDE_SECTIONS = [
       "Đề **15 phút**: chọn Chương → Bài trực tiếp.",
       "Đề **1 tiết / Giữa kỳ / Cuối kỳ**: chọn Ma trận (đã tạo sẵn ở Quản lý ma trận).",
       "**Bước 2 — Phân bổ** (chỉ đề 15 phút): Phân bổ số câu theo bài và mức nhận thức.",
-      "Nhấn **Tạo đề thi** → Hệ thống lấy câu từ ngân hàng + AI sinh thêm nếu thiếu (30-60 giây).",
+      "Nhấn **Tạo đề thi** → Hệ thống lấy câu từ ngân hàng + AI sinh thêm nếu thiếu (30–60 giây).",
       "**Bước 3 — Preview**: Xem toàn bộ đề thi với các thao tác:",
-      "  • ✏️ Sửa câu — chỉnh nội dung, đáp án, đáp án nhiễu.",
-      "  • 🔄 AI tạo lại — xóa câu hiện tại và yêu cầu AI sinh câu mới.",
-      "  • 📚 Thay từ ngân hàng — chọn câu khác từ ngân hàng câu hỏi.",
-      "  • ↕️ Kéo thả — sắp xếp lại thứ tự câu hỏi.",
-      "  • 🔀 Trộn đề — tạo nhiều phiên bản đề bằng xáo trộn.",
-      "  • ⬇️ Xuất PDF — xuất đề / đáp án thành file PDF.",
-      "  • 🌐 Công bố — xuất bản đề cho giáo viên/học sinh xem.",
+      "  • Sửa câu — chỉnh nội dung, đáp án, đáp án nhiễu.",
+      "  • AI tạo lại — xóa câu hiện tại và yêu cầu AI sinh câu mới.",
+      "  • Thay từ ngân hàng — chọn câu khác từ ngân hàng câu hỏi.",
+      "  • Kéo thả — sắp xếp lại thứ tự câu hỏi.",
+      "  • Trộn đề — tạo nhiều phiên bản đề bằng xáo trộn.",
+      "  • Xuất PDF — xuất đề / đáp án thành file PDF.",
+      "  • Công bố — xuất bản đề cho giáo viên/học sinh xem.",
     ],
   },
   {
     id: "feedback",
-    icon: MessageSquare,
+    icon: Send,
     title: "Góp ý",
     path: "/teacher/feedback",
     color: "#14b8a6",
@@ -156,37 +149,33 @@ const GUIDE_SECTIONS = [
   },
 ];
 
-/* ─── Workflow chung ──────────────────────────────────────────────────────────── */
+/* ─── Workflow data with Lucide icons ─────────────────────────────────────────── */
+const WORKFLOW_ICONS = [Upload, PenLine, Table2, FilePlus, Globe];
 const WORKFLOW = [
   {
     step: 1,
     title: "Upload tài nguyên",
     desc: "Upload tài liệu bài học (.docx, .pdf) vào Quản lý tài nguyên.",
-    icon: "📁",
   },
   {
     step: 2,
     title: "Tạo câu hỏi",
     desc: "Tạo câu hỏi bằng nhập tay, import file, hoặc AI từ tài nguyên đã upload.",
-    icon: "✏️",
   },
   {
     step: 3,
     title: "Tạo ma trận",
     desc: "Lập ma trận phân bổ câu hỏi theo mức nhận thức và bài học (cho đề 1 tiết trở lên).",
-    icon: "📊",
   },
   {
     step: 4,
     title: "Tạo đề thi",
     desc: "Chọn ma trận → Hệ thống tự chọn câu + AI bổ sung → Review & xuất PDF.",
-    icon: "🎯",
   },
   {
     step: 5,
     title: "Xuất bản & Chia sẻ",
     desc: "Xuất đề PDF hoặc công bố để học sinh làm bài, giáo viên tham khảo.",
-    icon: "🌐",
   },
 ];
 
@@ -212,24 +201,29 @@ const TeacherGuide = () => {
       {/* Workflow Overview */}
       <div className="guide-workflow glass">
         <h2>
-          <Sparkles size={20} /> Quy trình làm việc tổng quan
+          <Workflow size={20} /> Quy trình làm việc tổng quan
         </h2>
         <div className="workflow-steps">
-          {WORKFLOW.map((w, idx) => (
-            <div key={w.step} className="workflow-step">
-              <div className="ws-icon">{w.icon}</div>
-              <div className="ws-content">
-                <span className="ws-num">Bước {w.step}</span>
-                <strong>{w.title}</strong>
-                <p>{w.desc}</p>
-              </div>
-              {idx < WORKFLOW.length - 1 && (
-                <div className="ws-arrow">
-                  <ArrowRight size={18} />
+          {WORKFLOW.map((w, idx) => {
+            const WIcon = WORKFLOW_ICONS[idx];
+            return (
+              <div key={w.step} className="workflow-step">
+                <div className="ws-icon-wrap">
+                  <WIcon size={22} />
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="ws-content">
+                  <span className="ws-num">Bước {w.step}</span>
+                  <strong>{w.title}</strong>
+                  <p>{w.desc}</p>
+                </div>
+                {idx < WORKFLOW.length - 1 && (
+                  <div className="ws-arrow">
+                    <ArrowRight size={18} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -301,7 +295,9 @@ const TeacherGuide = () => {
 
       {/* Tips */}
       <div className="guide-tips glass">
-        <h2>💡 Mẹo sử dụng hiệu quả</h2>
+        <h2>
+          <Lightbulb size={20} /> Mẹo sử dụng hiệu quả
+        </h2>
         <div className="tips-grid">
           <div className="tip-card">
             <CheckCircle size={20} color="#10b981" />
@@ -314,7 +310,7 @@ const TeacherGuide = () => {
             <CheckCircle size={20} color="#10b981" />
             <div>
               <strong>Dùng AI biến thể</strong>
-              <p>Từ 10 câu gốc, AI tạo ra 30-50 biến thể → ngân hàng đề phong phú.</p>
+              <p>Từ 10 câu gốc, AI tạo ra 30–50 biến thể → ngân hàng đề phong phú.</p>
             </div>
           </div>
           <div className="tip-card">
@@ -411,9 +407,16 @@ const TeacherGuide = () => {
           background: rgba(99, 102, 241, 0.08);
           transform: translateY(-2px);
         }
-        .ws-icon {
-          font-size: 2rem;
-          margin-bottom: 8px;
+        .ws-icon-wrap {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.08));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 10px;
+          color: #6366f1;
         }
         .ws-num {
           font-size: 0.7rem;
@@ -589,6 +592,9 @@ const TeacherGuide = () => {
           border-radius: 16px;
         }
         .guide-tips h2 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           font-size: 1.1rem;
           font-weight: 700;
           margin: 0 0 1rem;
