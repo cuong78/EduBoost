@@ -202,6 +202,17 @@ const ExamGenerator = () => {
     }
   };
 
+  const handleDeleteSingleVariant = async (variantId) => {
+    if (!window.confirm("Xóa đề trộn này?")) return;
+    try {
+      await examService.deleteExam(variantId);
+      setVariants((prev) => prev.filter((v) => v.id !== variantId));
+      showSuccessToast("Đã xóa đề trộn");
+    } catch (e) {
+      showErrorToast(e?.response?.data?.message || "Không thể xóa đề trộn");
+    }
+  };
+
   const stats = useMemo(() => {
     const byLesson = selectedLessonIds.reduce((acc, lid) => {
       acc[lid] = Number(lessonDistribution[lid] || 0);
@@ -1899,6 +1910,16 @@ const ExamGenerator = () => {
                   >
                     <Eye size={14} /> Xem
                   </button>
+                  {canEdit && (
+                    <button
+                      className="btn btn-outline"
+                      style={{ fontSize: "0.8rem", padding: "0.4rem", color: "var(--ds-error)", borderColor: "rgba(239,68,68,0.3)" }}
+                      onClick={() => handleDeleteSingleVariant(v.id)}
+                      title="Xóa đề trộn này"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
