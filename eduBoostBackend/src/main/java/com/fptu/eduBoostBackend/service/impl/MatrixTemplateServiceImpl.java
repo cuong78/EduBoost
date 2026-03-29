@@ -223,6 +223,12 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
             throw new BadRequestException("You can only delete templates you created");
         }
 
+        // Check if any exam is using this matrix template
+        if (examRepository.existsByMatrixTemplateId(id)) {
+            throw new BadRequestException(
+                "Ma trận này đang được sử dụng bởi đề thi. Vui lòng xóa các đề thi liên quan trước khi xóa ma trận.");
+        }
+
         lessonDetailRepository.deleteByTemplateId(id);
         detailRepository.deleteByTemplateId(id);
         templateRepository.delete(template);

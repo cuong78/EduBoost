@@ -89,4 +89,6 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
            "WHERE e.parentExam.id = :parentExamId " +
            "ORDER BY e.variantNumber ASC")
     List<Exam> findByParentExamIdOrderByVariantNumber(@Param("parentExamId") Long parentExamId);
+    
+    boolean existsByMatrixTemplateId(Long matrixTemplateId);
 }
