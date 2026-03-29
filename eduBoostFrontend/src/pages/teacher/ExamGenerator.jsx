@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import {
   ArrowRight,
   Layers,
@@ -240,8 +241,19 @@ const ExamGenerator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load existing exam when ?examId=XX is in the URL (edit mode)
+  // Load existing exam when ?examId=XX is in the URL (edit mode / view mode)
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const viewMode = searchParams.get("mode") === "view";
+  // Determine ownership: compare current user ID with exam creator ID
+  const isOwner = useMemo(() => {
+    if (!user || !currentExam) return false;
+    return user.userId === currentExam.createdById;
+  }, [user, currentExam]);
+  // In view mode, non-owners cannot edit
+  const canEdit = !viewMode || isOwner;
+
   useEffect(() => {
     const editExamId = searchParams.get("examId");
     if (editExamId) {
@@ -260,7 +272,7 @@ const ExamGenerator = () => {
         })
         .catch((e) => {
           console.error(e);
-          showErrorToast("Không thể tải đề thi để chỉnh sửa");
+          showErrorToast("Không thể tải đề thi");
         })
         .finally(() => setLoadingPreview(false));
     }
@@ -857,22 +869,25 @@ const ExamGenerator = () => {
 
   return (
     <div className="create-exam-page">
-      <div className="steps glass">
-        <div className={`s ${step >= 1 ? "active" : ""}`}>
-          <div className="n">1</div>
-          <span>Phạm vi</span>
+      {/* Step indicator - hide in view mode */}
+      {!viewMode && (
+        <div className="steps glass">
+          <div className={`s ${step >= 1 ? "active" : ""}`}>
+            <div className="n">1</div>
+            <span>Phạm vi</span>
+          </div>
+          <div className="line" />
+          <div className={`s ${step >= 2 ? "active" : ""}`}>
+            <div className="n">2</div>
+            <span>Cấu hình</span>
+          </div>
+          <div className="line" />
+          <div className={`s ${step >= 3 ? "active" : ""}`}>
+            <div className="n">3</div>
+            <span>Preview</span>
+          </div>
         </div>
-        <div className="line" />
-        <div className={`s ${step >= 2 ? "active" : ""}`}>
-          <div className="n">2</div>
-          <span>Cấu hình</span>
-        </div>
-        <div className="line" />
-        <div className={`s ${step >= 3 ? "active" : ""}`}>
-          <div className="n">3</div>
-          <span>Preview</span>
-        </div>
-      </div>
+      )}
 
       {step === 1 && (
         <div className="panel glass">
@@ -1274,24 +1289,33 @@ const ExamGenerator = () => {
         <div className="panel glass">
           <div className="header">
             <div>
-              <h2>Preview đề thi</h2>
+              <h2>{viewMode ? currentExam?.examTitle || "Xem đề thi" : "Preview đề thi"}</h2>
               <p className="muted">
                 {previewQuestions.length} câu • Loại: {examType}
                 {currentExam?.examCode ? ` • Mã: ${currentExam.examCode}` : ""}
+                {currentExam?.createdByName && viewMode && !isOwner && (
+                  <span style={{ marginLeft: 10 }}>• GV: {currentExam.createdByName}</span>
+                )}
                 {currentExam?.status && (
                   <span style={{
                     marginLeft: 10,
                     padding: "2px 10px",
                     borderRadius: 999,
-                    background: currentExam.status === "PUBLISHED" ? "rgba(59,130,246,0.12)" : "rgba(107,114,128,0.12)",
-                    color: currentExam.status === "PUBLISHED" ? "var(--ds-info)" : "var(--ds-text-secondary)",
+                    background: currentExam.status === "PUBLISHED" ? "rgba(59,130,246,0.12)" : currentExam.status === "USED" ? "rgba(245,158,11,0.12)" : "rgba(107,114,128,0.12)",
+                    color: currentExam.status === "PUBLISHED" ? "var(--ds-info)" : currentExam.status === "USED" ? "var(--ds-warning)" : "var(--ds-text-secondary)",
                     fontSize: "0.78rem",
                     fontWeight: 700,
-                  }}>{currentExam.status}</span>
+                  }}>{currentExam.status === "DRAFT" ? "Nháp" : currentExam.status === "PUBLISHED" ? "Đã xuất bản" : currentExam.status === "USED" ? "Đã dùng" : currentExam.status}</span>
                 )}
               </p>
             </div>
             <div className="actions" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+              {/* Back button for view mode */}
+              {viewMode && (
+                <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+                  ← Quay lại
+                </button>
+              )}
               <label className="toggle-label">
                 <input
                   type="checkbox"
@@ -1300,12 +1324,15 @@ const ExamGenerator = () => {
                 />
                 Hiển thị đáp án
               </label>
-              <button className="btn btn-secondary" onClick={() => setStep(isMatrixType ? 2 : 2)}>
-                Chỉnh cấu hình
-              </button>
+              {/* Only owner can go back to config */}
+              {canEdit && !viewMode && (
+                <button className="btn btn-secondary" onClick={() => setStep(isMatrixType ? 2 : 2)}>
+                  Chỉnh cấu hình
+                </button>
+              )}
 
-              {/* Publish button */}
-              {currentExam?.status !== "PUBLISHED" ? (
+              {/* Publish button - owner only */}
+              {canEdit && currentExam?.status !== "PUBLISHED" ? (
                 <button
                   className="btn btn-primary"
                   onClick={handlePublish}
@@ -1315,13 +1342,13 @@ const ExamGenerator = () => {
                     ? <><RefreshCw size={16} className="spin" /> Đang công bố...</>
                     : <><Sparkles size={16} /> Công bố</>}
                 </button>
-              ) : (
+              ) : canEdit && currentExam?.status === "PUBLISHED" ? (
                 <span style={{ padding: "0.5rem 1rem", background: "rgba(59,130,246,0.1)", color: "var(--ds-info)", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem" }}>
                   ✓ Đã công bố
                 </span>
-              )}
+              ) : null}
 
-              {/* Export button */}
+              {/* Export button - everyone can export */}
               <button
                 className="btn btn-outline"
                 onClick={() => showCorrectAnswers ? handleExportAnswerKey() : handleExportPdf()}
@@ -1379,19 +1406,19 @@ const ExamGenerator = () => {
                 <div 
                   key={q.id} 
                   className={`q-item ${isDragOverMe ? `drag-over-${dropDirection}` : ""} ${isDraggingMe ? "is-dragging" : ""}`}
-                  draggable={currentExam?.status === "DRAFT"}
-                  onDragStart={(e) => handleDragStart(e, idx)}
-                  onDrag={(e) => updateAutoScroll(e)}
-                  onDragOver={(e) => handleDragOver(e, idx)}
-                  onDrop={(e) => handleDrop(e, idx)}
+                  draggable={canEdit && currentExam?.status === "DRAFT"}
+                  onDragStart={(e) => canEdit && handleDragStart(e, idx)}
+                  onDrag={(e) => canEdit && updateAutoScroll(e)}
+                  onDragOver={(e) => canEdit && handleDragOver(e, idx)}
+                  onDrop={(e) => canEdit && handleDrop(e, idx)}
                   onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); autoScrollY.current = null; }}
-                  style={{ cursor: currentExam?.status === "DRAFT" ? (isDraggingMe ? "grabbing" : "grab") : "default" }}
+                  style={{ cursor: canEdit && currentExam?.status === "DRAFT" ? (isDraggingMe ? "grabbing" : "grab") : "default" }}
                 >
                   <div className="q-top">
                     <div
                       style={{ display: "flex", alignItems: "center", gap: "6px" }}
                     >
-                      {currentExam?.status === "DRAFT" && <GripVertical size={18} style={{ color: "var(--ds-text-muted)" }} />}
+                      {canEdit && currentExam?.status === "DRAFT" && <GripVertical size={18} style={{ color: "var(--ds-text-muted)" }} />}
                       <span className="q-num">Câu {q.orderNumber || idx + 1}</span>
                     </div>
                     {q.cognitiveLevelName && (
@@ -1407,6 +1434,8 @@ const ExamGenerator = () => {
                           : "BANK"}
                     </span>
 
+                    {/* Action buttons - only for owner */}
+                    {canEdit && (
                     <div className="q-actions">
                       <button
                         className="btn-action btn-action-edit"
@@ -1456,6 +1485,7 @@ const ExamGenerator = () => {
                         <span className="btn-action-label">Xóa</span>
                       </button>
                     </div>
+                    )}
                   </div>
 
                   {q.lessonName && (

@@ -337,8 +337,8 @@ const ExamManagement = () => {
                         <div className="em-comm-matrix"><LayoutGrid size={12}/> {exam.matrixTemplateName}</div>
                       )}
                       <div className="em-comm-actions">
-                        <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => openCommDetail(exam)}>
-                          <Eye size={14}/> Xem chi tiết
+                        <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}>
+                          <Eye size={14}/> Xem đề
                         </button>
                       </div>
                       <div className="em-comm-date">Xuất bản: {fmtDate(exam.publishedAt || exam.createdAt)}</div>
@@ -419,7 +419,7 @@ const ExamManagement = () => {
                         <td className="em-date">{fmtDate(exam.createdAt)}</td>
                         <td>
                           <div className="em-actions">
-                            <button className="em-icon-btn" title="Xem chi tiết" onClick={() => openDetail(exam)}><Eye size={15}/></button>
+                            <button className="em-icon-btn" title="Xem đề" onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}><Eye size={15}/></button>
                             <button className="em-icon-btn" title="Thống kê" onClick={() => openStats(exam)}><BarChart2 size={15}/></button>
                             <div className="em-export-wrapper" ref={exportMenuId === exam.id ? exportRef : null}>
                               <button className="em-icon-btn" title="Xuất PDF" disabled={busy}
@@ -481,82 +481,7 @@ const ExamManagement = () => {
         </div>
       )}
 
-      {/* ════════ MY EXAM DETAIL MODAL ════════ */}
-      {showDetail && (
-        <div className="em-overlay" onClick={() => setShowDetail(false)}>
-          <div className="em-modal em-modal--wide" onClick={e => e.stopPropagation()}>
-            <div className="em-modal-header">
-              <div>
-                <h2>{selectedExam?.examTitle}</h2>
-                <p className="em-modal-meta">
-                  {selectedExam?.examCode} &bull; {selectedExam?.subjectName} / Khối {selectedExam?.gradeLevel}
-                  <StatusBadge status={selectedExam?.status}/>
-                </p>
-              </div>
-              <button className="em-close" onClick={() => setShowDetail(false)}><X size={20}/></button>
-            </div>
-            {loadingDetail ? (
-              <div className="em-loading"><RefreshCw className="spin" size={20}/> Đang tải...</div>
-            ) : detailExam ? (
-              <div className="em-modal-body">
-                <div className="em-info-grid">
-                  {[["Tổng số câu", detailExam.totalQuestions],["Tổng điểm", fmtPoints(detailExam.totalPoints)],
-                    ["Ma trận", detailExam.matrixTemplateName || "—"],["HK", detailExam.semester || "—"],
-                    ["Năm học", detailExam.schoolYear || "—"],["Ngày tạo", fmtDate(detailExam.createdAt)],
-                    ["Từ ngân hàng", detailExam.questionsFromBank ?? "—"],["AI sinh", detailExam.questionsAiGenerated ?? "—"],
-                    ["Đã chỉnh", detailExam.questionsEdited ?? "—"]].map(([label, val]) => (
-                    <div key={label} className="em-info-cell">
-                      <span className="em-info-label">{label}</span>
-                      <span className="em-info-val">{val}</span>
-                    </div>
-                  ))}
-                </div>
-                <h3 className="em-section-title">Danh sách câu hỏi ({detailExam.questions?.length ?? 0})</h3>
-                {!detailExam.questions?.length ? (
-                  <p className="em-empty-msg">Đề chưa có câu hỏi.</p>
-                ) : (
-                  <div className="em-q-list">
-                    {detailExam.questions.map((q, i) => (
-                      <div key={q.id} className="em-q-item">
-                        <div className="em-q-top">
-                          <span className="em-q-num">Câu {q.orderNumber ?? i+1}</span>
-                          {q.cognitiveLevelName && <span className="em-chip em-chip--level">{q.cognitiveLevelName}</span>}
-                          <span className={`em-chip ${q.sourceFlag === "AI_GENERATED" ? "em-chip--ai" : "em-chip--bank"}`}>
-                            {q.sourceFlag === "AI_GENERATED" ? "AI" : q.sourceFlag === "TEACHER_EDITED" ? "Đã sửa" : "Bank"}
-                          </span>
-                          <span className="em-q-pts">{fmtPoints(q.points)} đ</span>
-                        </div>
-                        <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
-                        <div className="em-answers">
-                          {["A","B","C","D"].map((lbl, idx) => {
-                            const ans = [q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3][idx];
-                            if (!ans) return null;
-                            return (
-                              <div key={lbl} className={`em-ans ${idx === 0 ? "em-ans--correct" : ""}`}>
-                                <span className="em-ans-lbl">{lbl}.</span>
-                                <MathRenderer content={ans} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="em-modal-footer">
-                  {selectedExam?.status !== "PUBLISHED" && (
-                    <button className="em-btn em-btn-primary" onClick={async () => { await handlePublish(selectedExam); setShowDetail(false); }}>
-                      <Globe size={15}/> Công bố
-                    </button>
-                  )}
-                  <button className="em-btn em-btn-secondary" onClick={() => handleExport(selectedExam, "pdf")}><Download size={15}/> Xuất đề (PDF)</button>
-                  <button className="em-btn em-btn-secondary" onClick={() => handleExport(selectedExam, "answer-key")}><FileText size={15}/> Xuất đáp án</button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
+
 
       {/* ════════ STATISTICS MODAL ════════ */}
       {showStats && examStats && (
@@ -628,72 +553,7 @@ const ExamManagement = () => {
         </div>
       )}
 
-      {/* ════════ COMMUNITY DETAIL MODAL ════════ */}
-      {showCommDetail && (
-        <div className="em-overlay" onClick={() => { setShowCommDetail(false); setCommDetail(null); }}>
-          <div className="em-modal em-modal--wide" onClick={e => e.stopPropagation()}>
-            <div className="em-modal-header">
-              <div>
-                <h2>{commDetail?.examTitle || "..."}</h2>
-                <p className="em-modal-meta">
-                  {commDetail?.examCode} &bull; {commDetail?.subjectName} / Khối {commDetail?.gradeLevel}
-                  &bull; GV: {commDetail?.createdByName}
-                  <StatusBadge status="PUBLISHED"/>
-                </p>
-              </div>
-              <button className="em-close" onClick={() => { setShowCommDetail(false); setCommDetail(null); }}><X size={20}/></button>
-            </div>
-            {commDetailLoading ? (
-              <div className="em-loading"><RefreshCw className="spin" size={20}/> Đang tải chi tiết...</div>
-            ) : commDetail ? (
-              <div className="em-modal-body">
-                <div className="em-info-grid">
-                  {[["Tổng số câu", commDetail.totalQuestions],["Tổng điểm", fmtPoints(commDetail.totalPoints)],
-                    ["Loại đề", commDetail.examTypeName],["Ma trận", commDetail.matrixTemplateName || "—"],
-                    ["HK", commDetail.semester || "—"],["Năm học", commDetail.schoolYear || "—"],
-                    ["Xuất bản", fmtDate(commDetail.publishedAt || commDetail.createdAt)]].map(([label, val]) => (
-                    <div key={label} className="em-info-cell">
-                      <span className="em-info-label">{label}</span>
-                      <span className="em-info-val">{val}</span>
-                    </div>
-                  ))}
-                </div>
-                <h3 className="em-section-title"> Danh sách câu hỏi ({commDetail.questions?.length ?? 0}) — Chỉ xem</h3>
-                {!commDetail.questions?.length ? (
-                  <p className="em-empty-msg">Đề chưa có câu hỏi hiển thị.</p>
-                ) : (
-                  <div className="em-q-list">
-                    {commDetail.questions.map((q, i) => (
-                      <div key={q.id} className="em-q-item">
-                        <div className="em-q-top">
-                          <span className="em-q-num">Câu {q.orderNumber ?? i+1}</span>
-                          {q.cognitiveLevelName && <span className="em-chip em-chip--level">{q.cognitiveLevelName}</span>}
-                          <span className="em-q-pts">{fmtPoints(q.points)} đ</span>
-                        </div>
-                        <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
-                        <div className="em-answers">
-                          {[q.correctAnswer, q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3].map((ans, idx) => {
-                            if (!ans) return null;
-                            const labels = ["A","B","C","D"];
-                            return (
-                              <div key={idx} className="em-ans">
-                                <span className="em-ans-lbl">{labels[idx]}.</span>
-                                <MathRenderer content={ans} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="em-modal-footer">
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
+
       {/* ════════ HIDDEN PDF EXPORT CONTAINER ════════ */}
       {exportingExam && (
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>

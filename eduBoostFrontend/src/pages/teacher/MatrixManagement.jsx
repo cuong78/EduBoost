@@ -11,7 +11,12 @@ import {
   ChevronUp,
   X,
   Check,
+  Globe,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import { examService } from "../../services/examService";
 import { knowledgeService } from "../../services/knowledgeService";
 import { apiClient } from "../../services/api";
@@ -54,6 +59,8 @@ const fmtDate = (d) =>
 
 // ─── MatrixManagement page ───────────────────────────────────────────────────
 const MatrixManagement = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   // List
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,6 +87,7 @@ const MatrixManagement = () => {
   const [viewTemplate, setViewTemplate] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
+  const [activeTab, setActiveTab] = useState("mine");
 
   // ─── Form state ────────────────────────────────────────────────────────────
   const blankForm = () => ({
@@ -176,6 +184,11 @@ const MatrixManagement = () => {
       return false;
     return true;
   });
+
+  // Separate mine vs community
+  const myTemplates = filtered.filter((t) => t.createdById === user?.userId);
+  const communityTemplates = filtered;
+  const displayTemplates = activeTab === "mine" ? myTemplates : communityTemplates;
 
   // ─── Form helpers ──────────────────────────────────────────────────────────
   const openCreate = () => {
@@ -427,6 +440,24 @@ const MatrixManagement = () => {
         </button>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+        <button
+          className={`btn ${activeTab === "mine" ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setActiveTab("mine")}
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <FileText size={15} /> Ma trận của tôi
+        </button>
+        <button
+          className={`btn ${activeTab === "community" ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setActiveTab("community")}
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <Globe size={15} /> Cộng đồng
+        </button>
+      </div>
+
       {/* Filters */}
       <div className="filters glass">
         <div className="search-box">
@@ -440,7 +471,7 @@ const MatrixManagement = () => {
         <div className="filter-group">
           <select value={filterGrade} onChange={(e) => {
             setFilterGrade(e.target.value);
-            setFilterSubject(""); // Reset subject when grade changes
+            setFilterSubject("");
           }}>
             <option value="">Tất cả khối</option>
             {GRADE_OPTIONS.map((g) => <option key={g} value={g}>Khối {g}</option>)}
@@ -467,12 +498,14 @@ const MatrixManagement = () => {
       <div className="matrix-list glass">
         {loading ? (
           <div className="empty-state"><RefreshCw className="spin" size={28} /><p>Đang tải...</p></div>
-        ) : filtered.length === 0 ? (
+        ) : displayTemplates.length === 0 ? (
           <div className="empty-state">
             <LayoutGrid size={48} />
-            <h3>Chưa có ma trận nào</h3>
-            <p>Bắt đầu bằng cách tạo ma trận đầu tiên</p>
-            <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Tạo ma trận</button>
+            <h3>{activeTab === "mine" ? "Chưa có ma trận nào của bạn" : "Chưa có ma trận cộng đồng"}</h3>
+            <p>{activeTab === "mine" ? "Bắt đầu bằng cách tạo ma trận đầu tiên" : "Khi giáo viên tạo ma trận, chúng sẽ xuất hiện tại đây"}</p>
+            {activeTab === "mine" && (
+              <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Tạo ma trận</button>
+            )}
           </div>
         ) : (
           <table className="matrix-table">
@@ -484,12 +517,15 @@ const MatrixManagement = () => {
                 <th>Số câu</th>
                 <th>Tổng điểm</th>
                 <th>Mặc định</th>
+                {activeTab === "community" && <th>Tác giả</th>}
                 <th>Ngày tạo</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t) => (
+              {displayTemplates.map((t) => {
+                const isMine = t.createdById === user?.userId;
+                return (
                 <>
                   <tr key={t.id}>
                     <td className="template-name">
@@ -510,18 +546,35 @@ const MatrixManagement = () => {
                     <td className="center">
                       {t.isDefault ? <span className="badge-default">Mặc định</span> : "—"}
                     </td>
+                    {activeTab === "community" && <td>{t.createdByName || "—"}</td>}
                     <td>{fmtDate(t.createdAt)}</td>
                     <td>
                       <div className="action-buttons">
                         <button className="btn-icon" title="Xem chi tiết" onClick={() => handleView(t)}><Eye size={15} /></button>
-                        <button className="btn-icon" title="Chỉnh sửa" onClick={() => openEdit(t)}><Edit size={15} /></button>
-                        <button className="btn-icon danger" title="Xóa" onClick={() => setDeleteTarget(t)}><Trash2 size={15} /></button>
+                        {/* Owner buttons: edit + delete */}
+                        {isMine && (
+                          <>
+                            <button className="btn-icon" title="Chỉnh sửa" onClick={() => openEdit(t)}><Edit size={15} /></button>
+                            <button className="btn-icon danger" title="Xóa" onClick={() => setDeleteTarget(t)}><Trash2 size={15} /></button>
+                          </>
+                        )}
+                        {/* Community: Apply button */}
+                        {activeTab === "community" && !isMine && (
+                          <button
+                            className="btn-icon"
+                            title="Áp dụng ma trận này để tạo đề"
+                            onClick={() => navigate(`/teacher/create-exam?matrixId=${t.id}`)}
+                            style={{ color: "var(--ds-success)" }}
+                          >
+                            <ExternalLink size={15} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
                   {expandedRows[t.id] && (
                     <tr key={`${t.id}-expand`} className="expand-row">
-                      <td colSpan={8}>
+                      <td colSpan={activeTab === "community" ? 9 : 8}>
                         <div className="expand-content">
                           <strong>Phân bố theo mức độ:</strong>
                           <div className="level-pills">
@@ -536,7 +589,8 @@ const MatrixManagement = () => {
                     </tr>
                   )}
                 </>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
