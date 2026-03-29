@@ -702,20 +702,16 @@ public class ExamServiceImpl implements ExamService {
         CognitiveLevel cognitiveLevel = cognitiveLevelRepository.findById(request.getCognitiveLevelId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cognitive level not found"));
         
-        // Get resources for the lesson
-        List<LessonResource> resources = resourceRepository.findByLessonId(lesson.getId());
-        if (resources.isEmpty()) {
-            throw new IllegalStateException("No resources available for this lesson to generate questions");
-        }
-        
-        List<ExamQuestion> generatedQuestions = new ArrayList<>();
         int orderNumber = Optional.ofNullable(examQuestionRepository.findMaxOrderNumber(examId)).orElse(0);
         BigDecimal points = request.getPointsPerQuestion() != null ? request.getPointsPerQuestion() : BigDecimal.ONE;
         
-        // For each resource, try to generate questions
-        // This is a simplified implementation - real implementation would use AI service
         log.info("Generating {} AI questions for exam {} from lesson {}", 
                 request.getNumberOfQuestions(), examId, lesson.getLessonName());
+        
+        // Actually call the AI generation method
+        List<ExamQuestion> generatedQuestions = generateAIQuestionsForExam(
+                exam, request.getLessonId(), request.getCognitiveLevelId(),
+                request.getNumberOfQuestions(), orderNumber, points);
         
         // Update question count
         exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
