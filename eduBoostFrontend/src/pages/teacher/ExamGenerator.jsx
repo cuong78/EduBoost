@@ -671,7 +671,7 @@ const ExamGenerator = () => {
     if (!currentExam?.id) return;
     // Resolve IDs — API may return nested objects or flat IDs
     const lessonId = q.lessonId || q.lesson?.id;
-    const cognitiveLevelId = q.cognitiveLevelId || q.cognitiveLevel?.id || q.cognitiveLevelId;
+    const cognitiveLevelId = q.cognitiveLevelId || q.cognitiveLevel?.id;
     console.log("AI Regenerate:", { questionId: q.id, lessonId, cognitiveLevelId, points: q.points });
     if (!lessonId) {
       showErrorToast("Không xác định được bài học của câu hỏi này");
@@ -679,22 +679,37 @@ const ExamGenerator = () => {
     }
     setGeneratingAiId(q.id);
     try {
-      // Delete the old question first
-      await examService.deleteExamQuestion(currentExam.id, q.id);
-      // Generate 1 replacement via AI using same lesson + cognitive level
+      // Generate 1 replacement via AI FIRST (before deleting old one)
       const genPayload = {
         lessonId,
         numberOfQuestions: 1,
-        pointsPerQuestion: q.points || q.pointsPerQuestion,
+        pointsPerQuestion: q.points || q.pointsPerQuestion || 1,
       };
       if (cognitiveLevelId) genPayload.cognitiveLevelId = cognitiveLevelId;
-      await examService.aiGenerateQuestionsForExam(currentExam.id, genPayload);
-      await refreshExam(currentExam.id);
-      showSuccessToast("AI đã tạo lại câu hỏi mới thành công!");
+
+      const result = await examService.aiGenerateQuestionsForExam(currentExam.id, genPayload);
+      const generated = Array.isArray(result) ? result : (result?.questions ?? []);
+      console.log("AI Regenerate result:", generated);
+
+      if (generated.length > 0) {
+        // AI succeeded → now safe to delete the old question
+        await examService.deleteExamQuestion(currentExam.id, q.id);
+        await refreshExam(currentExam.id);
+        showSuccessToast("AI đã tạo lại câu hỏi mới thành công!");
+      } else {
+        // AI returned empty → don't delete old question, keep it
+        showErrorToast("AI không tạo được câu hỏi mới. Câu hỏi cũ vẫn giữ nguyên.");
+        await refreshExam(currentExam.id);
+      }
     } catch (e) {
       console.error("AI Regenerate error:", e);
-      showErrorToast(e?.response?.data?.message || "Không thể tạo lại câu hỏi bằng AI");
-      // Refresh anyway in case the delete succeeded but generate failed
+      const isTimeout = e.code === "ECONNABORTED" || e.message?.includes("timeout");
+      if (isTimeout) {
+        showErrorToast("AI tạo câu hỏi quá lâu (timeout). Câu hỏi cũ vẫn giữ nguyên. Thử lại sau.");
+      } else {
+        showErrorToast(e?.response?.data?.message || "Không thể tạo lại câu hỏi bằng AI");
+      }
+      // Refresh to show current state
       try { await refreshExam(currentExam.id); } catch {}
     } finally {
       setGeneratingAiId(null);

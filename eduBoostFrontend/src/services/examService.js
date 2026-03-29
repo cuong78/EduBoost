@@ -233,7 +233,7 @@ export const examService = {
                 correctAnswer: 'Option A',
                 wrongAnswers: ['Option B', 'Option C', 'Option D']
             })))
-            : apiClient.post(API.EXAM_AI_GENERATE(examId), data).then((res) => res.data),
+            : apiClient.post(API.EXAM_AI_GENERATE(examId), data, { timeout: 120000 }).then((res) => res.data),
     
     /**
      * Edit a question in exam
