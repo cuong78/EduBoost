@@ -533,8 +533,9 @@ const CreateQuestion = () => {
     try {
       const data = await questionBankService.getQuestions({
         lessonId: Number(lessonId),
+        size: 200,
       });
-      const list = Array.isArray(data) ? data : (data?.data ?? []);
+      const list = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
       setExistingQuestions(list);
     } catch (e) {
       setExistingQuestions([]);
