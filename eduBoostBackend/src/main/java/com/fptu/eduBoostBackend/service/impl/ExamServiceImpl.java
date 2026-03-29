@@ -256,6 +256,8 @@ public class ExamServiceImpl implements ExamService {
             exam.setTotalQuestions(matrixTotal);
             exam.setTotalPoints(matrixPoints);
             examRepository.save(exam);
+            
+            log.info("Matrix target: {} questions, {} points for exam {}", matrixTotal, matrixPoints, examId);
 
             // Load Phần 2: lesson × cognitiveLevel distribution (optional)
             List<ExamMatrixLessonDetail> lessonDetails =
@@ -273,6 +275,9 @@ public class ExamServiceImpl implements ExamService {
                     Long clId = detail.getCognitiveLevel().getId();
                     BigDecimal pPerQ = detail.getPointsPerQuestion();
                     List<ExamMatrixLessonDetail> cellsForCL = byCL.getOrDefault(clId, Collections.emptyList());
+                    
+                    log.info("Processing cognitive level {} (id={}): target={} questions, {} cells",
+                            detail.getCognitiveLevel().getLevel(), clId, detail.getNumberOfQuestions(), cellsForCL.size());
 
                     for (ExamMatrixLessonDetail cell : cellsForCL) {
                         int needed = cell.getNumberOfQuestions();
@@ -281,6 +286,9 @@ public class ExamServiceImpl implements ExamService {
 
                         List<QuestionBank> candidates =
                                 questionBankRepository.findByLessonIdAndCognitiveLevelId(lessonId, clId);
+                        
+                        log.info("  Cell lesson={} (id={}), CL={}: need={}, bank candidates={}",
+                                cell.getLesson().getLessonName(), lessonId, clId, needed, candidates.size());
 
                         int added = 0;
                         for (QuestionBank q : candidates) {
@@ -295,10 +303,17 @@ public class ExamServiceImpl implements ExamService {
                         // AI fallback for remaining in this cell
                         int stillNeeded = needed - added;
                         if (stillNeeded > 0) {
+                            log.info("  Cell shortfall: added {} from bank, still need {} → calling AI", added, stillNeeded);
                             List<ExamQuestion> aiQs = generateAIQuestionsForExam(exam, lessonId, clId, stillNeeded, orderNumber, pPerQ);
                             orderNumber += aiQs.size();
                             addedQuestions.addAll(aiQs);
                             aiGenerated += aiQs.size();
+                            if (aiQs.size() < stillNeeded) {
+                                log.warn("  AI only generated {}/{} questions for lesson {} CL {}. SHORTFALL: {}",
+                                        aiQs.size(), stillNeeded, lessonId, clId, stillNeeded - aiQs.size());
+                            }
+                        } else {
+                            log.info("  Cell filled: {} from bank", added);
                         }
                     }
                 }
@@ -320,6 +335,9 @@ public class ExamServiceImpl implements ExamService {
                                     && q.getLesson().getChapter().getGradeLevel() != null
                                     && q.getLesson().getChapter().getGradeLevel().equals(exam.getGradeLevel()))
                             .collect(Collectors.toList());
+                    
+                    log.info("CL {} (id={}): need={}, bank candidates={}", 
+                            detail.getCognitiveLevel().getLevel(), clId, needed, candidates.size());
 
                     int added = 0;
                     for (QuestionBank q : candidates) {
@@ -338,18 +356,27 @@ public class ExamServiceImpl implements ExamService {
                         Long someLesson = candidates.isEmpty() ? null
                                 : candidates.get(0).getLesson().getId();
                         if (someLesson != null) {
+                            log.info("CL {} shortfall: {} from bank, {} still needed → AI fallback", clId, added, stillNeeded);
                             List<ExamQuestion> aiQs = generateAIQuestionsForExam(exam, someLesson, clId, stillNeeded, orderNumber, pPerQ);
                             orderNumber += aiQs.size();
                             addedQuestions.addAll(aiQs);
                             aiGenerated += aiQs.size();
+                        } else {
+                            log.warn("CL {} shortfall: no candidate lessons for AI fallback. Missing {} questions", clId, stillNeeded);
                         }
                     }
                 }
             }
 
             // Final sync of question count
-            exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
+            int actualCount = examQuestionRepository.countByExamId(examId);
+            exam.setTotalQuestions(actualCount);
             examRepository.save(exam);
+            
+            if (actualCount < matrixTotal) {
+                log.warn("⚠ Exam {} question count discrepancy: matrix target={}, actual={}. Missing {} questions.",
+                        examId, matrixTotal, actualCount, matrixTotal - actualCount);
+            }
 
         } else {
             // ─── NON-MATRIX (15MIN) exam: original logic ────────────────────
@@ -819,6 +846,15 @@ public class ExamServiceImpl implements ExamService {
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         
         User currentUser = getCurrentUser();
+        
+        // Ownership check: only creator or admin can change status
+        boolean isOwner = exam.getCreatedBy() != null &&
+                exam.getCreatedBy().getUserId().equals(currentUser.getUserId());
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isOwner && !isAdmin) {
+            throw new IllegalStateException("Chỉ chủ sở hữu đề thi mới có thể thay đổi trạng thái");
+        }
         
         // Validate status transition
         validateStatusTransition(exam.getStatus(), request.getNewStatus());

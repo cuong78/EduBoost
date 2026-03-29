@@ -103,6 +103,7 @@ const ExamGenerator = () => {
   const [matrixTemplateId, setMatrixTemplateId] = useState("");
   const [loadingMatrices, setLoadingMatrices] = useState(false);
   const [selectedMatrix, setSelectedMatrix] = useState(null);
+  const [matrixDetailModal, setMatrixDetailModal] = useState(null);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -304,7 +305,12 @@ const ExamGenerator = () => {
   // Determine ownership: compare current user ID with exam creator ID
   const isOwner = useMemo(() => {
     if (!user || !currentExam) return false;
-    return user.userId === currentExam.createdById;
+    // Guard: both must be truthy numbers (not 0, null, undefined)
+    const uid = user.userId;
+    const eid = currentExam.createdById;
+    if (!uid || !eid) return false;
+    // Use == to handle string/number type mismatch from API
+    return uid == eid;
   }, [user, currentExam]);
   // In view mode, non-owners cannot edit
   const canEdit = !viewMode || isOwner;
@@ -1070,30 +1076,14 @@ const ExamGenerator = () => {
                         ))}
                       </div>
                     )}
-                    {/* Expandable detail when selected */}
-                    {String(matrixTemplateId) === String(t.id) && t.details?.length > 0 && (
-                      <div style={{ marginTop: 8, padding: "8px 0", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-                        <table style={{ width: "100%", fontSize: "0.8rem", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr style={{ textAlign: "left", opacity: 0.7 }}>
-                              <th style={{ padding: "4px 6px" }}>Mức độ</th>
-                              <th style={{ padding: "4px 6px", textAlign: "center" }}>Số câu</th>
-                              <th style={{ padding: "4px 6px", textAlign: "center" }}>Điểm/câu</th>
-                              <th style={{ padding: "4px 6px", textAlign: "center" }}>Tổng</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {t.details.map((d, i) => (
-                              <tr key={i}>
-                                <td style={{ padding: "3px 6px" }}>{d.cognitiveLevelName}</td>
-                                <td style={{ padding: "3px 6px", textAlign: "center" }}>{d.numberOfQuestions}</td>
-                                <td style={{ padding: "3px 6px", textAlign: "center" }}>{d.pointsPerQuestion}</td>
-                                <td style={{ padding: "3px 6px", textAlign: "center", fontWeight: 600 }}>{Number(d.totalPoints || 0).toFixed(1)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                    {/* Click to view detail */}
+                    {t.details?.length > 0 && (
+                      <button
+                        className="btn-matrix-detail"
+                        onClick={(e) => { e.stopPropagation(); setMatrixDetailModal(t); }}
+                      >
+                        <Eye size={13} /> Xem chi tiết ma trận
+                      </button>
                     )}
                   </div>
                 );
@@ -1422,6 +1412,12 @@ const ExamGenerator = () => {
                   }}>{currentExam.status === "DRAFT" ? "Nháp" : currentExam.status === "PUBLISHED" ? "Đã xuất bản" : currentExam.status === "USED" ? "Đã dùng" : currentExam.status}</span>
                 )}
               </p>
+              {/* Warning: question count doesn't match matrix target */}
+              {currentExam?.matrixTemplateId && selectedMatrix && previewQuestions.length < (selectedMatrix.totalQuestions || 0) && (
+                <p style={{ color: "var(--ds-warning)", fontSize: "0.85rem", marginTop: 4 }}>
+                  ⚠️ Số câu thực tế ({previewQuestions.length}) ít hơn ma trận yêu cầu ({selectedMatrix.totalQuestions}). Có thể ngân hàng chưa đủ câu hỏi hoặc AI không tạo đủ.
+                </p>
+              )}
             </div>
             <div className="actions" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
               {/* Back button for view mode */}
@@ -1717,15 +1713,41 @@ const ExamGenerator = () => {
                       </div>
                       <div className="exam-answers">
                         {(() => {
-                          // Tạo mảng 4 đáp án và shuffle
+                          // Check if this is a variant exam with pre-shuffled options
+                          const isVariant = q.optionA || q.optionB || q.optionC || q.optionD;
+
+                          if (isVariant) {
+                            // Variant: use pre-shuffled optionA/B/C/D and correctAnswerLabel
+                            const options = [
+                              { label: "A", content: q.optionA },
+                              { label: "B", content: q.optionB },
+                              { label: "C", content: q.optionC },
+                              { label: "D", content: q.optionD },
+                            ].filter((o) => o.content);
+                            return options.map((opt) => (
+                              <div
+                                key={opt.label}
+                                className={`exam-option ${showCorrectAnswers && opt.label === q.correctAnswerLabel ? "correct-marked" : ""}`}
+                              >
+                                <span className="option-label">{opt.label}.</span>
+                                <span className="option-content">
+                                  <MathRenderer content={opt.content} />
+                                </span>
+                                {showCorrectAnswers && opt.label === q.correctAnswerLabel && (
+                                  <span className="correct-icon">✓</span>
+                                )}
+                              </div>
+                            ));
+                          }
+
+                          // Original exam: shuffle answers deterministically
                           const allAnswers = [
                             { content: q.correctAnswer, isCorrect: true },
                             { content: q.wrongAnswer1, isCorrect: false },
                             { content: q.wrongAnswer2, isCorrect: false },
                             { content: q.wrongAnswer3, isCorrect: false },
-                          ].filter((a) => a.content); // Lọc bỏ đáp án rỗng
+                          ].filter((a) => a.content);
 
-                          // Shuffle dựa trên question id để giữ thứ tự cố định
                           const shuffled = [...allAnswers].sort((a, b) => {
                             const hashA = (q.id + a.content)
                               .split("")
@@ -1865,8 +1887,8 @@ const ExamGenerator = () => {
                     className="btn btn-outline"
                     style={{ flex: 1, fontSize: "0.8rem", padding: "0.4rem" }}
                     onClick={() => {
-                      examService.exportExam(v.id, "pdf");
-                      handleExportPdf(v.id);
+                      // Navigate to variant in view mode — user can export from there
+                      window.open(`/teacher/create-exam?examId=${v.id}&mode=view`, '_blank');
                     }}
                   >
                     <Download size={14} /> PDF
@@ -1930,6 +1952,66 @@ const ExamGenerator = () => {
         </div>
       )}
 
+      {/* ─── Matrix Detail Modal ─── */}
+      {matrixDetailModal && (
+        <div className="modal-overlay" onClick={() => setMatrixDetailModal(null)}>
+          <div className="matrix-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="shuffle-modal-header">
+              <h2><LayoutGrid size={20} /> Chi tiết ma trận</h2>
+              <button className="btn-close" onClick={() => setMatrixDetailModal(null)}><X size={20} /></button>
+            </div>
+            <div className="shuffle-modal-body">
+              <div className="shuffle-info">
+                <p><strong>Tên:</strong> {matrixDetailModal.templateName}</p>
+                <p><strong>Khối:</strong> {matrixDetailModal.gradeLevel}</p>
+                <p><strong>Tổng số câu:</strong> {matrixDetailModal.totalQuestions} câu</p>
+                <p><strong>Tổng điểm:</strong> {matrixDetailModal.totalPoints} điểm</p>
+                {matrixDetailModal.createdByName && <p><strong>Tác giả:</strong> {matrixDetailModal.createdByName}</p>}
+              </div>
+              {matrixDetailModal.details?.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: "0.95rem", margin: "1rem 0 0.5rem" }}>Phân bố theo mức độ nhận thức</h3>
+                  <table className="summary-table">
+                    <thead>
+                      <tr>
+                        <th>Mức độ</th>
+                        <th style={{ textAlign: "center" }}>Số câu</th>
+                        <th style={{ textAlign: "center" }}>Điểm/câu</th>
+                        <th style={{ textAlign: "center" }}>Tổng điểm</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matrixDetailModal.details.map((d, i) => (
+                        <tr key={i}>
+                          <td>{d.cognitiveLevelName}</td>
+                          <td style={{ textAlign: "center" }}>{d.numberOfQuestions}</td>
+                          <td style={{ textAlign: "center" }}>{d.pointsPerQuestion}</td>
+                          <td style={{ textAlign: "center", fontWeight: 700 }}>{Number(d.totalPoints || d.numberOfQuestions * d.pointsPerQuestion || 0).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                      <tr style={{ fontWeight: 700, borderTop: "2px solid rgba(0,0,0,0.1)" }}>
+                        <td>Tổng</td>
+                        <td style={{ textAlign: "center" }}>{matrixDetailModal.totalQuestions}</td>
+                        <td style={{ textAlign: "center" }}>—</td>
+                        <td style={{ textAlign: "center" }}>{matrixDetailModal.totalPoints}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="shuffle-modal-footer">
+              <button className="btn btn-primary" onClick={() => {
+                setMatrixTemplateId(String(matrixDetailModal.id));
+                setSelectedMatrix(matrixDetailModal);
+                setMatrixDetailModal(null);
+              }}>Chọn ma trận này</button>
+              <button className="btn btn-secondary" onClick={() => setMatrixDetailModal(null)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .create-exam-page { max-width: 1200px; margin: 0 auto; }
 
@@ -1963,6 +2045,12 @@ const ExamGenerator = () => {
         .badge-default { padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.1); color: var(--ds-success-text); font-size: 0.72rem; font-weight: 700; }
         .matrix-empty-notice { padding: 2rem; border-radius: 14px; background: rgba(255,255,255,0.45); border: 1px dashed rgba(0,0,0,0.12); text-align: center; color: var(--color-text-secondary); }
         .matrix-empty-notice p { margin: 0.75rem 0 1rem; }
+
+        .btn-matrix-detail { margin-top: 8px; width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(99,102,241,0.25); background: rgba(99,102,241,0.05); color: var(--ds-primary); font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.18s; }
+        .btn-matrix-detail:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.4); }
+
+        .matrix-detail-modal { background: white; border-radius: 20px; width: 560px; max-width: 95vw; box-shadow: 0 25px 70px rgba(0,0,0,0.15); overflow: hidden; max-height: 85vh; display: flex; flex-direction: column; }
+        .matrix-detail-modal .shuffle-modal-body { overflow-y: auto; }
 
         /* Matrix summary */
         .matrix-summary-box { background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.15); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 0.5rem; }
