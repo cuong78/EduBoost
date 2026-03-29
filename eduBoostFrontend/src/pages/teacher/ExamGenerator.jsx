@@ -669,21 +669,30 @@ const ExamGenerator = () => {
   // ── AI Regenerate: delete current question, generate 1 new one via AI ──
   const handleAiRegenerate = async (q) => {
     if (!currentExam?.id) return;
+    // Resolve IDs — API may return nested objects or flat IDs
+    const lessonId = q.lessonId || q.lesson?.id;
+    const cognitiveLevelId = q.cognitiveLevelId || q.cognitiveLevel?.id || q.cognitiveLevelId;
+    console.log("AI Regenerate:", { questionId: q.id, lessonId, cognitiveLevelId, points: q.points });
+    if (!lessonId) {
+      showErrorToast("Không xác định được bài học của câu hỏi này");
+      return;
+    }
     setGeneratingAiId(q.id);
     try {
       // Delete the old question first
       await examService.deleteExamQuestion(currentExam.id, q.id);
       // Generate 1 replacement via AI using same lesson + cognitive level
-      await examService.aiGenerateQuestionsForExam(currentExam.id, {
-        lessonId: q.lessonId,
-        cognitiveLevelId: q.cognitiveLevelId,
+      const genPayload = {
+        lessonId,
         numberOfQuestions: 1,
-        pointsPerQuestion: q.points,
-      });
+        pointsPerQuestion: q.points || q.pointsPerQuestion,
+      };
+      if (cognitiveLevelId) genPayload.cognitiveLevelId = cognitiveLevelId;
+      await examService.aiGenerateQuestionsForExam(currentExam.id, genPayload);
       await refreshExam(currentExam.id);
       showSuccessToast("AI đã tạo lại câu hỏi mới thành công!");
     } catch (e) {
-      console.error(e);
+      console.error("AI Regenerate error:", e);
       showErrorToast(e?.response?.data?.message || "Không thể tạo lại câu hỏi bằng AI");
       // Refresh anyway in case the delete succeeded but generate failed
       try { await refreshExam(currentExam.id); } catch {}
@@ -691,6 +700,7 @@ const ExamGenerator = () => {
       setGeneratingAiId(null);
     }
   };
+
 
   // ── Open Bank Modal: load questions from bank with same filters ──
   const handleOpenBankModal = async (q) => {
@@ -1240,8 +1250,7 @@ const ExamGenerator = () => {
 
           <div className="divider" />
           <p className="muted">
-            Khi backend module Exam sẵn sàng, hệ thống sẽ tự ưu tiên chọn câu từ
-            ngân hàng (đã verify), thiếu sẽ gọi AI tạo mới theo cấu hình.
+            Hệ thống sẽ tự ưu tiên chọn câu từ ngân hàng đã có, nếu thiếu sẽ gọi AI tạo mới theo cấu hình.
           </p>
         </div>
       )}
