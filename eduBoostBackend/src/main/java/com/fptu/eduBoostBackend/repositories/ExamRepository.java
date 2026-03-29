@@ -20,7 +20,8 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
            "LEFT JOIN FETCH e.subject " +
            "LEFT JOIN FETCH e.chapter " +
            "LEFT JOIN FETCH e.createdBy " +
-           "WHERE (:subjectId IS NULL OR e.subject.id = :subjectId) " +
+           "WHERE e.parentExam IS NULL " +
+           "AND (:subjectId IS NULL OR e.subject.id = :subjectId) " +
            "AND (:gradeLevel IS NULL OR e.gradeLevel = :gradeLevel) " +
            "AND (:examTypeId IS NULL OR e.examType.id = :examTypeId) " +
            "AND (:status IS NULL OR e.status = :status) " +
@@ -47,6 +48,7 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
            "LEFT JOIN FETCH e.examType " +
            "LEFT JOIN FETCH e.subject " +
            "WHERE e.createdBy.id = :userId " +
+           "AND e.parentExam IS NULL " +
            "ORDER BY e.createdAt DESC")
     List<Exam> findByCreatedById(@Param("userId") Long userId);
     
@@ -64,7 +66,8 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
            "LEFT JOIN FETCH e.chapter " +
            "LEFT JOIN FETCH e.matrixTemplate " +
            "LEFT JOIN FETCH e.createdBy " +
-           "WHERE e.status = com.fptu.eduBoostBackend.entities.enums.ExamStatus.PUBLISHED " +
+           "WHERE e.parentExam IS NULL " +
+           "AND e.status = com.fptu.eduBoostBackend.entities.enums.ExamStatus.PUBLISHED " +
            "AND (:subjectId IS NULL OR e.subject.id = :subjectId) " +
            "AND (:gradeLevel IS NULL OR e.gradeLevel = :gradeLevel) " +
            "AND (:examTypeId IS NULL OR e.examType.id = :examTypeId) " +
