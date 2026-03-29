@@ -18,14 +18,14 @@ public class ScienceGrade7Initializer {
         Subject sc = subjectRepository.findBySubjectCode("SCI").orElse(null);
         if (sc == null) return;
 
-        // Bài mở đầu
-        Chapter intro = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(1)
-                .chapterName("Bài mở đầu").description("Bài mở đầu: Phương pháp và kĩ năng học tập môn Khoa học tự nhiên").build());
+        // Bài mở đầu (chapterNumber = 0 to avoid shifting)
+        Chapter intro = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(0)
+                .chapterName("Bài mở đầu").description("Bài mở đầu: Phương pháp và kĩ năng học tập môn KHTN").build());
         lessonRepository.save(Lesson.builder().chapter(intro).lessonNumber(1)
                 .lessonName("Phương pháp và kĩ năng học tập môn Khoa học tự nhiên").build());
 
         // Chương 1: Nguyên tử. Sơ lược về bảng tuần hoàn các nguyên tố hóa học
-        Chapter chap1 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(2)
+        Chapter chap1 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(1)
                 .chapterName("Nguyên tử. Sơ lược về bảng tuần hoàn các nguyên tố hóa học")
                 .description("Chương 1: Nguyên tử. Sơ lược về bảng tuần hoàn các nguyên tố hóa học").build());
         lessonRepository.save(Lesson.builder().chapter(chap1).lessonNumber(2)
@@ -36,7 +36,7 @@ public class ScienceGrade7Initializer {
                 .lessonName("Sơ lược về bảng tuần hoàn nguyên tố hóa học").build());
 
         // Chương 2: Phân tử. Liên kết hóa học
-        Chapter chap2 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(3)
+        Chapter chap2 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(2)
                 .chapterName("Phân tử. Liên kết hóa học")
                 .description("Chương 2: Phân tử. Liên kết hóa học").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(5)
@@ -47,10 +47,10 @@ public class ScienceGrade7Initializer {
                 .lessonName("Hóa trị và công thức hóa học").build());
 
         // Chương 3: Tốc độ
-        Chapter chap3 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(4)
+        Chapter chap3 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(3)
                 .chapterName("Tốc độ").description("Chương 3: Tốc độ").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(8)
-                .lessonName("Tốc độ ánh sáng").build());
+                .lessonName("Tốc độ chuyển động").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(9)
                 .lessonName("Đo tốc độ").build());
         lessonRepository.save(Lesson.builder().chapter(chap3).lessonNumber(10)
@@ -59,7 +59,7 @@ public class ScienceGrade7Initializer {
                 .lessonName("Thảo luận về ảnh hưởng của tốc độ trong an toàn giao thông").build());
 
         // Chương 4: Âm thanh
-        Chapter chap4 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(5)
+        Chapter chap4 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(4)
                 .chapterName("Âm thanh").description("Chương 4: Âm thanh").build());
         lessonRepository.save(Lesson.builder().chapter(chap4).lessonNumber(12)
                 .lessonName("Sóng âm").build());
@@ -69,7 +69,7 @@ public class ScienceGrade7Initializer {
                 .lessonName("Phản xạ âm, chống ô nhiễm tiếng ồn").build());
 
         // Chương 5: Ánh sáng
-        Chapter chap5 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(6)
+        Chapter chap5 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(5)
                 .chapterName("Ánh sáng").description("Chương 5: Ánh sáng").build());
         lessonRepository.save(Lesson.builder().chapter(chap5).lessonNumber(15)
                 .lessonName("Năng lượng ánh sáng. Tia sáng, vùng tối").build());
@@ -79,7 +79,7 @@ public class ScienceGrade7Initializer {
                 .lessonName("Ảnh của vật qua gương phẳng").build());
 
         // Chương 6: Từ
-        Chapter chap6 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(7)
+        Chapter chap6 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(6)
                 .chapterName("Từ").description("Chương 6: Từ").build());
         lessonRepository.save(Lesson.builder().chapter(chap6).lessonNumber(18)
                 .lessonName("Nam châm").build());
@@ -89,55 +89,55 @@ public class ScienceGrade7Initializer {
                 .lessonName("Chế tạo nam châm điện đơn giản").build());
 
         // Chương 7: Trao đổi chất và chuyển hóa năng lượng ở sinh vật
-        Chapter chap7b = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(8)
+        Chapter chap7 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(7)
                 .chapterName("Trao đổi chất và chuyển hóa năng lượng ở sinh vật")
                 .description("Chương 7: Trao đổi chất và chuyển hóa năng lượng ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(21)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(21)
                 .lessonName("Khái quát về trao đổi chất và chuyển hóa năng lượng").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(22)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(22)
                 .lessonName("Quang hợp ở thực vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(23)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(23)
                 .lessonName("Một số yếu tố ảnh hưởng đến quang hợp").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(24)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(24)
                 .lessonName("Hô hấp tế bào").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(25)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(25)
                 .lessonName("Một số yếu tố ảnh hưởng đến hô hấp tế bào").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(26)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(26)
                 .lessonName("Trao đổi khí ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(27)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(27)
                 .lessonName("Vai trò của nước và chất dinh dưỡng ở thực vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(28)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(28)
                 .lessonName("Trao đổi nước và chất dinh dưỡng ở thực vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap7b).lessonNumber(29)
+        lessonRepository.save(Lesson.builder().chapter(chap7).lessonNumber(29)
                 .lessonName("Trao đổi nước và chất dinh dưỡng ở động vật").build());
 
         // Chương 8: Cảm ứng ở sinh vật
-        Chapter chap8b = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(9)
+        Chapter chap8 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(8)
                 .chapterName("Cảm ứng ở sinh vật").description("Chương 8: Cảm ứng ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8b).lessonNumber(30)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(30)
                 .lessonName("Cảm ứng ở sinh vật và tập tính ở động vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap8b).lessonNumber(31)
+        lessonRepository.save(Lesson.builder().chapter(chap8).lessonNumber(31)
                 .lessonName("Vận dụng cảm ứng ở sinh vật vào thực tiễn").build());
 
         // Chương 9: Sinh trưởng và phát triển ở sinh vật
-        Chapter chap9b = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(10)
+        Chapter chap9 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(9)
                 .chapterName("Sinh trưởng và phát triển ở sinh vật")
                 .description("Chương 9: Sinh trưởng và phát triển ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9b).lessonNumber(32)
-                .lessonName("Khát quát về sinh trưởng và phát triển ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap9b).lessonNumber(33)
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(32)
+                .lessonName("Khái quát về sinh trưởng và phát triển ở sinh vật").build());
+        lessonRepository.save(Lesson.builder().chapter(chap9).lessonNumber(33)
                 .lessonName("Ứng dụng sinh trưởng và phát triển ở sinh vật vào thực tiễn").build());
 
         // Chương 10: Sinh sản ở sinh vật
-        Chapter chap10b = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(11)
+        Chapter chap10 = chapterRepository.save(Chapter.builder().subject(sc).gradeLevel(7).chapterNumber(10)
                 .chapterName("Sinh sản ở sinh vật").description("Chương 10: Sinh sản ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap10b).lessonNumber(34)
+        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(34)
                 .lessonName("Sinh sản vô tính ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap10b).lessonNumber(35)
+        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(35)
                 .lessonName("Sinh sản hữu tính ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap10b).lessonNumber(36)
+        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(36)
                 .lessonName("Một số yếu tố ảnh hưởng và điều hòa, điều khiển sinh sản ở sinh vật").build());
-        lessonRepository.save(Lesson.builder().chapter(chap10b).lessonNumber(37)
+        lessonRepository.save(Lesson.builder().chapter(chap10).lessonNumber(37)
                 .lessonName("Cơ thể sinh vật là một thể thống nhất").build());
     }
 }

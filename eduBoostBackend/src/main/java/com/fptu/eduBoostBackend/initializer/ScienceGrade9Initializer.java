@@ -41,7 +41,7 @@ public class ScienceGrade9Initializer {
                 .lessonName("Lăng kính").build());
         lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(8)
                 .lessonName("Thấu kính").build());
-        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(9)
+        lessonRepository.save(Lesson.builder().chapter(chap2).lessonNumber(10)
                 .lessonName("Kính lúp. Bài tập thấu kính").build());
 
         // Chương III. ĐIỆN
