@@ -51,4 +51,11 @@ public interface ExamService {
     List<ExamResponse> getMyExams();
     
     List<ExamResponse> getPublishedExams(Long subjectId, Integer gradeLevel, Long examTypeId);
+    
+    // Variant (shuffle) operations
+    List<ExamResponse> shuffleExam(Long examId, ShuffleExamRequest request);
+    
+    List<ExamResponse> getExamVariants(Long examId);
+    
+    void deleteExamVariants(Long examId);
 }

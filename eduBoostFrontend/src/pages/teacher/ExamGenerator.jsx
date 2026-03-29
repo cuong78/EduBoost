@@ -18,6 +18,8 @@ import {
   RefreshCcw,
   Library,
   Save,
+  Shuffle,
+  X,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
 import { examService } from "../../services/examService";
@@ -146,6 +148,58 @@ const ExamGenerator = () => {
   const autoScrollFrame = useRef(null);
   const pdfContainerRef = useRef(null);
 
+  // Shuffle (Variant) State
+  const [showShuffleModal, setShowShuffleModal] = useState(false);
+  const [shuffleCount, setShuffleCount] = useState(2);
+  const [shuffleQuestions, setShuffleQuestions] = useState(true);
+  const [shuffleAnswers, setShuffleAnswers] = useState(true);
+  const [shuffling, setShuffling] = useState(false);
+  const [variants, setVariants] = useState([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+
+  const loadVariants = async (examId) => {
+    try {
+      setLoadingVariants(true);
+      const data = await examService.getExamVariants(examId);
+      setVariants(Array.isArray(data) ? data : []);
+    } catch {
+      setVariants([]);
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
+  const handleShuffle = async () => {
+    if (!currentExam?.id || shuffleCount < 1) return;
+    setShuffling(true);
+    try {
+      const result = await examService.shuffleExam(currentExam.id, {
+        numberOfVariants: shuffleCount,
+        shuffleQuestions,
+        shuffleAnswers,
+      });
+      setVariants(Array.isArray(result) ? result : []);
+      setShowShuffleModal(false);
+      showSuccessToast(`Đã tạo ${shuffleCount} đề trộn thành công!`);
+    } catch (err) {
+      showErrorToast("Lỗi khi trộn đề: " + (err?.response?.data?.message || err.message || ""));
+    } finally {
+      setShuffling(false);
+    }
+  };
+
+  const handleDeleteVariants = async () => {
+    if (!currentExam?.id) return;
+    if (!window.confirm("Xóa tất cả đề trộn?")) return;
+    try {
+      await examService.deleteExamVariants(currentExam.id);
+      setVariants([]);
+      showSuccessToast("Đã xóa tất cả đề trộn");
+    } catch {
+      showErrorToast("Không thể xóa đề trộn");
+    }
+  };
+
   const stats = useMemo(() => {
     const byLesson = selectedLessonIds.reduce((acc, lid) => {
       acc[lid] = Number(lessonDistribution[lid] || 0);
@@ -269,6 +323,8 @@ const ExamGenerator = () => {
           qs.sort((a, b) => Number(a.orderNumber || 0) - Number(b.orderNumber || 0));
           setPreviewQuestions(qs);
           setStep(3);
+          // Load variants if any
+          loadVariants(editExamId);
         })
         .catch((e) => {
           console.error(e);
@@ -1358,6 +1414,18 @@ const ExamGenerator = () => {
                   ? <><RefreshCw size={16} className="spin" /> Đang xuất...</>
                   : <><Download size={16} /> Export</>}
               </button>
+
+              {/* Shuffle button - owner only, not for variants */}
+              {canEdit && !currentExam?.parentExamId && (
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setShowShuffleModal(true)}
+                  disabled={!currentExam?.id || previewQuestions.length === 0}
+                  style={{ borderColor: "var(--ds-info)", color: "var(--ds-info)" }}
+                >
+                  <Shuffle size={16} /> Trộn đề
+                </button>
+              )}
             </div>
           </div>
 
@@ -1679,6 +1747,119 @@ const ExamGenerator = () => {
         </div>
       )}
 
+      {/* ─── Variants Panel ─── */}
+      {step === 3 && !currentExam?.parentExamId && variants.length > 0 && (
+        <div className="panel glass" style={{ marginTop: "1rem" }}>
+          <div className="header">
+            <div>
+              <h2><Shuffle size={20} /> Đề trộn ({variants.length} đề)</h2>
+              <p className="muted">Các đề đã xáo trộn từ đề gốc</p>
+            </div>
+            <div className="actions" style={{ gap: "0.5rem" }}>
+              {canEdit && (
+                <button className="btn btn-outline" style={{ color: "var(--ds-error)", borderColor: "var(--ds-error)" }} onClick={handleDeleteVariants}>
+                  <Trash2 size={16} /> Xóa tất cả
+                </button>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
+            {variants.map((v) => (
+              <div key={v.id} style={{
+                padding: "1rem",
+                borderRadius: "12px",
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(255,255,255,0.7)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}>
+                <div style={{ fontWeight: 700, fontSize: "1rem" }}>
+                  Đề {String(v.variantNumber).padStart(3, "0")}
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "var(--ds-text-secondary)" }}>
+                  Mã: {v.examCode}
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "var(--ds-text-secondary)" }}>
+                  {v.totalQuestions} câu • {v.totalPoints} điểm
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", marginTop: "auto" }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ flex: 1, fontSize: "0.8rem", padding: "0.4rem" }}
+                    onClick={() => navigate(`/teacher/create-exam?examId=${v.id}&mode=view`)}
+                  >
+                    <Eye size={14} /> Xem
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    style={{ flex: 1, fontSize: "0.8rem", padding: "0.4rem" }}
+                    onClick={() => {
+                      examService.exportExam(v.id, "pdf");
+                      handleExportPdf(v.id);
+                    }}
+                  >
+                    <Download size={14} /> PDF
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Shuffle Modal ─── */}
+      {showShuffleModal && (
+        <div className="modal-overlay" onClick={() => setShowShuffleModal(false)}>
+          <div className="shuffle-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="shuffle-modal-header">
+              <h2><Shuffle size={20} /> Trộn đề thi</h2>
+              <button className="btn-close" onClick={() => setShowShuffleModal(false)}><X size={20} /></button>
+            </div>
+            <div className="shuffle-modal-body">
+              <div className="shuffle-info">
+                <p><strong>Đề gốc:</strong> {currentExam?.examCode}</p>
+                <p><strong>Số câu:</strong> {previewQuestions.length} câu</p>
+                {variants.length > 0 && (
+                  <p style={{ color: "var(--ds-warning)" }}>
+                    ⚠️ Đã có {variants.length} đề trộn. Trộn lại sẽ xóa và tạo mới.
+                  </p>
+                )}
+              </div>
+              <div className="shuffle-field">
+                <label>Số đề muốn tạo (không tính đề gốc):</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={shuffleCount}
+                  onChange={(e) => setShuffleCount(Math.max(1, parseInt(e.target.value) || 1))}
+                />
+              </div>
+              <div className="shuffle-options">
+                <label className="toggle-label">
+                  <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
+                  Xáo trộn thứ tự câu hỏi
+                </label>
+                <label className="toggle-label">
+                  <input type="checkbox" checked={shuffleAnswers} onChange={(e) => setShuffleAnswers(e.target.checked)} />
+                  Xáo trộn thứ tự đáp án
+                </label>
+              </div>
+              <div className="shuffle-preview" style={{ fontSize: "0.85rem", color: "var(--ds-text-secondary)", marginTop: "0.5rem" }}>
+                Sẽ tạo: <strong>{shuffleCount}</strong> đề trộn + 1 đề gốc = <strong>{shuffleCount + 1}</strong> đề tổng cộng
+              </div>
+            </div>
+            <div className="shuffle-modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowShuffleModal(false)}>Hủy</button>
+              <button className="btn btn-primary" onClick={handleShuffle} disabled={shuffling || shuffleCount < 1}>
+                {shuffling ? <><RefreshCw size={16} className="spin" /> Đang trộn...</> : <><Shuffle size={16} /> Tạo & Trộn đề</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .create-exam-page { max-width: 1200px; margin: 0 auto; }
 
@@ -1861,6 +2042,22 @@ const ExamGenerator = () => {
 
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ── Shuffle Modal ── */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .shuffle-modal { background: white; border-radius: 20px; width: 480px; max-width: 95vw; box-shadow: 0 25px 70px rgba(0,0,0,0.15); overflow: hidden; }
+        .shuffle-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.06); }
+        .shuffle-modal-header h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+        .btn-close { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 8px; color: var(--ds-text-secondary); }
+        .btn-close:hover { background: rgba(0,0,0,0.06); }
+        .shuffle-modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .shuffle-info { padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px; }
+        .shuffle-info p { margin: 0.25rem 0; font-size: 0.9rem; }
+        .shuffle-field { display: flex; flex-direction: column; gap: 6px; }
+        .shuffle-field label { font-weight: 600; font-size: 0.9rem; }
+        .shuffle-field input[type="number"] { padding: 0.65rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 1rem; width: 100%; }
+        .shuffle-options { display: flex; flex-direction: column; gap: 8px; }
+        .shuffle-modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid rgba(0,0,0,0.06); }
             `}</style>
     </div>
   );

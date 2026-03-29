@@ -410,6 +410,7 @@ const ExamManagement = () => {
                         <td className="em-name">
                           <span>{exam.examTitle}</span>
                           {exam.matrixTemplateName && <span className="em-matrix-chip"> {exam.matrixTemplateName}</span>}
+                          {exam.variantCount > 0 && <span style={{ marginLeft: 6, padding: "2px 8px", borderRadius: 999, background: "rgba(59,130,246,0.1)", color: "var(--ds-info)", fontSize: "0.75rem", fontWeight: 700 }}>{exam.variantCount} đề trộn</span>}
                         </td>
                         <td>{exam.subjectCode} / Khối {exam.gradeLevel}</td>
                         <td>{exam.examTypeName || exam.examTypeCode}</td>
@@ -449,12 +450,7 @@ const ExamManagement = () => {
                                 <Clock size={15}/>
                               </button>
                             )}
-                            {exam.status === "DRAFT" && (
-                              <button className="em-icon-btn" title="Chỉnh sửa" disabled={busy}
-                                onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}`)}>
-                                <PenTool size={15}/>
-                              </button>
-                            )}
+
                             {(exam.status === "DRAFT" || exam.status === "USED") && (
                               <button className="em-icon-btn em-icon-btn--danger" title="Xóa" disabled={busy}
                                 onClick={() => { setDeletingExam(exam); setShowDeleteConfirm(true); }}>

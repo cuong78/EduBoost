@@ -77,4 +77,13 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     boolean existsByMatrixTemplateIdAndStatus(
             @Param("matrixTemplateId") Long matrixTemplateId,
             @Param("status") com.fptu.eduBoostBackend.entities.enums.ExamStatus status);
+    
+    @Query("SELECT e FROM Exam e " +
+           "LEFT JOIN FETCH e.examType " +
+           "LEFT JOIN FETCH e.subject " +
+           "LEFT JOIN FETCH e.chapter " +
+           "LEFT JOIN FETCH e.createdBy " +
+           "WHERE e.parentExam.id = :parentExamId " +
+           "ORDER BY e.variantNumber ASC")
+    List<Exam> findByParentExamIdOrderByVariantNumber(@Param("parentExamId") Long parentExamId);
 }

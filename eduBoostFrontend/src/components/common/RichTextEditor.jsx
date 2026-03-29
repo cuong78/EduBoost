@@ -8,24 +8,26 @@ import { showErrorToast } from '../../utils/show-toast';
 const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' }) => {
     const quillRef = useRef(null);
 
-    const modules = useMemo(() => ({
-        toolbar: {
-            container: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'align': [] }],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                ['image'],
-                ['clean']
-            ],
-            handlers: {
-                image: imageHandler
-            }
-        },
-        clipboard: {
-            matchVisual: false
+    // Custom handler: insert LaTeX expression wrapped in $...$
+    function latexHandler() {
+        const quill = quillRef.current?.getEditor();
+        if (!quill) return;
+        const range = quill.getSelection(true);
+        const selectedText = range.length > 0 ? quill.getText(range.index, range.length) : '';
+        
+        const latex = prompt(
+            'Nhập biểu thức LaTeX\n\nVí dụ: x^{2}+3x-5, \\frac{a}{b}, \\sqrt{x}',
+            selectedText || ''
+        );
+        if (latex === null) return; // cancelled
+        
+        // Replace selected text (or insert at cursor) with $latex$
+        if (range.length > 0) {
+            quill.deleteText(range.index, range.length);
         }
-    }), []);
+        quill.insertText(range.index, `$${latex}$`);
+        quill.setSelection(range.index + latex.length + 2);
+    }
 
     function imageHandler() {
         const input = document.createElement('input');
@@ -39,9 +41,7 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
 
             try {
                 const response = await questionBankService.uploadImage(file);
-                // Backend returns { imageUrl: "images/uuid.png" } (objectKey)
                 const objectKey = response.imageUrl || response.url;
-                // Build full URL using the file serving endpoint
                 const imageUrl = `${API.BASE}/files/${objectKey}`;
 
                 const quill = quillRef.current?.getEditor();
@@ -56,9 +56,26 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
         };
     }
 
-    // NOTE: Quill "formula" module requires extra registration (KaTeX + module).
-    // We intentionally disable it to avoid runtime errors. LaTeX can still be rendered
-    // by `MathRenderer` when user types `$...$` or `$$...$$` manually.
+    const modules = useMemo(() => ({
+        toolbar: {
+            container: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'align': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['image'],
+                ['latex'],
+                ['clean']
+            ],
+            handlers: {
+                image: imageHandler,
+                latex: latexHandler,
+            }
+        },
+        clipboard: {
+            matchVisual: false
+        }
+    }), []);
 
     return (
         <div className="rich-text-editor">
@@ -77,6 +94,12 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
                 .rich-text-editor .ql-editor.ql-blank::before {
                     font-style: normal;
                     color: #999;
+                }
+                /* Custom LaTeX button styling */
+                .ql-latex::after {
+                    content: 'Tₓ';
+                    font-weight: 700;
+                    font-size: 14px;
                 }
             `}</style>
         </div>

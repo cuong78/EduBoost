@@ -78,5 +78,21 @@ public class ExamQuestion {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
+
+    // ─── Variant (shuffle) support ───
+    @Column(name = "correct_answer_label", length = 1)
+    private String correctAnswerLabel; // A, B, C, D
+
+    @Column(name = "option_a", columnDefinition = "TEXT")
+    private String optionA;
+
+    @Column(name = "option_b", columnDefinition = "TEXT")
+    private String optionB;
+
+    @Column(name = "option_c", columnDefinition = "TEXT")
+    private String optionC;
+
+    @Column(name = "option_d", columnDefinition = "TEXT")
+    private String optionD;
 }
 

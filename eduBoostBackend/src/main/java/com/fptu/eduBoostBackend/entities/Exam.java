@@ -4,6 +4,7 @@ import com.fptu.eduBoostBackend.entities.enums.ExamStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import java.util.List;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
@@ -77,5 +78,16 @@ public class Exam {
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
+
+    // ─── Variant (shuffle) support ───
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_exam_id")
+    private Exam parentExam;
+
+    @Column(name = "variant_number")
+    private Integer variantNumber;
+
+    @OneToMany(mappedBy = "parentExam", fetch = FetchType.LAZY)
+    private List<Exam> variants;
 }
 

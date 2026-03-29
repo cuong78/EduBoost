@@ -225,4 +225,34 @@ public class ExamController {
     public ResponseEntity<List<ExamResponse>> getMyExams() {
         return ResponseEntity.ok(examService.getMyExams());
     }
+
+    // ==================== Variant (Shuffle) ====================
+
+    @PostMapping("/{id}/shuffle")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Shuffle exam to create variants",
+            description = "Creates N shuffled variants of the original exam with randomized question order and answer positions.")
+    public ResponseEntity<List<ExamResponse>> shuffleExam(
+            @PathVariable Long id,
+            @RequestBody ShuffleExamRequest request) {
+        log.info("Shuffling exam {} with {} variants", id, request.getNumberOfVariants());
+        return ResponseEntity.ok(examService.shuffleExam(id, request));
+    }
+
+    @GetMapping("/{id}/variants")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Get exam variants",
+            description = "Returns all shuffled variant exams of the given parent exam.")
+    public ResponseEntity<List<ExamResponse>> getExamVariants(@PathVariable Long id) {
+        return ResponseEntity.ok(examService.getExamVariants(id));
+    }
+
+    @DeleteMapping("/{id}/variants")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Delete all exam variants",
+            description = "Deletes all shuffled variants of the given parent exam.")
+    public ResponseEntity<Void> deleteExamVariants(@PathVariable Long id) {
+        examService.deleteExamVariants(id);
+        return ResponseEntity.noContent().build();
+    }
 }

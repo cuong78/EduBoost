@@ -891,13 +891,21 @@ public class ExamServiceImpl implements ExamService {
     public List<ExamResponse> getMyExams() {
         User currentUser = getCurrentUser();
         List<Exam> exams = examRepository.findByCreatedById(currentUser.getUserId());
-        return exams.stream().map(this::mapToExamResponse).collect(Collectors.toList());
+        // Filter out variant exams — they show under parent exam only
+        return exams.stream()
+                .filter(e -> e.getParentExam() == null)
+                .map(this::mapToExamResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<ExamResponse> getPublishedExams(Long subjectId, Integer gradeLevel, Long examTypeId) {
         List<Exam> exams = examRepository.findPublishedByFilters(subjectId, gradeLevel, examTypeId);
-        return exams.stream().map(this::mapToExamResponse).collect(Collectors.toList());
+        // Filter out variant exams
+        return exams.stream()
+                .filter(e -> e.getParentExam() == null)
+                .map(this::mapToExamResponse)
+                .collect(Collectors.toList());
     }
 
     // Helper methods
@@ -1055,6 +1063,9 @@ public class ExamServiceImpl implements ExamService {
                 .createdAt(exam.getCreatedAt())
                 .publishedAt(exam.getPublishedAt())
                 .updatedAt(exam.getUpdatedAt())
+                .parentExamId(exam.getParentExam() != null ? exam.getParentExam().getId() : null)
+                .variantNumber(exam.getVariantNumber())
+                .variantCount(exam.getVariants() != null ? exam.getVariants().size() : 0)
                 .build();
     }
     
@@ -1106,6 +1117,13 @@ public class ExamServiceImpl implements ExamService {
         if (eq.getModifiedBy() != null) {
             builder.modifiedByName(eq.getModifiedBy().getFullName());
         }
+        
+        // Variant fields
+        builder.correctAnswerLabel(eq.getCorrectAnswerLabel())
+               .optionA(eq.getOptionA())
+               .optionB(eq.getOptionB())
+               .optionC(eq.getOptionC())
+               .optionD(eq.getOptionD());
         
         return builder.build();
     }
@@ -1159,6 +1177,133 @@ public class ExamServiceImpl implements ExamService {
             case "FINAL" -> "90 phút";
             default -> "N/A";
         };
+    }
+
+    // ─── Variant (Shuffle) Implementation ─────────────────────────────────────
+    
+    @Override
+    @Transactional
+    public List<ExamResponse> shuffleExam(Long examId, ShuffleExamRequest request) {
+        Exam original = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found: " + examId));
+        
+        // Only allow shuffling original exams (not variants)
+        if (original.getParentExam() != null) {
+            throw new IllegalStateException("Cannot shuffle a variant exam. Use the original exam.");
+        }
+        
+        List<ExamQuestion> originalQuestions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
+        if (originalQuestions.isEmpty()) {
+            throw new IllegalStateException("Exam has no questions to shuffle.");
+        }
+        
+        int numberOfVariants = request.getNumberOfVariants() != null ? request.getNumberOfVariants() : 1;
+        boolean shuffleQ = request.getShuffleQuestions() != null ? request.getShuffleQuestions() : true;
+        boolean shuffleA = request.getShuffleAnswers() != null ? request.getShuffleAnswers() : true;
+        
+        // Delete existing variants first
+        deleteExamVariants(examId);
+        
+        List<ExamResponse> variants = new ArrayList<>();
+        String[] labels = {"A", "B", "C", "D"};
+        
+        for (int v = 1; v <= numberOfVariants; v++) {
+            // Create variant exam
+            Exam variant = Exam.builder()
+                    .examCode(original.getExamCode() + "-" + String.format("%03d", v))
+                    .examTitle(original.getExamTitle())
+                    .examType(original.getExamType())
+                    .subject(original.getSubject())
+                    .gradeLevel(original.getGradeLevel())
+                    .chapter(original.getChapter())
+                    .semester(original.getSemester())
+                    .schoolYear(original.getSchoolYear())
+                    .matrixTemplate(original.getMatrixTemplate())
+                    .totalQuestions(original.getTotalQuestions())
+                    .totalPoints(original.getTotalPoints())
+                    .createdBy(original.getCreatedBy())
+                    .status(ExamStatus.DRAFT)
+                    .parentExam(original)
+                    .variantNumber(v)
+                    .build();
+            variant = examRepository.save(variant);
+            
+            // Shuffle question order
+            List<ExamQuestion> shuffledQuestions = new ArrayList<>(originalQuestions);
+            if (shuffleQ) {
+                Collections.shuffle(shuffledQuestions);
+            }
+            
+            // Create variant questions
+            for (int i = 0; i < shuffledQuestions.size(); i++) {
+                ExamQuestion orig = shuffledQuestions.get(i);
+                
+                // Prepare answer list: index 0 = correct
+                List<String> answers = new ArrayList<>();
+                answers.add(orig.getCorrectAnswer());
+                if (orig.getWrongAnswer1() != null) answers.add(orig.getWrongAnswer1());
+                if (orig.getWrongAnswer2() != null) answers.add(orig.getWrongAnswer2());
+                if (orig.getWrongAnswer3() != null) answers.add(orig.getWrongAnswer3());
+                
+                // Create index mapping
+                List<Integer> indices = new ArrayList<>();
+                for (int j = 0; j < answers.size(); j++) indices.add(j);
+                
+                if (shuffleA) {
+                    Collections.shuffle(indices);
+                }
+                
+                // Find which position has the correct answer (index 0)
+                String correctLabel = labels[indices.indexOf(0)];
+                
+                ExamQuestion variantQ = ExamQuestion.builder()
+                        .exam(variant)
+                        .orderNumber(i + 1)
+                        .questionText(orig.getQuestionText())
+                        .correctAnswer(orig.getCorrectAnswer())
+                        .explanation(orig.getExplanation())
+                        .wrongAnswer1(orig.getWrongAnswer1())
+                        .wrongAnswer2(orig.getWrongAnswer2())
+                        .wrongAnswer3(orig.getWrongAnswer3())
+                        .optionA(indices.size() > 0 ? answers.get(indices.get(0)) : null)
+                        .optionB(indices.size() > 1 ? answers.get(indices.get(1)) : null)
+                        .optionC(indices.size() > 2 ? answers.get(indices.get(2)) : null)
+                        .optionD(indices.size() > 3 ? answers.get(indices.get(3)) : null)
+                        .correctAnswerLabel(correctLabel)
+                        .points(orig.getPoints())
+                        .sourceFlag(orig.getSourceFlag())
+                        .cognitiveLevel(orig.getCognitiveLevel())
+                        .lesson(orig.getLesson())
+                        .question(orig.getQuestion())
+                        .build();
+                examQuestionRepository.save(variantQ);
+            }
+            
+            variants.add(mapToExamResponse(variant));
+        }
+        
+        log.info("Created {} variants for exam {}", numberOfVariants, original.getExamCode());
+        return variants;
+    }
+    
+    @Override
+    public List<ExamResponse> getExamVariants(Long examId) {
+        Exam original = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found: " + examId));
+        
+        List<Exam> variants = examRepository.findByParentExamIdOrderByVariantNumber(examId);
+        return variants.stream().map(this::mapToExamResponse).collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional
+    public void deleteExamVariants(Long examId) {
+        List<Exam> variants = examRepository.findByParentExamIdOrderByVariantNumber(examId);
+        for (Exam variant : variants) {
+            examQuestionRepository.deleteByExamId(variant.getId());
+            examRepository.delete(variant);
+        }
+        log.info("Deleted {} variants for exam {}", variants.size(), examId);
     }
 
 }

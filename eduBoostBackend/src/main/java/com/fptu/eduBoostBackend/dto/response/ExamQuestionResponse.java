@@ -43,4 +43,11 @@ public class ExamQuestionResponse {
     private String modifiedByName;
     
     private LocalDateTime createdAt;
+    
+    // Variant (shuffle) support
+    private String correctAnswerLabel; // A, B, C, D
+    private String optionA;
+    private String optionB;
+    private String optionC;
+    private String optionD;
 }

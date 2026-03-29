@@ -386,4 +386,31 @@ export const examService = {
         useMock()
             ? mockResolve([])
             : apiClient.get(API.EXAMS_PUBLISHED, { params }).then((res) => res.data),
+
+    // ==================== Shuffle (Variants) ====================
+    
+    /**
+     * Create shuffled variants of an exam
+     * @param {Object} data - { numberOfVariants, shuffleQuestions, shuffleAnswers }
+     */
+    shuffleExam: (examId, data) =>
+        useMock()
+            ? mockResolve([])
+            : apiClient.post(`${API.EXAMS}/${examId}/shuffle`, data).then((res) => res.data),
+    
+    /**
+     * Get all variants of a parent exam
+     */
+    getExamVariants: (examId) =>
+        useMock()
+            ? mockResolve([])
+            : apiClient.get(`${API.EXAMS}/${examId}/variants`).then((res) => res.data),
+    
+    /**
+     * Delete all variants of a parent exam
+     */
+    deleteExamVariants: (examId) =>
+        useMock()
+            ? mockResolve()
+            : apiClient.delete(`${API.EXAMS}/${examId}/variants`).then((res) => res.data),
 };

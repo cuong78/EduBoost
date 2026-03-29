@@ -55,6 +55,10 @@ public class ExamResponse {
     private LocalDateTime publishedAt;
     private LocalDateTime updatedAt;
     
+    // Variant support
+    private Long parentExamId;
+    private Integer variantNumber;
+    private Integer variantCount; // number of variants (for parent exams)
     // Questions list (when fetching details)
     private List<ExamQuestionResponse> questions;
     
