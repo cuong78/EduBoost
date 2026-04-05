@@ -30,6 +30,7 @@ import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -319,13 +320,14 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AIGenerateVariationsResponse generateVariations(AIGenerateVariationsRequest request) {
         long startTime = System.currentTimeMillis();
         log.info("Starting AI variation generation for {} base questions, {} variations each", 
                 request.getBaseQuestionIds().size(), request.getNumberOfVariations());
 
-        // 1. Fetch base questions
-        List<QuestionBank> baseQuestions = questionBankRepository.findAllById(request.getBaseQuestionIds());
+        // 1. Fetch base questions with eager-loaded cognitiveLevel to avoid LazyInitializationException
+        List<QuestionBank> baseQuestions = questionBankRepository.findAllByIdWithCognitiveLevel(request.getBaseQuestionIds());
         if (baseQuestions.isEmpty()) {
             throw new ResourceNotFoundException("No questions found with the provided IDs");
         }

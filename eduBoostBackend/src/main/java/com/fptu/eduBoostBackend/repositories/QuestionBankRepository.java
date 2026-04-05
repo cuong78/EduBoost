@@ -78,6 +78,12 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
     List<QuestionBank> findByLessonIdAndCognitiveLevelId(
             @Param("lessonId") Long lessonId,
             @Param("cognitiveLevelId") Long cognitiveLevelId);
+    @Query("SELECT q FROM QuestionBank q " +
+           "LEFT JOIN FETCH q.cognitiveLevel " +
+           "LEFT JOIN FETCH q.lesson " +
+           "WHERE q.id IN :ids")
+    List<QuestionBank> findAllByIdWithCognitiveLevel(@Param("ids") List<Long> ids);
+
     @Query("""
         SELECT l.id AS lessonId, l.lessonName AS lessonName, l.lessonNumber AS lessonNumber,
                c.id AS chapterId, c.chapterNumber AS chapterNumber, c.chapterName AS chapterName,
