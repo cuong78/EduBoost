@@ -12,12 +12,10 @@ import {
   ChevronDown,
   ChevronUp,
   Lightbulb,
-  Upload,
   ArrowRight,
   CheckCircle,
   HelpCircle,
-  Globe,
-  Workflow,
+  ShieldCheck,
 } from "lucide-react";
 
 /* ─── Data hướng dẫn ──────────────────────────────────────────────────────────── */
@@ -149,33 +147,34 @@ const GUIDE_SECTIONS = [
   },
 ];
 
-/* ─── Workflow data with Lucide icons ─────────────────────────────────────────── */
-const WORKFLOW_ICONS = [Upload, PenLine, Table2, FilePlus, Globe];
-const WORKFLOW = [
+const GUIDE_CATEGORIES = [
   {
-    step: 1,
-    title: "Upload tài nguyên",
-    desc: "Upload tài liệu bài học (.docx, .pdf) vào Quản lý tài nguyên.",
+    id: "classroom",
+    icon: Users,
+    title: "Quản lý lớp học",
+    desc: "Thiết lập lớp, quản lý học sinh và tài khoản học sinh.",
+    items: ["Lớp học"],
   },
   {
-    step: 2,
-    title: "Tạo câu hỏi",
-    desc: "Tạo câu hỏi bằng nhập tay, import file, hoặc AI từ tài nguyên đã upload.",
+    id: "content",
+    icon: FolderOpen,
+    title: "Nội dung học tập",
+    desc: "Chuẩn bị tài nguyên và xây dựng ngân hàng câu hỏi.",
+    items: ["Quản lý tài nguyên", "Tạo câu hỏi", "Ngân hàng câu hỏi"],
   },
   {
-    step: 3,
-    title: "Tạo ma trận",
-    desc: "Lập ma trận phân bổ câu hỏi theo mức nhận thức và bài học (cho đề 1 tiết trở lên).",
+    id: "assessment",
+    icon: FilePlus,
+    title: "Đề thi & Đánh giá",
+    desc: "Thiết kế ma trận, tạo đề, theo dõi và xuất bản đề thi.",
+    items: ["Quản lý ma trận đề thi", "Tạo đề thi", "Quản lý đề thi"],
   },
   {
-    step: 4,
-    title: "Tạo đề thi",
-    desc: "Chọn ma trận → Hệ thống tự chọn câu + AI bổ sung → Review & xuất PDF.",
-  },
-  {
-    step: 5,
-    title: "Xuất bản & Chia sẻ",
-    desc: "Xuất đề PDF hoặc công bố để học sinh làm bài, giáo viên tham khảo.",
+    id: "support",
+    icon: ShieldCheck,
+    title: "Hỗ trợ & Phản hồi",
+    desc: "Gửi phản hồi, báo lỗi và theo dõi hỗ trợ từ hệ thống.",
+    items: ["Góp ý"],
   },
 ];
 
@@ -198,29 +197,26 @@ const TeacherGuide = () => {
         </div>
       </div>
 
-      {/* Workflow Overview */}
-      <div className="guide-workflow glass">
+      {/* Category Overview */}
+      <div className="guide-categories glass">
         <h2>
-          <Workflow size={20} /> Quy trình làm việc tổng quan
+          <BookOpen size={20} /> Danh mục hướng dẫn
         </h2>
-        <div className="workflow-steps">
-          {WORKFLOW.map((w, idx) => {
-            const WIcon = WORKFLOW_ICONS[idx];
+        <div className="guide-category-grid">
+          {GUIDE_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon;
             return (
-              <div key={w.step} className="workflow-step">
-                <div className="ws-icon-wrap">
-                  <WIcon size={22} />
+              <div key={category.id} className="guide-category-card">
+                <div className="gcc-icon-wrap">
+                  <CategoryIcon size={22} />
                 </div>
-                <div className="ws-content">
-                  <span className="ws-num">Bước {w.step}</span>
-                  <strong>{w.title}</strong>
-                  <p>{w.desc}</p>
+                <strong>{category.title}</strong>
+                <p>{category.desc}</p>
+                <div className="gcc-tags">
+                  {category.items.map((item) => (
+                    <span key={item} className="gcc-tag">{item}</span>
+                  ))}
                 </div>
-                {idx < WORKFLOW.length - 1 && (
-                  <div className="ws-arrow">
-                    <ArrowRight size={18} />
-                  </div>
-                )}
               </div>
             );
           })}
@@ -368,13 +364,13 @@ const TeacherGuide = () => {
           font-size: 1rem;
         }
 
-        /* Workflow */
-        .guide-workflow {
+        /* Category overview */
+        .guide-categories {
           padding: 1.5rem;
           border-radius: 16px;
           margin-bottom: 2rem;
         }
-        .guide-workflow h2 {
+        .guide-categories h2 {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -383,19 +379,19 @@ const TeacherGuide = () => {
           margin: 0 0 1.25rem;
           color: var(--color-text-primary, #1e293b);
         }
-        .workflow-steps {
-          display: flex;
-          flex-wrap: wrap;
+
+        .guide-category-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: 12px;
-          align-items: stretch;
         }
-        .workflow-step {
+
+        .guide-category-card {
           flex: 1;
-          min-width: 150px;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          text-align: center;
+          align-items: flex-start;
+          text-align: left;
           padding: 16px 12px;
           border-radius: 14px;
           background: rgba(99, 102, 241, 0.04);
@@ -403,11 +399,11 @@ const TeacherGuide = () => {
           position: relative;
           transition: all 0.2s;
         }
-        .workflow-step:hover {
+        .guide-category-card:hover {
           background: rgba(99, 102, 241, 0.08);
           transform: translateY(-2px);
         }
-        .ws-icon-wrap {
+        .gcc-icon-wrap {
           width: 44px;
           height: 44px;
           border-radius: 12px;
@@ -418,29 +414,37 @@ const TeacherGuide = () => {
           margin-bottom: 10px;
           color: #6366f1;
         }
-        .ws-num {
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: #6366f1;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          display: block;
-          margin-bottom: 2px;
-        }
-        .ws-content strong {
+
+        .guide-category-card strong {
           font-size: 0.9rem;
           color: var(--color-text-primary, #1e293b);
           display: block;
           margin-bottom: 4px;
         }
-        .ws-content p {
+
+        .guide-category-card p {
           font-size: 0.78rem;
           color: var(--color-text-secondary, #64748b);
-          margin: 0;
+          margin: 0 0 8px;
           line-height: 1.4;
         }
-        .ws-arrow {
-          display: none;
+
+        .gcc-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .gcc-tag {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #4f46e5;
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.16);
         }
 
         /* Sections */
@@ -635,8 +639,7 @@ const TeacherGuide = () => {
         @media (max-width: 768px) {
           .guide-page { padding: 1rem; }
           .guide-header h1 { font-size: 1.4rem; }
-          .workflow-steps { flex-direction: column; }
-          .workflow-step { min-width: auto; }
+          .guide-category-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

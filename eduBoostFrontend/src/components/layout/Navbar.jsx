@@ -43,7 +43,7 @@ const Navbar = () => {
     if (roleName === 'PARENT') return '/parent';
     if (roleName === 'STUDENT') return '/student';
     if (roleName === 'ADMIN') return '/admin';
-    return '/teacher';
+    return '/teacher/home';
   };
 
   return (

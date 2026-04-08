@@ -34,6 +34,31 @@ const StatusBadge = ({ status }) => {
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 const fmtPoints = (n) => n != null ? Number(n).toFixed(1) : "—";
 
+const FilterChipGroup = ({ label, value, onChange, options, allLabel = "Tất cả" }) => (
+  <div className="em-chip-group">
+    <span className="em-chip-group-label">{label}</span>
+    <div className="em-filter-chip-row">
+      <button
+        type="button"
+        className={`em-filter-chip ${!value ? "is-active" : ""}`}
+        onClick={() => onChange("")}
+      >
+        {allLabel}
+      </button>
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          className={`em-filter-chip ${String(value) === String(opt.value) ? "is-active" : ""}`}
+          onClick={() => onChange(String(opt.value))}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
 /* ═══════════════════════════════════════════════════════════════ */
 const ExamManagement = () => {
   const navigate = useNavigate();
@@ -73,9 +98,6 @@ const ExamManagement = () => {
   const [examStats,         setExamStats]        = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingExam,      setDeletingExam]     = useState(null);
-  const [commDetail,        setCommDetail]       = useState(null);
-  const [commDetailLoading, setCommDetailLoading] = useState(false);
-  const [showCommDetail,    setShowCommDetail]   = useState(false);
 
   /* action */
   const [actionLoading, setActionLoading] = useState({});
@@ -179,16 +201,21 @@ const ExamManagement = () => {
     }
   };
 
-  const openCommDetail = async (exam) => {
-    setShowCommDetail(true);
-    setCommDetailLoading(true);
-    try {
-      setCommDetail(await examService.getExamById(exam.id));
-    } catch {
-      showErrorToast("Không thể tải chi tiết"); setShowCommDetail(false);
-    } finally {
-      setCommDetailLoading(false);
+  const getQuestionOptions = (q) => {
+    if (Array.isArray(q?.options) && q.options.length > 0) {
+      return q.options.map((opt, idx) => ({
+        label: opt.optionLabel || String.fromCharCode(65 + idx),
+        text: opt.optionText || opt.content || opt.text || "",
+        isCorrect: !!opt.isCorrect,
+      }));
     }
+    return [q?.correctAnswer, q?.wrongAnswer1, q?.wrongAnswer2, q?.wrongAnswer3]
+      .filter(Boolean)
+      .map((text, idx) => ({
+        label: String.fromCharCode(65 + idx),
+        text,
+        isCorrect: idx === 0,
+      }));
   };
 
 
@@ -289,20 +316,31 @@ const ExamManagement = () => {
               <Search size={16}/>
               <input placeholder="Tìm đề thi cộng đồng..." value={cfSearch} onChange={e => setCfSearch(e.target.value)}/>
             </div>
-            <div className="em-filter-row">
-              <select value={cfSubject} onChange={e => setCfSubject(e.target.value)}>
-                <option value="">Tất cả môn</option>
-                {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectCode} — {s.subjectName || s.name}</option>)}
-              </select>
-              <select value={cfGrade} onChange={e => setCfGrade(e.target.value)}>
-                <option value="">Tất cả khối</option>
-                {GRADE_OPTIONS.map(g => <option key={g} value={g}>Khối {g}</option>)}
-              </select>
-              <select value={cfType} onChange={e => setCfType(e.target.value)}>
-                <option value="">Loại đề</option>
-                {examTypes.map(t => <option key={t.id} value={t.id}>{t.typeName}</option>)}
-              </select>
-              <button className="em-btn em-btn-ghost" onClick={loadCommunityExams}><RefreshCw size={15}/></button>
+            <div className="em-filter-groups">
+              <FilterChipGroup
+                label="Môn học"
+                value={cfSubject}
+                onChange={setCfSubject}
+                options={subjects.map((s) => ({ value: s.id, label: `${s.subjectCode} — ${s.subjectName || s.name}` }))}
+                allLabel="Tất cả môn"
+              />
+              <FilterChipGroup
+                label="Khối"
+                value={cfGrade}
+                onChange={setCfGrade}
+                options={GRADE_OPTIONS.map((g) => ({ value: g, label: `Khối ${g}` }))}
+                allLabel="Tất cả khối"
+              />
+              <FilterChipGroup
+                label="Loại đề"
+                value={cfType}
+                onChange={setCfType}
+                options={examTypes.map((t) => ({ value: t.id, label: t.typeName }))}
+                allLabel="Tất cả loại đề"
+              />
+            </div>
+            <div className="em-filter-actions">
+              <button className="em-btn em-btn-ghost" onClick={loadCommunityExams}><RefreshCw size={15}/> Làm mới</button>
             </div>
           </div>
 
@@ -337,7 +375,7 @@ const ExamManagement = () => {
                         <div className="em-comm-matrix"><LayoutGrid size={12}/> {exam.matrixTemplateName}</div>
                       )}
                       <div className="em-comm-actions">
-                        <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}>
+                        <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => openDetail(exam)}>
                           <Eye size={14}/> Xem đề
                         </button>
                       </div>
@@ -359,24 +397,38 @@ const ExamManagement = () => {
               <Search size={16}/>
               <input placeholder="Tìm theo tên / mã đề..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
             </div>
-            <div className="em-filter-row">
-              <select value={filterSubject} onChange={e => resetAndFilter(setFilterSubject, e.target.value)}>
-                <option value="">Tất cả môn</option>
-                {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectCode} — {s.subjectName || s.name}</option>)}
-              </select>
-              <select value={filterGrade} onChange={e => resetAndFilter(setFilterGrade, e.target.value)}>
-                <option value="">Tất cả khối</option>
-                {GRADE_OPTIONS.map(g => <option key={g} value={g}>Khối {g}</option>)}
-              </select>
-              <select value={filterType} onChange={e => resetAndFilter(setFilterType, e.target.value)}>
-                <option value="">Loại đề</option>
-                {examTypes.map(t => <option key={t.id} value={t.id}>{t.typeName}</option>)}
-              </select>
-              <select value={filterStatus} onChange={e => resetAndFilter(setFilterStatus, e.target.value)}>
-                <option value="">Trạng thái</option>
-                {Object.entries(EXAM_STATUS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-              <button className="em-btn em-btn-ghost" onClick={loadExams}><RefreshCw size={15}/></button>
+            <div className="em-filter-groups">
+              <FilterChipGroup
+                label="Môn học"
+                value={filterSubject}
+                onChange={(val) => resetAndFilter(setFilterSubject, val)}
+                options={subjects.map((s) => ({ value: s.id, label: `${s.subjectCode} — ${s.subjectName || s.name}` }))}
+                allLabel="Tất cả môn"
+              />
+              <FilterChipGroup
+                label="Khối"
+                value={filterGrade}
+                onChange={(val) => resetAndFilter(setFilterGrade, val)}
+                options={GRADE_OPTIONS.map((g) => ({ value: g, label: `Khối ${g}` }))}
+                allLabel="Tất cả khối"
+              />
+              <FilterChipGroup
+                label="Loại đề"
+                value={filterType}
+                onChange={(val) => resetAndFilter(setFilterType, val)}
+                options={examTypes.map((t) => ({ value: t.id, label: t.typeName }))}
+                allLabel="Tất cả loại đề"
+              />
+              <FilterChipGroup
+                label="Trạng thái"
+                value={filterStatus}
+                onChange={(val) => resetAndFilter(setFilterStatus, val)}
+                options={Object.entries(EXAM_STATUS).map(([k, v]) => ({ value: k, label: v.label }))}
+                allLabel="Tất cả trạng thái"
+              />
+            </div>
+            <div className="em-filter-actions">
+              <button className="em-btn em-btn-ghost" onClick={loadExams}><RefreshCw size={15}/> Làm mới</button>
             </div>
           </div>
 
@@ -420,7 +472,7 @@ const ExamManagement = () => {
                         <td className="em-date">{fmtDate(exam.createdAt)}</td>
                         <td>
                           <div className="em-actions">
-                            <button className="em-icon-btn" title="Xem đề" onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}><Eye size={15}/></button>
+                            <button className="em-icon-btn" title="Xem đề" onClick={() => openDetail(exam)}><Eye size={15}/></button>
                             <button className="em-icon-btn" title="Thống kê" onClick={() => openStats(exam)}><BarChart2 size={15}/></button>
                             <div className="em-export-wrapper" ref={exportMenuId === exam.id ? exportRef : null}>
                               <button className="em-icon-btn" title="Xuất PDF" disabled={busy}
@@ -478,6 +530,88 @@ const ExamManagement = () => {
       )}
 
 
+
+      {/* ════════ EXAM PREVIEW MODAL ════════ */}
+      {showDetail && (
+        <div className="em-overlay" onClick={() => setShowDetail(false)}>
+          <div className="em-modal em-modal--wide" onClick={e => e.stopPropagation()}>
+            <div className="em-modal-header">
+              <div>
+                <h2>Xem đề thi — {selectedExam?.examTitle || detailExam?.examTitle}</h2>
+                <p className="em-modal-meta">
+                  {(selectedExam?.examCode || detailExam?.examCode) || "—"}
+                  {detailExam?.status && <>&nbsp;&bull;&nbsp;<StatusBadge status={detailExam.status}/></>}
+                </p>
+              </div>
+              <button className="em-close" onClick={() => setShowDetail(false)}><X size={20}/></button>
+            </div>
+
+            <div className="em-modal-body">
+              {loadingDetail ? (
+                <div className="em-loading"><RefreshCw className="spin" size={22}/><span>Đang tải chi tiết đề...</span></div>
+              ) : detailExam ? (
+                <>
+                  <div className="em-info-grid">
+                    <div className="em-info-cell"><span className="em-info-label">Mã đề</span><span className="em-info-val">{detailExam.examCode || "—"}</span></div>
+                    <div className="em-info-cell"><span className="em-info-label">Môn học</span><span className="em-info-val">{detailExam.subjectName || detailExam.subjectCode || "—"}</span></div>
+                    <div className="em-info-cell"><span className="em-info-label">Khối</span><span className="em-info-val">{detailExam.gradeLevel ? `Khối ${detailExam.gradeLevel}` : "—"}</span></div>
+                    <div className="em-info-cell"><span className="em-info-label">Loại đề</span><span className="em-info-val">{detailExam.examTypeName || detailExam.examTypeCode || "—"}</span></div>
+                    <div className="em-info-cell"><span className="em-info-label">Số câu</span><span className="em-info-val">{detailExam.totalQuestions ?? detailExam.questions?.length ?? 0}</span></div>
+                    <div className="em-info-cell"><span className="em-info-label">Tổng điểm</span><span className="em-info-val">{fmtPoints(detailExam.totalPoints)}</span></div>
+                  </div>
+
+                  {detailExam.matrixTemplateName && (
+                    <div className="em-matrix-chip" style={{ marginBottom: "0.8rem" }}>
+                      <LayoutGrid size={12}/> {detailExam.matrixTemplateName}
+                    </div>
+                  )}
+
+                  <h3 className="em-section-title">Danh sách câu hỏi</h3>
+                  <div className="em-q-list">
+                    {(detailExam.questions || []).length === 0 ? (
+                      <p className="em-empty-msg">Đề thi này chưa có câu hỏi.</p>
+                    ) : (
+                      [...(detailExam.questions || [])]
+                        .sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
+                        .map((q, idx) => {
+                          const options = getQuestionOptions(q);
+                          return (
+                            <div key={q.id || `${idx}-${q.questionText?.slice(0, 20)}`} className="em-q-item">
+                              <div className="em-q-top">
+                                <span className="em-q-num">Câu {q.orderNumber || idx + 1}</span>
+                                {q.cognitiveLevelName && <span className="em-chip em-chip--level">{q.cognitiveLevelName}</span>}
+                                {q.sourceType === "AI" && <span className="em-chip em-chip--ai">AI</span>}
+                                {q.sourceType === "QUESTION_BANK" && <span className="em-chip em-chip--bank">Ngân hàng</span>}
+                                <span className="em-q-pts">{fmtPoints(q.pointsPerQuestion)} điểm</span>
+                              </div>
+
+                              <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
+
+                              <div className="em-answers">
+                                {options.map((opt) => (
+                                  <div key={`${q.id || idx}-${opt.label}`} className={`em-ans ${opt.isCorrect ? "em-ans--correct" : ""}`}>
+                                    <span className="em-ans-lbl">{opt.label}.</span>
+                                    <span><MathRenderer content={opt.text || ""} /></span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="em-empty-msg">Không có dữ liệu để hiển thị.</p>
+              )}
+            </div>
+
+            <div className="em-modal-footer">
+              <button className="em-btn em-btn-ghost" onClick={() => setShowDetail(false)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ════════ STATISTICS MODAL ════════ */}
       {showStats && examStats && (

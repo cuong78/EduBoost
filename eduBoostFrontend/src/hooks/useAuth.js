@@ -103,7 +103,7 @@ export function useAuth() {
             } else if (typeof redirect === 'string') {
                 navigate(redirect);
             } else {
-                const roleRedirect = roleName === 'PARENT' ? '/parent' : roleName === 'STUDENT' ? '/student' : roleName === 'ADMIN' ? '/admin' : '/teacher';
+                const roleRedirect = roleName === 'PARENT' ? '/parent' : roleName === 'STUDENT' ? '/student' : roleName === 'ADMIN' ? '/admin' : '/teacher/home';
                 navigate(roleRedirect);
             }
 
@@ -203,7 +203,7 @@ export function useAuth() {
                     return null;
                 };
                 const roleName = getRoleName(userInfo.roles);
-                const roleRedirect = roleName === 'PARENT' ? '/parent' : roleName === 'STUDENT' ? '/student' : roleName === 'ADMIN' ? '/admin' : '/teacher';
+                const roleRedirect = roleName === 'PARENT' ? '/parent' : roleName === 'STUDENT' ? '/student' : roleName === 'ADMIN' ? '/admin' : '/teacher/home';
                 navigate(roleRedirect);
                 
                 return true;

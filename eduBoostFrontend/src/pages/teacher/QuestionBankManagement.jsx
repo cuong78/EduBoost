@@ -1359,6 +1359,35 @@ const QuestionBankManagement = () => {
                     border-radius: 8px;
                     margin: 1rem 0;
                 }
+
+                body.dark-mode .stats-row .stat-card,
+                body.dark-mode .question-card,
+                body.dark-mode .view-content,
+                body.dark-mode .view-meta,
+                body.dark-mode .modal-content,
+                body.dark-mode .field select,
+                body.dark-mode .field input,
+                body.dark-mode .field textarea {
+                  background: rgba(15, 23, 42, 0.85);
+                  border-color: rgba(148, 163, 184, 0.22);
+                  color: var(--ds-text);
+                }
+
+                body.dark-mode .source-badge {
+                  background: rgba(148, 163, 184, 0.18);
+                  color: #cbd5e1;
+                }
+
+                body.dark-mode .question-type-badge {
+                  background: rgba(99, 102, 241, 0.2);
+                  color: #c7d2fe;
+                }
+
+                body.dark-mode .filters-section,
+                body.dark-mode .questions-section,
+                body.dark-mode .modal-content {
+                  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+                }
                 .spinner {
                     width: 20px; height: 20px;
                     border: 3px solid rgba(99, 102, 241, 0.2);

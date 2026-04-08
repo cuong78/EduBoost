@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import {
+  House,
   BookOpen,
   PenLine,
   FilePlus,
@@ -48,67 +49,74 @@ const TeacherLayout = () => {
 
         <nav className="dl-nav">
           <Link
+            to="/teacher/home"
+            className={`dl-nav-item ${isActive("/teacher/home") ? "active" : ""}`}
+            onClick={closeSidebar}
+          >
+            <House size={20} /> <span className="dl-nav-label">Màn hình chính</span>
+          </Link>
+          <Link
             to="/teacher/classes"
             className={`dl-nav-item ${location.pathname.startsWith("/teacher/classes") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <Users size={20} /> Lớp học
+            <Users size={20} /> <span className="dl-nav-label">Lớp học</span>
           </Link>
           <Link
             to="/teacher/create-question"
             className={`dl-nav-item dl-nav-highlight ${isActive("/teacher/create-question") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <PenLine size={20} /> Tạo câu hỏi
+            <PenLine size={20} /> <span className="dl-nav-label">Tạo câu hỏi</span>
           </Link>
           <Link
             to="/teacher/question-bank"
             className={`dl-nav-item ${isActive("/teacher/question-bank") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <Library size={20} /> Ngân hàng câu hỏi
+            <Library size={20} /> <span className="dl-nav-label">Ngân hàng câu hỏi</span>
           </Link>
           <Link
             to="/teacher/resources"
             className={`dl-nav-item ${isActive("/teacher/resources") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <FolderOpen size={20} /> Quản lý tài nguyên
+            <FolderOpen size={20} /> <span className="dl-nav-label">Quản lý tài nguyên</span>
           </Link>
           <Link
             to="/teacher/matrix-templates"
             className={`dl-nav-item dl-nav-highlight ${isActive("/teacher/matrix-templates") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <Table2 size={20} /> Quản lý ma trận
+            <Table2 size={20} /> <span className="dl-nav-label">Quản lý ma trận</span>
           </Link>
           <Link
             to="/teacher/exams"
             className={`dl-nav-item ${location.pathname.startsWith("/teacher/exams") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <ClipboardList size={20} /> Quản lý đề thi
+            <ClipboardList size={20} /> <span className="dl-nav-label">Quản lý đề thi</span>
           </Link>
           <Link
             to="/teacher/create-exam"
             className={`dl-nav-item dl-nav-highlight ${isActive("/teacher/create-exam") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <FilePlus size={20} /> Tạo đề thi
+            <FilePlus size={20} /> <span className="dl-nav-label">Tạo đề thi</span>
           </Link>
           <Link
             to="/teacher/feedback"
             className={`dl-nav-item ${isActive("/teacher/feedback") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <Send size={20} /> Góp ý
+            <Send size={20} /> <span className="dl-nav-label">Góp ý</span>
           </Link>
           <Link
             to="/teacher/subscription"
             className={`dl-nav-item ${isActive("/teacher/subscription") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <Gem size={20} /> Gói đăng ký
+            <Gem size={20} /> <span className="dl-nav-label">Gói đăng ký</span>
           </Link>
 
           {/* Divider + Guide link */}
@@ -118,7 +126,7 @@ const TeacherLayout = () => {
             className={`dl-nav-item ${isActive("/teacher/guide") ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <BookOpen size={20} /> Hướng dẫn
+            <BookOpen size={20} /> <span className="dl-nav-label">Hướng dẫn</span>
           </Link>
         </nav>
 
