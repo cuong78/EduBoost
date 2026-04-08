@@ -74,6 +74,10 @@ const QuestionBankManagement = () => {
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [lessons, setLessons] = useState([]);
   const [lessonId, setLessonId] = useState("");
+  const [gradeConfirmed, setGradeConfirmed] = useState(false);
+  const [subjectConfirmed, setSubjectConfirmed] = useState(false);
+  const [chapterConfirmed, setChapterConfirmed] = useState(false);
+  const [lessonConfirmed, setLessonConfirmed] = useState(false);
 
   const [sourceTypeFilter, setSourceTypeFilter] = useState("");
   const [cognitiveLevelFilter, setCognitiveLevelFilter] = useState("");
@@ -125,8 +129,6 @@ const QuestionBankManagement = () => {
       const data = await knowledgeService.getSubjects();
       const list = Array.isArray(data) ? data : (data?.data ?? []);
       setSubjects(list);
-      const filtered = filterSubjectsByGrade(list, gradeLevel);
-      if (!subjectId && filtered.length > 0) setSubjectId(String(filtered[0].id));
     } catch (e) {
       setSubjects([]);
       showErrorToast("Không tải được danh sách môn học");
@@ -232,18 +234,13 @@ const QuestionBankManagement = () => {
     loadCognitiveLevels();
   }, []);
 
-  // Khi gradeLevel thay đổi → reset subjectId về môn đầu tiên trong nhóm mới
   useEffect(() => {
-    const filtered = filterSubjectsByGrade(subjects, gradeLevel);
-    if (filtered.length > 0) {
-      setSubjectId(String(filtered[0].id));
+    if (subjectId) {
+      loadChapters(subjectId, gradeLevel);
     } else {
-      setSubjectId("");
+      setChapters([]);
+      setChapterId("");
     }
-  }, [gradeLevel]);
-
-  useEffect(() => {
-    if (subjectId) loadChapters(subjectId, gradeLevel);
   }, [subjectId, gradeLevel]);
 
   useEffect(() => {
@@ -263,6 +260,42 @@ const QuestionBankManagement = () => {
   useEffect(() => {
     loadStats();
   }, [subjectId, gradeLevel]);
+
+  const handleSelectGrade = (nextGrade) => {
+    setGradeLevel(Number(nextGrade));
+    setGradeConfirmed(true);
+    setSubjectConfirmed(false);
+    setChapterConfirmed(false);
+    setLessonConfirmed(false);
+    setSubjectId("");
+    setChapterId("");
+    setLessonId("");
+    setCurrentPage(0);
+  };
+
+  const handleSelectSubject = (nextSubjectId) => {
+    setSubjectId(String(nextSubjectId));
+    setSubjectConfirmed(true);
+    setChapterConfirmed(false);
+    setLessonConfirmed(false);
+    setChapterId("");
+    setLessonId("");
+    setCurrentPage(0);
+  };
+
+  const handleSelectChapter = (nextChapterId) => {
+    setChapterId(String(nextChapterId));
+    setChapterConfirmed(true);
+    setLessonConfirmed(false);
+    setLessonId("");
+    setCurrentPage(0);
+  };
+
+  const handleSelectLesson = (nextLessonId) => {
+    setLessonId(String(nextLessonId));
+    setLessonConfirmed(true);
+    setCurrentPage(0);
+  };
 
   const canEditOrDelete = (question) => {
     if (!user || !question) return false;
@@ -421,69 +454,120 @@ const QuestionBankManagement = () => {
         <h3>
           <Filter size={18} /> Bộ lọc
         </h3>
-        <div className="filters-grid">
-          <div className="field">
-            <label>Khối</label>
-            <select
-              value={gradeLevel}
-              onChange={(e) => setGradeLevel(Number(e.target.value))}
-            >
-              {GRADE_OPTIONS.map((g) => (
-                <option key={g} value={g}>
-                  Lớp {g}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Môn học</label>
-            <select
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              disabled={loadingSubjects}
-            >
-              <option value="">Chọn môn...</option>
-              {filteredSubjects.length > 0 ? (
-                filteredSubjects.map((s) => (
-                  <option key={s.id} value={String(s.id)}>
-                    {s.subjectName || s.name || ""}
-                  </option>
-                ))
+        <div className={`compact-selector-row ${lessonConfirmed ? "is-complete" : ""}`}>
+          {!gradeConfirmed ? (
+            <div className="compact-chip-block">
+              <div className="selector-title">Khối</div>
+              <div className="chip-list">
+                {GRADE_OPTIONS.map((g) => (
+                  <button key={g} type="button" className="choice-chip" onClick={() => handleSelectGrade(g)}>
+                    Lớp {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="compact-selector-block">
+                <div className="selector-title">Khối</div>
+                <select className="chip-dropdown" value={gradeLevel} onChange={(e) => handleSelectGrade(e.target.value)}>
+                  {GRADE_OPTIONS.map((g) => (
+                    <option key={g} value={g}>Lớp {g}</option>
+                  ))}
+                </select>
+              </div>
+
+              {!subjectConfirmed ? (
+                <div className="compact-chip-block">
+                  <div className="selector-title">Môn học</div>
+                  <div className="chip-list">
+                    {filteredSubjects.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className="choice-chip"
+                        onClick={() => handleSelectSubject(s.id)}
+                        disabled={loadingSubjects}
+                      >
+                        {s.subjectName || s.name || ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
-                <option value="">-- Không có môn phù hợp --</option>
+                <>
+                  <div className="compact-selector-block">
+                    <div className="selector-title">Môn học</div>
+                    <select className="chip-dropdown" value={subjectId} onChange={(e) => handleSelectSubject(e.target.value)} disabled={loadingSubjects}>
+                      {filteredSubjects.map((s) => (
+                        <option key={s.id} value={String(s.id)}>{s.subjectName || s.name || ""}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {!chapterConfirmed ? (
+                    <div className="compact-chip-block">
+                      <div className="selector-title">Chương</div>
+                      <div className="chip-list">
+                        {chapters.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="choice-chip"
+                            onClick={() => handleSelectChapter(c.id)}
+                            disabled={loadingChapters}
+                          >
+                            Chương {c.chapterNumber}: {c.chapterName}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="compact-selector-block">
+                        <div className="selector-title">Chương</div>
+                        <select className="chip-dropdown" value={chapterId} onChange={(e) => handleSelectChapter(e.target.value)} disabled={loadingChapters || chapters.length === 0}>
+                          {chapters.map((c) => (
+                            <option key={c.id} value={String(c.id)}>Chương {c.chapterNumber}: {c.chapterName}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {!lessonConfirmed ? (
+                        <div className="compact-chip-block">
+                          <div className="selector-title">Bài học</div>
+                          <div className="chip-list">
+                            {lessons.map((l) => (
+                              <button
+                                key={l.id}
+                                type="button"
+                                className="choice-chip"
+                                onClick={() => handleSelectLesson(l.id)}
+                                disabled={loadingLessons}
+                              >
+                                Bài {l.lessonNumber}: {l.lessonName}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="compact-selector-block">
+                          <div className="selector-title">Bài học</div>
+                          <select className="chip-dropdown" value={lessonId} onChange={(e) => handleSelectLesson(e.target.value)} disabled={loadingLessons || lessons.length === 0}>
+                            {lessons.map((l) => (
+                              <option key={l.id} value={String(l.id)}>Bài {l.lessonNumber}: {l.lessonName}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
               )}
-            </select>
-          </div>
-          <div className="field">
-            <label>Chương</label>
-            <select
-              value={chapterId}
-              onChange={(e) => setChapterId(e.target.value)}
-              disabled={loadingChapters || chapters.length === 0}
-            >
-              <option value="">Tất cả chương</option>
-              {chapters.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  Chương {c.chapterNumber}: {c.chapterName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Bài học</label>
-            <select
-              value={lessonId}
-              onChange={(e) => setLessonId(e.target.value)}
-              disabled={loadingLessons || lessons.length === 0}
-            >
-              <option value="">Tất cả bài</option>
-              {lessons.map((l) => (
-                <option key={l.id} value={String(l.id)}>
-                  Bài {l.lessonNumber}: {l.lessonName}
-                </option>
-              ))}
-            </select>
-          </div>
+            </>
+          )}
+        </div>
+        <div className="filters-grid">
           <div className="field">
             <label>Nguồn</label>
             <select
@@ -1104,6 +1188,119 @@ const QuestionBankManagement = () => {
                     gap: 8px;
                     margin: 0 0 1rem;
                     font-size: 1.1rem;
+                }
+                .compact-selector-row {
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 0.75rem;
+                  margin-bottom: 1rem;
+                }
+                .compact-selector-row.is-complete {
+                  display: grid;
+                  grid-template-columns: repeat(4, minmax(0, 1fr));
+                  align-items: end;
+                }
+                .compact-selector-block {
+                  flex: 0 0 auto;
+                  min-width: 0;
+                }
+                .compact-selector-row.is-complete .compact-selector-block {
+                  width: 100%;
+                }
+                .compact-selector-block,
+                .compact-chip-block {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 0.35rem;
+                }
+                .compact-chip-block {
+                  flex: 4 1 520px;
+                  min-width: 260px;
+                }
+                .selector-title {
+                  font-weight: 700;
+                  margin-bottom: 0.5rem;
+                  font-size: 0.98rem;
+                  color: #1f2937;
+                }
+                .chip-dropdown {
+                  width: auto;
+                  min-width: 128px;
+                  max-width: 220px;
+                  height: 42px;
+                  border-radius: 10px;
+                  border: 1px solid #d5def0;
+                  background: #fff;
+                  color: #1f2937;
+                  font-weight: 600;
+                  padding: 0 2rem 0 0.75rem;
+                  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+                }
+                .chip-dropdown:hover {
+                  border-color: #b8c5ec;
+                  background: #ffffff;
+                }
+                .chip-dropdown:focus {
+                  outline: none;
+                  border-color: rgba(99, 102, 241, 0.55);
+                  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+                }
+                .chip-dropdown option {
+                  background: #ffffff;
+                  color: #1f2937;
+                }
+                .compact-selector-row.is-complete .chip-dropdown {
+                  width: 100%;
+                  max-width: 100%;
+                }
+                .chip-list {
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 0.5rem;
+                }
+                .choice-chip {
+                  border: 1px solid #b8c7d9;
+                  background: #f8fbff;
+                  color: #0f2f57;
+                  border-radius: 10px;
+                  height: 44px;
+                  padding: 0 0.9rem;
+                  font-size: 0.98rem;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.18s ease;
+                }
+                .choice-chip:hover {
+                  border-color: rgba(99,102,241,0.35);
+                  background: rgba(99,102,241,0.08);
+                  color: #4338ca;
+                }
+                .choice-chip:disabled,
+                .chip-dropdown:disabled {
+                  opacity: 0.7;
+                  cursor: not-allowed;
+                }
+                @media (max-width: 768px) {
+                  .compact-selector-block {
+                    flex: 1 1 100%;
+                  }
+                  .compact-selector-row.is-complete {
+                    grid-template-columns: 1fr;
+                  }
+                  .chip-dropdown {
+                    width: 100%;
+                    max-width: 100%;
+                  }
+                  .compact-chip-block {
+                    flex: 1 1 100%;
+                  }
+                  .chip-list {
+                    min-width: 100%;
+                  }
+                  .choice-chip {
+                    height: 40px;
+                    font-size: 0.9rem;
+                  }
                 }
                 .filters-grid {
                     display: grid;

@@ -91,9 +91,6 @@ const ExamManagement = () => {
 
   /* modals */
   const [selectedExam,      setSelectedExam]     = useState(null);
-  const [detailExam,        setDetailExam]       = useState(null);
-  const [loadingDetail,     setLoadingDetail]    = useState(false);
-  const [showDetail,        setShowDetail]       = useState(false);
   const [showStats,         setShowStats]        = useState(false);
   const [examStats,         setExamStats]        = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -178,19 +175,6 @@ const ExamManagement = () => {
   /* ════════ ACTIONS ════════ */
   const setActionFor = (id, val) => setActionLoading(prev => ({ ...prev, [id]: val }));
 
-  const openDetail = async (exam) => {
-    setSelectedExam(exam);
-    setShowDetail(true);
-    setLoadingDetail(true);
-    try {
-      setDetailExam(await examService.getExamById(exam.id));
-    } catch {
-      showErrorToast("Không thể tải chi tiết"); setShowDetail(false);
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
   const openStats = async (exam) => {
     setSelectedExam(exam);
     try {
@@ -200,25 +184,6 @@ const ExamManagement = () => {
       showErrorToast("Không thể tải thống kê");
     }
   };
-
-  const getQuestionOptions = (q) => {
-    if (Array.isArray(q?.options) && q.options.length > 0) {
-      return q.options.map((opt, idx) => ({
-        label: opt.optionLabel || String.fromCharCode(65 + idx),
-        text: opt.optionText || opt.content || opt.text || "",
-        isCorrect: !!opt.isCorrect,
-      }));
-    }
-    return [q?.correctAnswer, q?.wrongAnswer1, q?.wrongAnswer2, q?.wrongAnswer3]
-      .filter(Boolean)
-      .map((text, idx) => ({
-        label: String.fromCharCode(65 + idx),
-        text,
-        isCorrect: idx === 0,
-      }));
-  };
-
-
 
   const handlePublish = async (exam) => {
     setActionFor(exam.id, "publish");
@@ -375,7 +340,7 @@ const ExamManagement = () => {
                         <div className="em-comm-matrix"><LayoutGrid size={12}/> {exam.matrixTemplateName}</div>
                       )}
                       <div className="em-comm-actions">
-                        <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => openDetail(exam)}>
+                        <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}>
                           <Eye size={14}/> Xem đề
                         </button>
                       </div>
@@ -472,7 +437,7 @@ const ExamManagement = () => {
                         <td className="em-date">{fmtDate(exam.createdAt)}</td>
                         <td>
                           <div className="em-actions">
-                            <button className="em-icon-btn" title="Xem đề" onClick={() => openDetail(exam)}><Eye size={15}/></button>
+                            <button className="em-icon-btn" title="Xem đề" onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}><Eye size={15}/></button>
                             <button className="em-icon-btn" title="Thống kê" onClick={() => openStats(exam)}><BarChart2 size={15}/></button>
                             <div className="em-export-wrapper" ref={exportMenuId === exam.id ? exportRef : null}>
                               <button className="em-icon-btn" title="Xuất PDF" disabled={busy}
@@ -525,90 +490,6 @@ const ExamManagement = () => {
                 <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}><ChevronRight size={16}/></button>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-
-
-      {/* ════════ EXAM PREVIEW MODAL ════════ */}
-      {showDetail && (
-        <div className="em-overlay" onClick={() => setShowDetail(false)}>
-          <div className="em-modal em-modal--wide" onClick={e => e.stopPropagation()}>
-            <div className="em-modal-header">
-              <div>
-                <h2>Xem đề thi — {selectedExam?.examTitle || detailExam?.examTitle}</h2>
-                <p className="em-modal-meta">
-                  {(selectedExam?.examCode || detailExam?.examCode) || "—"}
-                  {detailExam?.status && <>&nbsp;&bull;&nbsp;<StatusBadge status={detailExam.status}/></>}
-                </p>
-              </div>
-              <button className="em-close" onClick={() => setShowDetail(false)}><X size={20}/></button>
-            </div>
-
-            <div className="em-modal-body">
-              {loadingDetail ? (
-                <div className="em-loading"><RefreshCw className="spin" size={22}/><span>Đang tải chi tiết đề...</span></div>
-              ) : detailExam ? (
-                <>
-                  <div className="em-info-grid">
-                    <div className="em-info-cell"><span className="em-info-label">Mã đề</span><span className="em-info-val">{detailExam.examCode || "—"}</span></div>
-                    <div className="em-info-cell"><span className="em-info-label">Môn học</span><span className="em-info-val">{detailExam.subjectName || detailExam.subjectCode || "—"}</span></div>
-                    <div className="em-info-cell"><span className="em-info-label">Khối</span><span className="em-info-val">{detailExam.gradeLevel ? `Khối ${detailExam.gradeLevel}` : "—"}</span></div>
-                    <div className="em-info-cell"><span className="em-info-label">Loại đề</span><span className="em-info-val">{detailExam.examTypeName || detailExam.examTypeCode || "—"}</span></div>
-                    <div className="em-info-cell"><span className="em-info-label">Số câu</span><span className="em-info-val">{detailExam.totalQuestions ?? detailExam.questions?.length ?? 0}</span></div>
-                    <div className="em-info-cell"><span className="em-info-label">Tổng điểm</span><span className="em-info-val">{fmtPoints(detailExam.totalPoints)}</span></div>
-                  </div>
-
-                  {detailExam.matrixTemplateName && (
-                    <div className="em-matrix-chip" style={{ marginBottom: "0.8rem" }}>
-                      <LayoutGrid size={12}/> {detailExam.matrixTemplateName}
-                    </div>
-                  )}
-
-                  <h3 className="em-section-title">Danh sách câu hỏi</h3>
-                  <div className="em-q-list">
-                    {(detailExam.questions || []).length === 0 ? (
-                      <p className="em-empty-msg">Đề thi này chưa có câu hỏi.</p>
-                    ) : (
-                      [...(detailExam.questions || [])]
-                        .sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
-                        .map((q, idx) => {
-                          const options = getQuestionOptions(q);
-                          return (
-                            <div key={q.id || `${idx}-${q.questionText?.slice(0, 20)}`} className="em-q-item">
-                              <div className="em-q-top">
-                                <span className="em-q-num">Câu {q.orderNumber || idx + 1}</span>
-                                {q.cognitiveLevelName && <span className="em-chip em-chip--level">{q.cognitiveLevelName}</span>}
-                                {q.sourceType === "AI" && <span className="em-chip em-chip--ai">AI</span>}
-                                {q.sourceType === "QUESTION_BANK" && <span className="em-chip em-chip--bank">Ngân hàng</span>}
-                                <span className="em-q-pts">{fmtPoints(q.pointsPerQuestion)} điểm</span>
-                              </div>
-
-                              <div className="em-q-text"><MathRenderer content={q.questionText || ""} /></div>
-
-                              <div className="em-answers">
-                                {options.map((opt) => (
-                                  <div key={`${q.id || idx}-${opt.label}`} className={`em-ans ${opt.isCorrect ? "em-ans--correct" : ""}`}>
-                                    <span className="em-ans-lbl">{opt.label}.</span>
-                                    <span><MathRenderer content={opt.text || ""} /></span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="em-empty-msg">Không có dữ liệu để hiển thị.</p>
-              )}
-            </div>
-
-            <div className="em-modal-footer">
-              <button className="em-btn em-btn-ghost" onClick={() => setShowDetail(false)}>Đóng</button>
-            </div>
           </div>
         </div>
       )}
