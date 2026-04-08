@@ -6,13 +6,16 @@ import {
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Hero from "./components/sections/Hero";
-import Features from "./components/sections/Features";
-import { CTA } from "./components/layout/Footer";
+import HomePage from "./pages/Home";
+import AboutUs from "./pages/AboutUs";
 import DynamicBackground from "./components/ui/DynamicBackground";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import RegisterMethod from "./pages/RegisterMethod";
+import ExamOnline from "./pages/features/ExamOnline";
+import DigitalSchool from "./pages/features/DigitalSchool";
+import OfflineExam from "./pages/features/OfflineExam";
+import QuestionBankFeature from "./pages/features/QuestionBank";
 import ParentLogin from "./pages/parent/ParentLogin";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
@@ -78,14 +81,6 @@ import FeedbackPage from "./pages/teacher/FeedbackPage";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 import LessonCoverage from "./pages/admin/LessonCoverage";
 
-const Home = () => (
-  <>
-    <Hero />
-    <Features />
-    <CTA />
-  </>
-);
-
 const DashboardPlaceholder = ({ title }) => (
   <div style={{ padding: "2rem", textAlign: "center" }}>
     <h2>{title}</h2>
@@ -121,14 +116,15 @@ function App() {
         <Routes>
           {/* Pricing page — accessible to everyone (logged in or not) */}
           <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/guide" element={<TeacherGuide />} />
             <Route path="/pricing" element={<Pricing />} />
-          </Route>
-
-          {/* Public Pages - Redirect if already logged in */}
-          <Route element={<RedirectIfAuthenticated />}>
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<Home />} />
-            </Route>
+            {/* Feature pages */}
+            <Route path="/features/exam" element={<ExamOnline />} />
+            <Route path="/features/digital" element={<DigitalSchool />} />
+            <Route path="/features/offline" element={<OfflineExam />} />
+            <Route path="/features/question-bank" element={<QuestionBankFeature />} />
           </Route>
 
           {/* Authentication Pages - Redirect if already logged in */}
