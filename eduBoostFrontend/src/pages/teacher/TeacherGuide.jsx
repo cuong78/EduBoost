@@ -13,10 +13,9 @@ import {
   Library,
   Lightbulb,
   PenLine,
+  ShieldCheck,
   Table2,
-  Upload,
   Users,
-  Workflow,
 } from "lucide-react";
 import { useLanguage } from "../../contexts/language-context";
 
@@ -24,36 +23,34 @@ const GUIDE_COPY = {
   vi: {
     headerTitle: "Hướng dẫn sử dụng",
     headerText: "Tất cả những gì bạn cần biết để sử dụng EduBoost hiệu quả hơn.",
-    workflowTitle: "Quy trình làm việc tổng quan",
+    categoriesTitle: "Danh mục hướng dẫn",
     featuresTitle: "Hướng dẫn chi tiết từng chức năng",
     tipsTitle: "Mẹo sử dụng hiệu quả",
     goTo: "Đi tới",
-    stepLabel: "Bước",
-    workflow: [
+    categories: [
       {
-        icon: Upload,
-        title: "Upload tài nguyên",
-        desc: "Tải tài liệu bài học lên để dùng lại khi tạo câu hỏi hoặc xây nội dung học tập.",
+        icon: Users,
+        title: "Quản lý lớp học",
+        desc: "Thiết lập lớp và quản lý học sinh trong lớp.",
+        items: ["Lớp học"],
       },
       {
-        icon: PenLine,
-        title: "Tạo câu hỏi",
-        desc: "Tạo câu hỏi bằng nhập tay, import file hoặc tận dụng tài nguyên đã có.",
-      },
-      {
-        icon: Table2,
-        title: "Tạo ma trận",
-        desc: "Xây cấu trúc đề thi theo bài học và mức độ nhận thức khi cần.",
-      },
-      {
-        icon: FilePlus,
-        title: "Tạo đề thi",
-        desc: "Ghép câu hỏi, xem trước đề thi và hoàn thiện trước khi sử dụng thực tế.",
+        icon: FolderOpen,
+        title: "Nội dung học tập",
+        desc: "Chuẩn bị tài nguyên và phát triển ngân hàng câu hỏi.",
+        items: ["Quản lý tài nguyên", "Tạo câu hỏi", "Ngân hàng câu hỏi"],
       },
       {
         icon: ClipboardList,
-        title: "Theo dõi kết quả",
-        desc: "Xem lại dữ liệu bài nộp, trạng thái và các chỉ số cần chú ý.",
+        title: "Đề thi & Đánh giá",
+        desc: "Tạo đề, quản lý ma trận và theo dõi đề thi đã tạo.",
+        items: ["Quản lý ma trận", "Tạo đề thi", "Quản lý đề thi"],
+      },
+      {
+        icon: ShieldCheck,
+        title: "Hỗ trợ",
+        desc: "Gửi phản hồi và nhận hỗ trợ trong quá trình sử dụng.",
+        items: ["Góp ý"],
       },
     ],
     sections: [
@@ -145,36 +142,34 @@ const GUIDE_COPY = {
   en: {
     headerTitle: "Teacher guide",
     headerText: "Everything you need to use EduBoost more effectively.",
-    workflowTitle: "Overview workflow",
+    categoriesTitle: "Guide categories",
     featuresTitle: "Detailed feature guide",
     tipsTitle: "Helpful usage tips",
     goTo: "Go to",
-    stepLabel: "Step",
-    workflow: [
+    categories: [
       {
-        icon: Upload,
-        title: "Upload resources",
-        desc: "Upload learning materials so they can be reused when creating questions or learning content.",
+        icon: Users,
+        title: "Classroom management",
+        desc: "Set up classes and manage students.",
+        items: ["Classes"],
       },
       {
-        icon: PenLine,
-        title: "Create questions",
-        desc: "Build questions manually, import from files, or reuse existing materials in the workflow.",
-      },
-      {
-        icon: Table2,
-        title: "Create matrices",
-        desc: "Design exam structures by topic and cognitive level when needed.",
-      },
-      {
-        icon: FilePlus,
-        title: "Create exams",
-        desc: "Assemble questions, preview the exam, and finalize it before real use.",
+        icon: FolderOpen,
+        title: "Learning content",
+        desc: "Prepare resources and build your question bank.",
+        items: ["Resource management", "Create questions", "Question bank"],
       },
       {
         icon: ClipboardList,
-        title: "Track results",
-        desc: "Review submission data, statuses, and the metrics that need attention.",
+        title: "Exams & assessment",
+        desc: "Create exams, use matrices, and review created exams.",
+        items: ["Matrix management", "Create exams", "Exam management"],
+      },
+      {
+        icon: ShieldCheck,
+        title: "Support",
+        desc: "Send feedback and get support while using EduBoost.",
+        items: ["Feedback"],
       },
     ],
     sections: [
@@ -282,25 +277,27 @@ const TeacherGuide = () => {
         </div>
       </div>
 
-      <div className="guide-workflow glass">
+      <div className="guide-categories glass">
         <h2>
-          <Workflow size={20} /> {content.workflowTitle}
+          <BookOpen size={20} /> {content.categoriesTitle}
         </h2>
-        <div className="workflow-steps">
-          {content.workflow.map((item, index) => {
+        <div className="guide-category-grid">
+          {content.categories.map((item) => {
             const Icon = item.icon;
 
             return (
-              <div key={item.title} className="workflow-step">
-                <div className="ws-icon-wrap">
+              <div key={item.title} className="guide-category-card">
+                <div className="gcc-icon-wrap">
                   <Icon size={22} />
                 </div>
-                <div className="ws-content">
-                  <span className="ws-num">
-                    {content.stepLabel} {index + 1}
-                  </span>
+                <div>
                   <strong>{item.title}</strong>
                   <p>{item.desc}</p>
+                </div>
+                <div className="gcc-tags">
+                  {item.items.map((name) => (
+                    <span key={name} className="gcc-tag">{name}</span>
+                  ))}
                 </div>
               </div>
             );
@@ -349,14 +346,14 @@ const TeacherGuide = () => {
 
               {isOpen && (
                 <div className="guide-section-body">
-                  <ol className="guide-steps">
+                  <ul className="guide-steps">
                     {section.steps.map((step, index) => (
                       <li key={step}>
-                        <span className="gs-num">{index + 1}</span>
+                        <span className="gs-dot">•</span>
                         <span className="gs-text">{step}</span>
                       </li>
                     ))}
-                  </ol>
+                  </ul>
                   <div className="guide-section-cta">
                     <Link to={section.path} className="guide-link">
                       <ArrowRight size={16} />
@@ -404,12 +401,12 @@ const TeacherGuide = () => {
         .guide-header-icon {
           width: 56px;
           height: 56px;
-          background: linear-gradient(135deg, #0f7cf0, #18a0fb);
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
           border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 8px 20px rgba(15, 124, 240, 0.25);
+          box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
           flex-shrink: 0;
         }
 
@@ -423,14 +420,14 @@ const TeacherGuide = () => {
           color: var(--color-text-secondary, #64748b);
         }
 
-        .guide-workflow,
+        .guide-categories,
         .guide-tips {
           padding: 1.5rem;
           border-radius: 18px;
           margin-bottom: 2rem;
         }
 
-        .guide-workflow h2,
+        .guide-categories h2,
         .guide-sections > h2,
         .guide-tips h2 {
           display: flex;
@@ -440,52 +437,60 @@ const TeacherGuide = () => {
           margin: 0 0 1rem;
         }
 
-        .workflow-steps {
+        .guide-category-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
           gap: 0.9rem;
         }
 
-        .workflow-step {
+        .guide-category-card {
           padding: 1rem;
           border-radius: 16px;
-          background: rgba(15, 124, 240, 0.04);
-          border: 1px solid rgba(15, 124, 240, 0.08);
-          text-align: center;
+          background: rgba(99, 102, 241, 0.04);
+          border: 1px solid rgba(99, 102, 241, 0.08);
+          display: flex;
+          flex-direction: column;
+          gap: 0.65rem;
         }
 
-        .ws-icon-wrap {
+        .gcc-icon-wrap {
           width: 46px;
           height: 46px;
           border-radius: 14px;
-          background: rgba(15, 124, 240, 0.12);
-          color: #0f7cf0;
+          background: rgba(99, 102, 241, 0.1);
+          color: #6366f1;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 0.8rem;
-        }
-
-        .ws-num {
-          display: block;
-          font-size: 0.72rem;
-          font-weight: 800;
-          color: #0f7cf0;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
           margin-bottom: 0.2rem;
         }
 
-        .ws-content strong {
+        .guide-category-card strong {
           display: block;
-          margin-bottom: 0.3rem;
+          margin-bottom: 0.25rem;
         }
 
-        .ws-content p {
+        .guide-category-card p {
           margin: 0;
           color: var(--color-text-secondary, #64748b);
           font-size: 0.86rem;
           line-height: 1.6;
+        }
+
+        .gcc-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+        }
+
+        .gcc-tag {
+          font-size: 0.74rem;
+          font-weight: 700;
+          color: #4f46e5;
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.16);
+          border-radius: 999px;
+          padding: 0.16rem 0.55rem;
         }
 
         .guide-section {
@@ -559,21 +564,17 @@ const TeacherGuide = () => {
           gap: 0.8rem;
           padding: 0.85rem 1rem;
           border-radius: 12px;
-          background: rgba(15, 124, 240, 0.04);
+          background: rgba(99, 102, 241, 0.04);
         }
 
-        .gs-num {
-          width: 24px;
-          height: 24px;
-          border-radius: 8px;
-          background: #0f7cf0;
-          color: #fff;
+        .gs-dot {
+          color: #6366f1;
           display: flex;
-          align-items: center;
-          justify-content: center;
           flex-shrink: 0;
-          font-size: 0.72rem;
+          font-size: 1.1rem;
           font-weight: 800;
+          line-height: 1;
+          margin-top: 0.15rem;
         }
 
         .gs-text {
@@ -588,10 +589,10 @@ const TeacherGuide = () => {
           gap: 0.45rem;
           padding: 0.75rem 1rem;
           border-radius: 12px;
-          background: linear-gradient(135deg, #0f7cf0, #18a0fb);
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
           color: #fff;
           font-weight: 700;
-          box-shadow: 0 8px 20px rgba(15, 124, 240, 0.22);
+          box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25);
         }
 
         .tips-grid {
