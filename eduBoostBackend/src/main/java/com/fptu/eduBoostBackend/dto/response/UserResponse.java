@@ -18,4 +18,5 @@ public class UserResponse {
     private String token;
     private String refreshToken;
     private String tokenType;
+    private boolean isNew;
 }
