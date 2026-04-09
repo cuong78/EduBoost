@@ -1,18 +1,34 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
-import { LayoutDashboard, LogOut, Users, Menu } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Users } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import LanguageSwitch from "../components/common/LanguageSwitch";
+import { useLanguage } from "../contexts/language-context";
 import "../styles/dashboard-layout.css";
 
 const ParentLayout = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { language } = useLanguage();
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const copy =
+    language === "vi"
+      ? {
+          home: "Trang chủ",
+          myChildren: "Con của tôi",
+          logout: "Đăng xuất",
+          parent: "Phụ huynh",
+          area: "Khu vực phụ huynh",
+        }
+      : {
+          home: "Home",
+          myChildren: "My children",
+          logout: "Sign out",
+          parent: "Parent",
+          area: "Parent area",
+        };
 
   const closeSidebar = () => {
     if (window.innerWidth < 1024) {
@@ -20,15 +36,9 @@ const ParentLayout = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-  };
-
   return (
     <div className="dashboard-layout">
-      {isSidebarOpen && (
-        <div className="dl-overlay" onClick={closeSidebar}></div>
-      )}
+      {isSidebarOpen && <div className="dl-overlay" onClick={closeSidebar}></div>}
 
       <aside className={`dl-sidebar ${isSidebarOpen ? "open" : ""}`}>
         <div className="dl-sidebar-header">
@@ -44,20 +54,22 @@ const ParentLayout = () => {
             className={`dl-nav-item ${location.pathname === "/parent" ? "active" : ""}`}
             onClick={closeSidebar}
           >
-            <LayoutDashboard size={20} /> Trang chủ
+            <LayoutDashboard size={20} /> {copy.home}
           </Link>
           <Link
             to="/parent/students"
-            className={`dl-nav-item ${location.pathname.startsWith("/parent/students") ? "active" : ""}`}
+            className={`dl-nav-item ${
+              location.pathname.startsWith("/parent/students") ? "active" : ""
+            }`}
             onClick={closeSidebar}
           >
-            <Users size={20} /> Con của tôi
+            <Users size={20} /> {copy.myChildren}
           </Link>
         </nav>
 
         <div className="dl-sidebar-footer">
-          <button className="dl-nav-item" onClick={handleLogout}>
-            <LogOut size={20} /> Đăng xuất
+          <button className="dl-nav-item" onClick={logout}>
+            <LogOut size={20} /> {copy.logout}
           </button>
           <div className="dl-user-profile">
             <div className="dl-avatar">
@@ -67,9 +79,9 @@ const ParentLayout = () => {
             </div>
             <div className="dl-user-info">
               <span className="dl-user-name">
-                {user?.username || user?.fullName || "Phụ huynh"}
+                {user?.username || user?.fullName || copy.parent}
               </span>
-              <span className="dl-user-role">Phụ huynh</span>
+              <span className="dl-user-role">{copy.parent}</span>
             </div>
           </div>
         </div>
@@ -78,12 +90,14 @@ const ParentLayout = () => {
       <main className="dl-main">
         <header className="dl-topbar">
           <div className="dl-topbar-left">
-            <button className="dl-menu-toggle" onClick={toggleSidebar}>
+            <button className="dl-menu-toggle" onClick={() => setIsSidebarOpen((value) => !value)}>
               <Menu size={24} />
             </button>
-            <h2 className="dl-topbar-title">Khu vực Phụ huynh</h2>
+            <h2 className="dl-topbar-title">{copy.area}</h2>
           </div>
-          <div className="dl-topbar-actions" />
+          <div className="dl-topbar-actions">
+            <LanguageSwitch compact />
+          </div>
         </header>
         <div className="dl-page">
           <Outlet />
