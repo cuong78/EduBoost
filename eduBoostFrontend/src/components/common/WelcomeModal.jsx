@@ -3,8 +3,8 @@ import {
   Sparkles,
   BookOpen,
   FileQuestion,
-  LayoutGrid,
-  PenTool,
+  BarChart3,
+  WandSparkles,
   ArrowRight,
   X,
 } from "lucide-react";
@@ -18,16 +18,21 @@ import {
  */
 const STORAGE_KEY = "eduboost_teacher_welcome_seen";
 
-const WelcomeModal = ({ onStartTour, onSkip }) => {
+const WelcomeModal = ({ onStartTour, onSkip, ignoreSeen = false }) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (ignoreSeen) {
+      setVisible(true);
+      return;
+    }
+
     const seen = localStorage.getItem(STORAGE_KEY);
     if (!seen) {
       const timer = setTimeout(() => setVisible(true), 400);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [ignoreSeen]);
 
   const handleStart = () => {
     localStorage.setItem(STORAGE_KEY, "true");
@@ -59,18 +64,8 @@ const WelcomeModal = ({ onStartTour, onSkip }) => {
           <div className="welcome-icon-inner">
             <Sparkles size={36} color="#fff" />
           </div>
-          <div className="welcome-orbit welcome-orbit-1">
-            <BookOpen size={16} />
-          </div>
-          <div className="welcome-orbit welcome-orbit-2">
-            <FileQuestion size={16} />
-          </div>
-          <div className="welcome-orbit welcome-orbit-3">
-            <LayoutGrid size={16} />
-          </div>
-          <div className="welcome-orbit welcome-orbit-4">
-            <PenTool size={16} />
-          </div>
+          <div className="welcome-mini-tag welcome-mini-tag-1">Teacher Workspace</div>
+          <div className="welcome-mini-tag welcome-mini-tag-2">Guided Onboarding</div>
         </div>
 
         {/* Text */}
@@ -84,21 +79,27 @@ const WelcomeModal = ({ onStartTour, onSkip }) => {
         {/* Feature highlights */}
         <div className="welcome-features">
           <div className="welcome-feature">
-            <span className="wf-emoji">📝</span>
+            <span className="wf-icon" aria-hidden="true">
+              <FileQuestion size={16} />
+            </span>
             <div>
               <strong>Tạo câu hỏi</strong>
               <span>Nhập tay, import file, hoặc AI tự sinh</span>
             </div>
           </div>
           <div className="welcome-feature">
-            <span className="wf-emoji">📊</span>
+            <span className="wf-icon" aria-hidden="true">
+              <BarChart3 size={16} />
+            </span>
             <div>
               <strong>Ma trận đề thi</strong>
               <span>Phân bổ câu theo mức nhận thức</span>
             </div>
           </div>
           <div className="welcome-feature">
-            <span className="wf-emoji">🎯</span>
+            <span className="wf-icon" aria-hidden="true">
+              <WandSparkles size={16} />
+            </span>
             <div>
               <strong>Tạo đề thông minh</strong>
               <span>AI tự chọn & sinh câu hỏi phù hợp</span>

@@ -4,6 +4,14 @@ import { showErrorToast, showSuccessToast } from "../utils/show-toast";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/auth-context.jsx";
 
+const PENDING_TEACHER_TOUR_KEY = "eduboost_pending_teacher_tour";
+const normalizeRoleName = (role) => {
+    if (!role) return null;
+    const roleName = typeof role === "string" ? role : role?.roleName;
+    if (!roleName || typeof roleName !== "string") return null;
+    return roleName.startsWith("ROLE_") ? roleName.substring(5) : roleName;
+};
+
 export function useAuth() {
     const context = useContext(AuthContext);
     if (!context) throw new Error("useAuth must be used inside AuthProvider");
@@ -88,13 +96,17 @@ export function useAuth() {
             // Get role name - xử lý cả array of strings và array of objects
             const getRoleName = (roles) => {
                 if (!roles || roles.length === 0) return null;
-                const firstRole = roles[0];
-                if (typeof firstRole === 'string') return firstRole;
-                if (typeof firstRole === 'object' && firstRole.roleName) return firstRole.roleName;
-                return null;
+                return normalizeRoleName(roles[0]);
             };
             
             const roleName = getRoleName(userInfo.roles);
+            const shouldShowOnboardingTour = Boolean(res?.isNew) && roleName === "TEACHER";
+
+            if (shouldShowOnboardingTour) {
+                localStorage.setItem(PENDING_TEACHER_TOUR_KEY, "true");
+            } else {
+                localStorage.removeItem(PENDING_TEACHER_TOUR_KEY);
+            }
             
             // Điều hướng sau đăng nhập theo role
             const redirect = options?.redirectTo;
@@ -197,12 +209,17 @@ export function useAuth() {
                 
                 const getRoleName = (roles) => {
                     if (!roles || roles.length === 0) return null;
-                    const firstRole = roles[0];
-                    if (typeof firstRole === 'string') return firstRole;
-                    if (typeof firstRole === 'object' && firstRole.roleName) return firstRole.roleName;
-                    return null;
+                    return normalizeRoleName(roles[0]);
                 };
                 const roleName = getRoleName(userInfo.roles);
+                const shouldShowOnboardingTour = Boolean(response?.data?.isNew) && roleName === "TEACHER";
+
+                if (shouldShowOnboardingTour) {
+                    localStorage.setItem(PENDING_TEACHER_TOUR_KEY, "true");
+                } else {
+                    localStorage.removeItem(PENDING_TEACHER_TOUR_KEY);
+                }
+
                 const roleRedirect = roleName === 'PARENT' ? '/parent' : roleName === 'STUDENT' ? '/student' : roleName === 'ADMIN' ? '/admin' : '/teacher/home';
                 navigate(roleRedirect);
                 
