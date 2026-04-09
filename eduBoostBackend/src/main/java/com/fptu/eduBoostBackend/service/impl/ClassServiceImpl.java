@@ -11,6 +11,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.GradeLevelRepository;
 import com.fptu.eduBoostBackend.repositories.TeacherRepository;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.ClassService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class ClassServiceImpl implements ClassService {
     private final ClassRepository classRepository;
     private final GradeLevelRepository gradeLevelRepository;
     private final TeacherRepository teacherRepository;
-
+    private final ActivityLogService activityLogService;
     @Override
     public List<ClassResponse> getAllClasses() {
         List<SchoolClass> classes = classRepository.findAll();
@@ -81,6 +82,7 @@ public class ClassServiceImpl implements ClassService {
                 .build();
 
         SchoolClass savedClass = classRepository.save(schoolClass);
+        activityLogService.log("Tạo lớp mới: " + schoolClass.getClassName() );
         return convertToClassResponse(savedClass);
     }
 
@@ -89,6 +91,7 @@ public class ClassServiceImpl implements ClassService {
     public ClassResponse updateClass(String classId, UpdateClassRequest request) {
         SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("SchoolClass", "classId", classId));
+        String oldName = schoolClass.getClassName();
 
         // Update basic info if provided
         if (request.getClassName() != null && !request.getClassName().trim().isEmpty()) {
@@ -119,6 +122,8 @@ public class ClassServiceImpl implements ClassService {
         }
 
         SchoolClass updatedClass = classRepository.save(schoolClass);
+        activityLogService.log("Cập nhật lớp: " + oldName + " → " + schoolClass.getClassName() );
+
         return convertToClassResponse(updatedClass);
     }
 
@@ -133,8 +138,10 @@ public class ClassServiceImpl implements ClassService {
         if (studentCount > 0) {
             throw new IllegalStateException("Cannot delete class with " + studentCount + " students");
         }
-        
+        activityLogService.log("Xoá lớp: " + schoolClass.getClassName() );
+
         classRepository.delete(schoolClass);
+
     }
 
     @Override

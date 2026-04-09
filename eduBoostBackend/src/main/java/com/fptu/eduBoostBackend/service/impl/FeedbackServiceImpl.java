@@ -11,6 +11,7 @@ import com.fptu.eduBoostBackend.entities.enums.FeedbackStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.FeedbackRepository;
 import com.fptu.eduBoostBackend.repositories.TeacherRepository;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.FeedbackService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ public class FeedbackServiceImpl implements FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
     private final TeacherRepository teacherRepository;
-
+    private final ActivityLogService activityLogService;
     // ─── Helpers ───
 
     private Teacher getCurrentTeacher() {
@@ -73,6 +74,7 @@ public class FeedbackServiceImpl implements FeedbackService {
                 .build();
 
         feedback = feedbackRepository.save(feedback);
+        activityLogService.log("Tạo feedback");
         log.info("Teacher {} submitted feedback: {}", teacher.getTeacherId(), feedback.getTitle());
         return mapToResponse(feedback);
     }

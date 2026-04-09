@@ -12,10 +12,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
 import com.fptu.eduBoostBackend.mapper.UserMapper;
 import com.fptu.eduBoostBackend.repositories.*;
-import com.fptu.eduBoostBackend.service.AuthenticationService;
-import com.fptu.eduBoostBackend.service.EmailService;
-import com.fptu.eduBoostBackend.service.RefreshTokenService;
-import com.fptu.eduBoostBackend.service.TokenService;
+import com.fptu.eduBoostBackend.service.*;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -84,6 +81,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
     private TeacherRepository teacherRepository;
 
+    @Autowired
+    private ActivityLogService activityLogService;
     @Override
     @Transactional
     public User register(UserRegistrationRequest request) {
@@ -113,7 +112,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setRoles(roles);
 
         User savedUser = userRepository.save(user);
-
+        activityLogService.log("Đăng ký tài khoản mới: " + savedUser.getUsername());
         // Tạo bản ghi Teacher nếu user có role TEACHER
         if (roles.stream().anyMatch(role -> role.getName().equals(PredefinedRole.TEACH_ROLE))) {
             Teacher teacher = Teacher.builder()
@@ -265,7 +264,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User user = verificationToken.getUser();
         user.setVerify(true);
         userRepository.save(user);
-
+        activityLogService.log("Xác thực email thành công");
         verificationTokenRepository.delete(verificationToken);
     }
 
@@ -275,15 +274,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
     }
-
     @Override
     @Transactional
     public UserResponse login(LoginRequest loginRequest) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-            User user = userRepository
-                    .findByUsername(loginRequest.getUsername())
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
+                    )
+            );
+
+            User user = userRepository.findByUsername(loginRequest.getUsername())
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
             if (!user.isVerify()) {
@@ -294,41 +296,37 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 throw new DisabledException("Account has been deactivated. Please contact administrator.");
             }
 
+            // Quan trọng: set User object vào SecurityContext trước khi log
+            setAuthenticationContext(user);
+
+            boolean wasNewUser = user.isNew();
+
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+            String token = tokenService.generateToken(user);
+
+            UserResponse response = UserMapper.toResponse(user, token, refreshToken.getToken());
+
+            if (wasNewUser) {
+                user.setNew(false);
+            }
+
+            user.setLastLogin(java.time.LocalDateTime.now());
+            userRepository.save(user);
+
+            activityLogService.log("Đăng nhập hệ thống");
+
+            return response;
+
         } catch (BadCredentialsException e) {
-            // Fixed: Preserve stack trace
             throw new BadRequestException("Username/ password is invalid. Please try again!", e);
         } catch (LockedException e) {
-            // Fixed: Preserve stack trace
             throw new BadRequestException("Account has been locked!", e);
+        } catch (DisabledException e) {
+            throw e;
         } catch (Exception e) {
-            // Fixed: Preserve stack trace
             throw new BadRequestException("Login failed: " + e.getMessage(), e);
         }
-
-        User user = userRepository
-                .findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found after authentication"));
-
-        Authentication authentication =
-                new UsernamePasswordAuthenticationToken(user.getUsername(), null, user.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        boolean wasNewUser = user.isNew();
-
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
-        String token = tokenService.generateToken(user);
-
-        UserResponse response = UserMapper.toResponse(user, token, refreshToken.getToken());
-
-        if (wasNewUser) {
-            user.setNew(false);
-        }
-        user.setLastLogin(java.time.LocalDateTime.now());
-        userRepository.save(user);
-
-        return response;
     }
-
     private Date calculateExpiryDate() {
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, 3600);
@@ -385,6 +383,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void resetPasswordWithToken(String token, String newPassword) {
         User user = validatePasswordResetToken(token);
         changePassword(user, newPassword);
+        activityLogService.log("Đặt lại mật khẩu qua email");
         deleteResetToken(token);
     }
 
@@ -420,6 +419,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        activityLogService.log("Đổi mật khẩu");
     }
 
     @Override
@@ -434,6 +434,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.incrementTokenVersion();
         userRepository.save(user);
         refreshTokenRepository.deleteByUser(user);
+        activityLogService.log("Đăng xuất");
     }
 
     @Override
@@ -458,121 +459,88 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 throw new BadRequestException("Google OAuth is not configured");
             }
 
-            log.info("Verifying Google ID token for client: {}", googleClientId);
-
-            // Verify Google ID token
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(),
                     GsonFactory.getDefaultInstance())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
-
             GoogleIdToken googleIdToken = verifier.verify(idToken);
             if (googleIdToken == null) {
-                log.error("Google token verification failed - token is null");
                 throw new BadRequestException("Invalid Google token: Token verification failed");
             }
 
             GoogleIdToken.Payload payload = googleIdToken.getPayload();
-
-            // Extract user information from token
             String email = payload.getEmail();
-            String name = (String) payload.get("name");
-            String picture = (String) payload.get("picture");
-
-            log.info("Google token verified successfully. Email: {}", email);
 
             if (email == null || email.isEmpty()) {
                 throw new BadRequestException("Email not found in Google token");
             }
 
-            // Check if user exists by email
             Optional<User> existingUserOpt = userRepository.findByEmail(email);
             User user;
-
+            boolean isNewGoogleUser = false;
             if (existingUserOpt.isPresent()) {
-                // User exists, login normally
                 user = existingUserOpt.get();
-                log.info("Existing user found: {}", email);
 
-                // Check if account is locked
                 if (!user.isAccountNonLocked()) {
                     throw new BadRequestException("Account has been locked!");
                 }
 
-                // Check if account is inactive
                 if (user.getStatus() == UserStatus.INACTIVE) {
                     throw new DisabledException("Account has been deactivated. Please contact administrator.");
                 }
 
-                // User already exists, just login
-                // Check if Teacher record exists, create if missing (for users who registered before this fix)
                 boolean hasTeacherRole = user.getRoles().stream()
                         .anyMatch(role -> PredefinedRole.TEACH_ROLE.equals(role.getName()));
+
                 if (hasTeacherRole && teacherRepository.findByUser(user).isEmpty()) {
                     Teacher teacher = Teacher.builder()
                             .user(user)
                             .build();
                     teacherRepository.save(teacher);
-                    log.info("Created missing Teacher record for existing user: {}", email);
                 }
 
-                userRepository.save(user);
             } else {
-                // User doesn't exist, auto-register
-                log.info("User not found, creating new user: {}", email);
+                isNewGoogleUser = true;
 
-                // Generate username from email (take part before @)
                 String username = email.split("@")[0];
-                // Ensure username is unique
                 String baseUsername = username;
                 int counter = 1;
+
                 while (userRepository.existsByUsername(username)) {
                     username = baseUsername + counter;
                     counter++;
                 }
 
-                // Generate a unique phone number placeholder (since phone is required and unique)
-                // Use a pattern that won't conflict with real phone numbers
                 String phonePlaceholder = "GOOGLE_" + UUID.randomUUID().toString().substring(0, 8);
                 while (userRepository.existsByPhone(phonePlaceholder)) {
                     phonePlaceholder = "GOOGLE_" + UUID.randomUUID().toString().substring(0, 8);
                 }
 
-                // Create new user
                 user = User.builder()
                         .username(username)
                         .email(email)
-                        .phone(phonePlaceholder) // Placeholder phone for Google users
-                        .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Random password, user won't use it
-                        .isVerify(true) // Google accounts are pre-verified
+                        .phone(phonePlaceholder)
+                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .isVerify(true)
                         .build();
 
-                // Assign default role (TEACH_ROLE - same as email registration)
                 Set<Role> roles = new HashSet<>();
                 Optional<Role> teachRole = roleRepository.findById(PredefinedRole.TEACH_ROLE);
-                if (teachRole.isPresent()) {
-                    roles.add(teachRole.get());
-                    log.info("Assigned TEACH_ROLE to new Google user");
-                } else {
-                    log.warn("TEACH_ROLE not found in database, user will have no roles");
-                }
+                teachRole.ifPresent(roles::add);
                 user.setRoles(roles);
 
                 user = userRepository.save(user);
-                log.info("Auto-registered new user from Google: {} with ID: {}", email, user.getUserId());
 
-                // Create Teacher entity for Google users with TEACHER role
                 if (teachRole.isPresent()) {
                     Teacher teacher = Teacher.builder()
                             .user(user)
                             .build();
                     teacherRepository.save(teacher);
-                    log.info("Teacher record created for Google user: {}", email);
                 }
             }
+            setAuthenticationContext(user);
 
-            // Generate tokens
             boolean wasNewUser = user.isNew();
 
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
@@ -586,23 +554,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             user.setLastLogin(java.time.LocalDateTime.now());
             userRepository.save(user);
 
+            if (isNewGoogleUser) {
+                activityLogService.log("Đăng ký tài khoản bằng Google: " + user.getUsername());
+            } else {
+                activityLogService.log("Đăng nhập Google");
+            }
+
             return response;
+
         } catch (BadRequestException e) {
-            // Re-throw BadRequestException as-is
-            log.error("BadRequestException in Google login: {}", e.getMessage());
+            throw e;
+        } catch (DisabledException e) {
             throw e;
         } catch (Exception e) {
             log.error("Google login failed", e);
-            log.error("Exception type: {}", e.getClass().getName());
-            log.error("Exception message: {}", e.getMessage());
-            if (e.getCause() != null) {
-                log.error("Cause: {}", e.getCause().getMessage());
-                log.error("Cause type: {}", e.getCause().getClass().getName());
-            }
             throw new BadRequestException("Google login failed: " + e.getMessage(), e);
         }
     }
-    
+
+
     @Override
     @Transactional
     public UserResponse autoLogin(String username) {
@@ -630,4 +600,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return response;
     }
+    private void setAuthenticationContext(User user) {
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
 }

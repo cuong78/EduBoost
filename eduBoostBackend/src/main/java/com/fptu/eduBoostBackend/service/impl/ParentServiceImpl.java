@@ -17,6 +17,7 @@ import com.fptu.eduBoostBackend.repositories.ParentRepository;
 import com.fptu.eduBoostBackend.repositories.ParentStudentRepository;
 import com.fptu.eduBoostBackend.repositories.StudentInvitationRepository;
 import com.fptu.eduBoostBackend.repositories.UserRepository;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.ParentService;
 import com.fptu.eduBoostBackend.service.StudentExamResultService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class ParentServiceImpl implements ParentService {
     private final ParentRepository parentRepository;
     private final ParentStudentRepository parentStudentRepository;
     private final StudentExamResultService studentExamResultService;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -116,7 +118,7 @@ public class ParentServiceImpl implements ParentService {
                 .build();
 
         log.info("Invitation validated successfully for student: {}", student.getStudentCode());
-
+activityLogService.log("Sử dụng invitation code");
         return ValidateInvitationResponse.builder()
                 .valid(true)
                 .studentInfo(studentInfo)
@@ -202,7 +204,7 @@ public class ParentServiceImpl implements ParentService {
 
         log.info("Successfully linked parent {} with student {}", 
                 parent.getParentId(), student.getStudentId());
-
+        activityLogService.log("Sử dụng mã mời thành công");
         // Build response
         LinkStudentResponse.StudentLinkDTO studentDTO = LinkStudentResponse.StudentLinkDTO.builder()
                 .studentId(student.getStudentId())
@@ -313,6 +315,7 @@ public class ParentServiceImpl implements ParentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found or not linked to you"));
 
         parentStudentRepository.delete(parentStudent);
+        activityLogService.log("Đã ngắt kết nối phụ huynh với học sinh");
         log.info("Successfully unlinked parent {} from student {}", parent.getParentId(), studentId);
     }
 
