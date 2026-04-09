@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Bot,
+  BookOpen,
   BookCopy,
+  Brain,
   CheckCircle2,
   ChevronRight,
   FileText,
@@ -12,8 +15,14 @@ import {
   School,
   ShieldCheck,
   Sparkles,
+  Target,
+  Users,
   UsersRound,
+  Zap,
 } from "lucide-react";
+import forParentHome from "../assets/forParentHome.png";
+import forStudentHome from "../assets/forStudentHome.png";
+import forTeacherHome from "../assets/forTeacherHome.png";
 import useScrollReveal from "../hooks/useScrollReveal";
 import { useLanguage } from "../contexts/language-context";
 import "./Home.css";
@@ -22,7 +31,7 @@ const COPY = {
   vi: {
     heroBadge: "EduBoost cho giáo dục Việt Nam",
     heroSubBadge: "Khảo thí, kho nội dung và LMS trong một nền tảng",
-    heroTitle: "Nền tảng kiểm tra, đánh giá và học tập thông minh cho giáo viên hiện đại",
+    heroTitle: "Giáo dục tiện ích với EduBoost",
     heroText:
       "Một không gian số hóa giúp giáo viên tạo đề, quản lý lớp, giao bài và theo dõi tiến độ học tập liền mạch hơn mỗi ngày.",
     primaryCta: "Bắt đầu miễn phí",
@@ -59,6 +68,62 @@ const COPY = {
       { label: "Lớp đang theo dõi", value: "12 lớp hoạt động" },
       { label: "Tiến độ tuần này", value: "84% hoàn thành" },
     ],
+    roleSpotlight: {
+      tabsLabel: "Chọn nhóm người dùng",
+      roles: {
+        teacher: {
+          tab: "Dành cho Giáo viên",
+          title: "Dành cho Giáo viên",
+          image: forTeacherHome,
+          items: [
+            {
+              icon: Users,
+              title: "Quản lý lớp học",
+              description: "Theo dõi tiến độ học tập của từng học sinh dễ dàng.",
+            },
+            {
+              icon: Target,
+              title: "Ngân hàng đề thi",
+              description: "Tạo đề thi tự động từ kho dữ liệu phong phú.",
+            },
+          ],
+        },
+        learner: {
+          tab: "Dành cho Học viên",
+          title: "Dành cho Học viên",
+          image: forStudentHome,
+          items: [
+            {
+              icon: Brain,
+              title: "Lộ trình cá nhân hóa",
+              description: "AI phân tích điểm mạnh, điểm yếu để đề xuất bài học phù hợp.",
+            },
+            {
+              icon: Zap,
+              title: "Học tập tương tác",
+              description: "Nền tảng học tập với AI hỗ trợ và chấm điểm tự động.",
+            },
+          ],
+        },
+        parent: {
+          tab: "Dành cho Phụ huynh",
+          title: "Dành cho Phụ huynh",
+          image: forParentHome,
+          items: [
+            {
+              icon: BookOpen,
+              title: "Nhận thông báo điểm số học viên",
+              description: "Xem điểm kiểm tra ngay khi giáo viên cập nhật.",
+            },
+            {
+              icon: Users,
+              title: "Quản lý tiến trình học",
+              description: "Theo dõi lịch học và tiến độ từng khóa của con.",
+            },
+          ],
+        },
+      },
+    },
     audiencesHeading: {
       eyebrow: "Phù hợp cho nhiều mô hình",
       title: "EduBoost được thiết kế cho nhiều bối cảnh giảng dạy và vận hành",
@@ -192,7 +257,7 @@ const COPY = {
   en: {
     heroBadge: "EduBoost for modern education",
     heroSubBadge: "Assessment, content management, and LMS in one platform",
-    heroTitle: "A smart assessment and learning platform for modern teachers",
+    heroTitle: "Smarter education with EduBoost",
     heroText:
       "A digital workspace that helps teachers build exams, manage classes, assign work, and track learning progress in a more connected flow.",
     primaryCta: "Start free",
@@ -224,6 +289,62 @@ const COPY = {
       { label: "Active classes", value: "12 active groups" },
       { label: "Weekly progress", value: "84% completed" },
     ],
+    roleSpotlight: {
+      tabsLabel: "Choose a user group",
+      roles: {
+        teacher: {
+          tab: "For teachers",
+          title: "For teachers",
+          image: forTeacherHome,
+          items: [
+            {
+              icon: Users,
+              title: "Class management",
+              description: "Track each student learning progress through one simple workspace.",
+            },
+            {
+              icon: Target,
+              title: "Exam bank",
+              description: "Build assessments automatically from a rich and reusable content library.",
+            },
+          ],
+        },
+        learner: {
+          tab: "For learners",
+          title: "For learners",
+          image: forStudentHome,
+          items: [
+            {
+              icon: Brain,
+              title: "Personalized pathways",
+              description: "AI reads strengths and gaps to recommend the next lesson more precisely.",
+            },
+            {
+              icon: Zap,
+              title: "Interactive learning",
+              description: "A supported learning space with AI assistance and automatic grading.",
+            },
+          ],
+        },
+        parent: {
+          tab: "For parents",
+          title: "For parents",
+          image: forParentHome,
+          items: [
+            {
+              icon: BookOpen,
+              title: "Score notifications",
+              description: "See updated scores as soon as teachers publish new results.",
+            },
+            {
+              icon: Users,
+              title: "Learning progress tracking",
+              description: "Follow schedules and progress for each course your child is taking.",
+            },
+          ],
+        },
+      },
+    },
     audiencesHeading: {
       eyebrow: "Designed for multiple models",
       title: "EduBoost fits different teaching and operational contexts",
@@ -369,11 +490,13 @@ function SectionHeading({ eyebrow, title, description }) {
 const Home = () => {
   const { language } = useLanguage();
   const copy = COPY[language];
+  const [activeRole, setActiveRole] = useState("teacher");
+  const roleSpotlightRef = useScrollReveal();
   const audienceRef = useScrollReveal();
   const productsRef = useScrollReveal();
   const whyRef = useScrollReveal();
   const stackRef = useScrollReveal();
-  const ctaRef = useScrollReveal();
+  const activeRoleContent = copy.roleSpotlight.roles[activeRole];
 
   return (
     <div className="landing-home">
@@ -397,9 +520,6 @@ const Home = () => {
               <Link to="/register" className="landing-btn landing-btn--primary">
                 {copy.primaryCta}
                 <ArrowRight size={18} />
-              </Link>
-              <Link to="/pricing" className="landing-btn landing-btn--secondary">
-                {copy.secondaryCta}
               </Link>
             </div>
 
@@ -537,6 +657,63 @@ const Home = () => {
         </div>
       </section>
 
+      <section id="roles" className="landing-section landing-section--roles">
+        <div className="container reveal" ref={roleSpotlightRef}>
+          <div className="role-spotlight">
+            <div className="role-tabs" role="tablist" aria-label={copy.roleSpotlight.tabsLabel}>
+              {Object.entries(copy.roleSpotlight.roles).map(([key, role]) => (
+                <button
+                  key={key}
+                  id={`role-tab-${key}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeRole === key}
+                  aria-controls={`role-panel-${key}`}
+                  tabIndex={activeRole === key ? 0 : -1}
+                  className={`role-tab ${activeRole === key ? "role-tab--active" : ""}`}
+                  onClick={() => setActiveRole(key)}
+                >
+                  {role.tab}
+                </button>
+              ))}
+            </div>
+
+            <div
+              id={`role-panel-${activeRole}`}
+              className="role-panel"
+              role="tabpanel"
+              aria-labelledby={`role-tab-${activeRole}`}
+            >
+              <div className="role-panel__content">
+                <h2>{activeRoleContent.title}</h2>
+                <div className="role-feature-list">
+                  {activeRoleContent.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <article key={item.title} className="role-feature-item">
+                        <div className="role-feature-item__icon">
+                          <Icon size={22} />
+                        </div>
+                        <div>
+                          <h3>{item.title}</h3>
+                          <p>{item.description}</p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="role-panel__media">
+                <div className="role-panel__image-shell">
+                  <img src={activeRoleContent.image} alt={activeRoleContent.title} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="audiences" className="landing-section landing-section--soft">
         <div className="container reveal" ref={audienceRef}>
           <SectionHeading {...copy.audiencesHeading} />
@@ -650,30 +827,6 @@ const Home = () => {
                 {chip}
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-section landing-section--cta">
-        <div className="container reveal" ref={ctaRef}>
-          <div className="landing-cta">
-            <div className="landing-cta__copy">
-              <span className="landing-kicker">{copy.cta.eyebrow}</span>
-              <h2>{copy.cta.title}</h2>
-              <p>{copy.cta.description}</p>
-            </div>
-            <div className="landing-cta__actions">
-              <Link to="/register" className="landing-btn landing-btn--primary">
-                {copy.cta.primary}
-                <ArrowRight size={18} />
-              </Link>
-              <Link to="/login" className="landing-btn landing-btn--secondary">
-                {copy.cta.secondary}
-              </Link>
-              <Link to="/parent/login" className="landing-btn landing-btn--ghost">
-                {copy.cta.tertiary}
-              </Link>
-            </div>
           </div>
         </div>
       </section>

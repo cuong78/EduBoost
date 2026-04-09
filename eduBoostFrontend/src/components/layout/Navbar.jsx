@@ -11,7 +11,6 @@ const NAVBAR_COPY = {
     guide: "Hướng dẫn",
     start: "Bắt đầu miễn phí",
     dashboard: "Bảng điều khiển",
-    parentPortal: "Phụ huynh",
     brandSubtitle: "Khảo thí, LMS & AI",
     openMenu: "Mở menu",
     closeMenu: "Đóng menu",
@@ -21,39 +20,64 @@ const NAVBAR_COPY = {
     guide: "Guide",
     start: "Start free",
     dashboard: "Dashboard",
-    parentPortal: "For Parents",
     brandSubtitle: "Assessment, LMS & AI",
     openMenu: "Open menu",
     closeMenu: "Close menu",
   },
 };
 
+const LANGUAGES = [
+  { code: "vi", label: "Tiếng Việt", short: "VI" },
+  { code: "en", label: "English", short: "EN" },
+];
+
 const LanguageSwitcher = ({ mobile = false }) => {
   const { language, setLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   return (
-    <div className={`language-switcher ${mobile ? "language-switcher--mobile" : ""}`}>
-      <div className="language-switcher__shell">
-        <Globe2 size={16} />
-        <button
-          type="button"
-          className={`language-switcher__option ${
-            language === "vi" ? "language-switcher__option--active" : ""
-          }`}
-          onClick={() => setLanguage("vi")}
-        >
-          VI
-        </button>
-        <button
-          type="button"
-          className={`language-switcher__option ${
-            language === "en" ? "language-switcher__option--active" : ""
-          }`}
-          onClick={() => setLanguage("en")}
-        >
-          EN
-        </button>
-      </div>
+    <div
+      className={`lang-dropdown ${mobile ? "lang-dropdown--mobile" : ""}`}
+      ref={ref}
+    >
+      <button
+        type="button"
+        className="lang-dropdown__trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <Globe2 size={15} />
+        <span>{current.short}</span>
+        <ChevronDown size={13} className={`lang-dropdown__chevron ${open ? "lang-dropdown__chevron--open" : ""}`} />
+      </button>
+      {open && (
+        <div className="lang-dropdown__panel" role="listbox">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              type="button"
+              role="option"
+              aria-selected={language === lang.code}
+              className={`lang-dropdown__option ${language === lang.code ? "lang-dropdown__option--active" : ""}`}
+              onClick={() => { setLanguage(lang.code); setOpen(false); }}
+            >
+              <span className="lang-dropdown__short">{lang.short}</span>
+              <span className="lang-dropdown__label">{lang.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -170,11 +194,6 @@ const Navbar = () => {
 
         <div className="site-navbar__actions">
           <LanguageSwitcher />
-          {!isAuthenticated && (
-            <Link to="/parent/login" className="site-navbar__link site-navbar__link--parent">
-              {copy.parentPortal}
-            </Link>
-          )}
           {isAuthenticated ? (
             <Link to={getDashboardLink()} className="site-navbar__button">
               {copy.dashboard}
@@ -212,11 +231,6 @@ const Navbar = () => {
             </Link>
           ))}
           <LanguageSwitcher mobile />
-          {!isAuthenticated && (
-            <Link to="/parent/login" className="site-navbar__mobile-link site-navbar__mobile-link--parent">
-              {copy.parentPortal}
-            </Link>
-          )}
           {isAuthenticated ? (
             <Link to={getDashboardLink()} className="site-navbar__mobile-button">
               {copy.dashboard}
@@ -238,6 +252,10 @@ const Navbar = () => {
           transition: padding 0.25s ease;
         }
 
+        .site-navbar--scrolled {
+          padding-top: 0.38rem;
+        }
+
         .site-navbar__inner {
           display: flex;
           align-items: center;
@@ -255,14 +273,22 @@ const Navbar = () => {
             background 0.25s ease,
             border-color 0.25s ease,
             box-shadow 0.25s ease,
-            backdrop-filter 0.25s ease;
+            backdrop-filter 0.25s ease,
+            min-height 0.25s ease,
+            padding-top 0.25s ease,
+            padding-bottom 0.25s ease,
+            border-radius 0.25s ease;
         }
 
         .site-navbar--scrolled .site-navbar__inner {
-          background: rgba(255, 255, 255, 0.56);
-          border-color: rgba(148, 163, 184, 0.08);
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
-          backdrop-filter: blur(28px) saturate(140%);
+          min-height: 64px;
+          padding-top: 0.68rem;
+          padding-bottom: 0.68rem;
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.44);
+          border-color: rgba(148, 163, 184, 0.07);
+          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+          backdrop-filter: blur(30px) saturate(150%);
         }
 
         .site-navbar__brand {
@@ -278,6 +304,12 @@ const Navbar = () => {
           width: 44px;
           height: 44px;
           object-fit: contain;
+          transition: width 0.25s ease, height 0.25s ease;
+        }
+
+        .site-navbar--scrolled .site-navbar__brand img {
+          width: 38px;
+          height: 38px;
         }
 
         .site-navbar__brand strong {
@@ -312,7 +344,12 @@ const Navbar = () => {
           background: none;
           border: none;
           cursor: pointer;
-          transition: background 0.22s ease, color 0.22s ease;
+          transition: background 0.22s ease, color 0.22s ease, padding 0.22s ease, font-size 0.22s ease;
+        }
+
+        .site-navbar--scrolled .site-navbar__link {
+          padding: 0.62rem 0.92rem;
+          font-size: 0.92rem;
         }
 
         .site-navbar__link:hover {
@@ -408,45 +445,119 @@ const Navbar = () => {
           color: #ffffff;
           font-weight: 800;
           box-shadow: 0 14px 28px rgba(15, 124, 240, 0.2);
+          transition: min-height 0.22s ease, padding 0.22s ease, box-shadow 0.22s ease;
         }
 
-        .language-switcher {
-          display: flex;
-          align-items: center;
+        .site-navbar--scrolled .site-navbar__button {
+          min-height: 44px;
+          padding: 0.72rem 1.15rem;
+          box-shadow: 0 10px 20px rgba(15, 124, 240, 0.15);
         }
 
-        .language-switcher__shell {
+        /* ── Language Dropdown ── */
+        .lang-dropdown {
+          position: relative;
+        }
+
+        .lang-dropdown__trigger {
           display: inline-flex;
           align-items: center;
-          gap: 0.3rem;
-          padding: 0.35rem;
+          gap: 0.35rem;
+          padding: 0.45rem 0.8rem;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.86);
-          border: 1px solid rgba(148, 163, 184, 0.16);
+          border: 1px solid rgba(148, 163, 184, 0.2);
           color: #37536b;
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+          font-size: 0.87rem;
+          font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+          transition:
+            background 0.2s ease,
+            border-color 0.2s ease,
+            color 0.2s ease,
+            padding 0.2s ease,
+            box-shadow 0.2s ease;
         }
 
-        .language-switcher__option {
-          min-width: 40px;
-          padding: 0.45rem 0.7rem;
-          border: none;
-          border-radius: 999px;
-          background: transparent;
-          color: #5e768d;
-          font-weight: 800;
-          font-size: 0.84rem;
-          transition: background 0.2s ease, color 0.2s ease;
+        .site-navbar--scrolled .lang-dropdown__trigger {
+          padding: 0.38rem 0.72rem;
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
         }
 
-        .language-switcher__option--active {
-          background: rgba(15, 124, 240, 0.12);
+        .lang-dropdown__trigger:hover {
+          background: rgba(15, 124, 240, 0.07);
+          border-color: rgba(15, 124, 240, 0.25);
           color: #0f7cf0;
         }
 
-        .language-switcher--mobile {
-          justify-content: center;
-          margin-top: 0.25rem;
+        .lang-dropdown__chevron {
+          transition: transform 0.2s ease;
+          flex-shrink: 0;
+          opacity: 0.7;
+        }
+
+        .lang-dropdown__chevron--open {
+          transform: rotate(180deg);
+        }
+
+        .lang-dropdown__panel {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          min-width: 155px;
+          background: #ffffff;
+          border: 1px solid rgba(148, 163, 184, 0.18);
+          border-radius: 14px;
+          box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+          padding: 0.4rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.1rem;
+          animation: dropdownFadeIn 0.18s ease;
+          z-index: 300;
+        }
+
+        .lang-dropdown__option {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          width: 100%;
+          padding: 0.65rem 0.9rem;
+          border-radius: 10px;
+          border: none;
+          background: transparent;
+          color: #244259;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .lang-dropdown__option:hover {
+          background: rgba(15, 124, 240, 0.07);
+          color: #0f7cf0;
+        }
+
+        .lang-dropdown__option--active {
+          background: rgba(15, 124, 240, 0.1);
+          color: #0f7cf0;
+        }
+
+        .lang-dropdown__short {
+          font-weight: 800;
+          min-width: 24px;
+        }
+
+        .lang-dropdown__label {
+          color: inherit;
+          font-size: 0.87rem;
+        }
+
+        .lang-dropdown--mobile .lang-dropdown__panel {
+          left: 0;
+          right: auto;
         }
 
         .site-navbar__toggle {
