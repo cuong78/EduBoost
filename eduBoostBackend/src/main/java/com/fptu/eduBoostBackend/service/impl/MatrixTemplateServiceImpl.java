@@ -10,6 +10,7 @@ import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.*;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.MatrixTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final LessonRepository lessonRepository;
     private final ExamRepository examRepository;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -135,7 +137,7 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
         response.setDetails(details.stream().map(this::mapDetailToResponse).collect(Collectors.toList()));
         response.setLessonDetails(lessonDetails.stream().map(this::mapLessonDetailToResponse).collect(Collectors.toList()));
         response.setTotalPoints(calculateTotalPoints(details));
-
+    activityLogService.log("Đã tạo ma trận đề:"+template.getTemplateName());
         return response;
     }
 
@@ -202,6 +204,7 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
         response.setDetails(details.stream().map(this::mapDetailToResponse).collect(Collectors.toList()));
         response.setLessonDetails(lessonDetails.stream().map(this::mapLessonDetailToResponse).collect(Collectors.toList()));
         response.setTotalPoints(calculateTotalPoints(details));
+        activityLogService.log("Đã cập nhật ma trận đề:"+template.getTemplateName());
 
         return response;
     }
@@ -228,10 +231,12 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
             throw new BadRequestException(
                 "Ma trận này đang được sử dụng bởi đề thi. Vui lòng xóa các đề thi liên quan trước khi xóa ma trận.");
         }
+        String templateName = template.getTemplateName();
 
         lessonDetailRepository.deleteByTemplateId(id);
         detailRepository.deleteByTemplateId(id);
         templateRepository.delete(template);
+        activityLogService.log("Đã xoá ma trận đề:"+templateName);
     }
 
     // ====================== Private helpers ======================

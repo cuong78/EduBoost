@@ -14,6 +14,7 @@
     import com.fptu.eduBoostBackend.repositories.ClassRepository;
     import com.fptu.eduBoostBackend.repositories.TeacherRepository;
     import com.fptu.eduBoostBackend.repositories.UserRepository;
+    import com.fptu.eduBoostBackend.service.ActivityLogService;
     import com.fptu.eduBoostBackend.service.TeacherBatchService;
     import lombok.Getter;
     import lombok.RequiredArgsConstructor;
@@ -48,7 +49,8 @@
         private final ClassRepository classRepository;
         private final UserRepository userRepository;
         private final com.fptu.eduBoostBackend.service.TeacherService teacherService;
-    
+        private final ActivityLogService activityLogService;
+
         // Excel column indices
         private static final int COL_EMAIL = 0;
         private static final int COL_FULL_NAME = 1;
@@ -58,7 +60,7 @@
         private static final int COL_ADDRESS = 5;
         private static final int COL_ENROLLMENT_DATE = 6;
         private static final int COL_PARENT_EMAIL = 7;
-    
+
         // Headers for the template
         private static final String[] HEADERS = {
                 "Email*",
@@ -299,7 +301,7 @@
     
             log.info("Batch import completed: {} successful, {} failed out of {} total rows",
                     successfulImports, errors.size(), totalRows);
-    
+            activityLogService.log("Đã import student thành công");
             return BatchImportStudentResponse.builder()
                     .totalRows(totalRows)
                     .successfulImports(successfulImports)

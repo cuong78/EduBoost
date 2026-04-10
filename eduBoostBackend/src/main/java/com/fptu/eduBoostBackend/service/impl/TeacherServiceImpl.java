@@ -12,6 +12,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ConflictException;
 import com.fptu.eduBoostBackend.exception.exceptions.ForbiddenException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.*;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.EmailService;
 import com.fptu.eduBoostBackend.service.OneTimeLoginTokenService;
 import com.fptu.eduBoostBackend.service.TeacherService;
@@ -54,6 +55,7 @@ public class TeacherServiceImpl implements TeacherService {
     private final OneTimeLoginTokenService oneTimeLoginTokenService;
     private final OneTimeLoginTokenRepository oneTimeLoginTokenRepository;
     private final Random random = new Random();
+    private final ActivityLogService activityLogService;
 
     @Value("${backend.url.base}")
     private String backendBaseUrl;
@@ -131,7 +133,7 @@ public class TeacherServiceImpl implements TeacherService {
         SchoolClass savedClass = classRepository.save(newClass);
         
         log.info("Class created: {} by teacher: {}", savedClass.getClassId(), teacher.getTeacherId());
-        
+        activityLogService.log("Đã tạo lớp mới: "+ savedClass.getClassName());
         return ClassResponse.builder()
                 .classId(savedClass.getClassId())
                 .className(savedClass.getClassName())
@@ -261,7 +263,7 @@ public class TeacherServiceImpl implements TeacherService {
                 log.info("Generated auto-login token string for parent: {}", invitationEmail);
             }
         }
-        
+        activityLogService.log("Đã tạo student thành công");
         log.info("Student created: {} by teacher: {}", savedStudent.getStudentId(), teacher.getTeacherId());
         
         // Prepare data for async email sending
@@ -387,7 +389,7 @@ public class TeacherServiceImpl implements TeacherService {
         Student updatedStudent = studentRepository.save(student);
         
         log.info("Student updated: {} by teacher", studentId);
-        
+        activityLogService.log("Đã update student");
         return mapToStudentResponse(updatedStudent);
     }
 
@@ -403,7 +405,7 @@ public class TeacherServiceImpl implements TeacherService {
         
         // Delete student will cascade to user due to ON DELETE CASCADE
         studentRepository.delete(student);
-        
+        activityLogService.log("Đã xoá student thành công");
         log.info("Student deleted: {} by teacher", studentId);
     }
 
@@ -458,6 +460,7 @@ public class TeacherServiceImpl implements TeacherService {
 
             log.info("Invitation created: {} for student: {} by teacher: {}",
                     invitation.getInvitationId(), studentId, teacher.getTeacherId());
+            activityLogService.log("Đã gửi invitation code cho phụ huynh");
         }
 
         // Update recipient email

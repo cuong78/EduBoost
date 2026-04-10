@@ -23,6 +23,7 @@ import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.LessonResourceRepository;
 import com.fptu.eduBoostBackend.repositories.QuestionBankRepository;
 import com.fptu.eduBoostBackend.service.AIQuestionGeneratorService;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -46,7 +47,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final QuestionBankRepository questionBankRepository;
     private final ObjectMapper objectMapper;
-
+    private final ActivityLogService activityLogService;
     @Value("${ai.deepseek.api-key:}")
     private String deepseekApiKey;
 
@@ -89,6 +90,9 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI generation completed in {}ms, generated {} questions", generationTime, questions.size());
+        activityLogService.log(
+                "Tạo " + questions.size() + " câu hỏi AI từ tài liệu: " + resource.getResourceName()
+        );
 
         return AIGenerateFromResourceResponse.builder()
                 .resourceId(resource.getId())
@@ -127,7 +131,8 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
 
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI generation from merged content completed in {}ms, generated {} questions", generationTime, questions.size());
-
+        activityLogService.log(
+                "Tạo " + questions.size() + " câu hỏi AI từ nhiều tài liệu gộp cho bài: " + lesson.getLessonName());
         return AIGenerateFromResourceResponse.builder()
                 .resourceId(request.getResourceId())
                 .lessonId(lesson.getId())
@@ -352,7 +357,9 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI variations completed in {}ms, generated {} variations", generationTime, totalVariations);
-
+        activityLogService.log(
+                "Tạo " + totalVariations + " biến thể câu hỏi AI"
+        );
         return AIGenerateVariationsResponse.builder()
                 .variationGroups(variationGroups)
                 .totalVariationsGenerated(totalVariations)
@@ -405,10 +412,12 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         
         // 6. Parse response
         List<AIGeneratedQuestionResponse> questions = parseAIResponse(aiResponse.content, request.getQuestionType());
-        
+
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI URL generation completed in {}ms, generated {} questions", generationTime, questions.size());
-
+        activityLogService.log(
+                "Tạo " + questions.size() + " câu hỏi AI từ URL: " + title
+        );
         return AIGenerateFromUrlResponse.builder()
                 .sourceUrl(request.getUrl())
                 .lessonId(lesson.getId())

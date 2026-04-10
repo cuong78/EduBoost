@@ -58,6 +58,11 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean isVerify = false;
 
+    @Column(name = "is_new", nullable = false)
+    @Builder.Default
+    private boolean isNew = true;
+
+
     private int tokenVersion;
 
     @ManyToMany(fetch = FetchType.EAGER)

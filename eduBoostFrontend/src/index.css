@@ -26,6 +26,206 @@
   --font-main: 'Plus Jakarta Sans', sans-serif;
 }
 
+body.dark-mode {
+  --color-bg-primary: #0b1220;
+  --color-bg-mesh: linear-gradient(180deg, #0b1220 0%, #111827 55%, #0f172a 100%);
+  --color-text-primary: #e5e7eb;
+  --color-text-secondary: #9ca3af;
+  --color-accent-dark: #a5b4fc;
+
+  --glass-bg: rgba(17, 24, 39, 0.72);
+  --glass-border: rgba(148, 163, 184, 0.18);
+  --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+
+  --ds-text: #e5e7eb;
+  --ds-text-secondary: #94a3b8;
+  --ds-text-muted: #64748b;
+  --ds-bg-page: #0f172a;
+  --ds-bg-card: #111827;
+  --ds-bg-subtle: #1f2937;
+  --ds-bg-hover: #334155;
+  --ds-border: #334155;
+  --ds-border-light: #1f2937;
+  --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ds-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.38), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --ds-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode harmonization for legacy pages with hardcoded light surfaces */
+body.dark-mode .glass {
+  background: rgba(17, 24, 39, 0.78);
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.32);
+}
+
+body.dark-mode .panel,
+body.dark-mode .box,
+body.dark-mode .profile-content,
+body.dark-mode .profile-tabs,
+body.dark-mode .matrix-card,
+body.dark-mode .resource-card,
+body.dark-mode .q-item,
+body.dark-mode .history-item,
+body.dark-mode .modal-content,
+body.dark-mode .teacher-home-card {
+  background: rgba(17, 24, 39, 0.82);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+body.dark-mode .matrix-empty-notice,
+body.dark-mode .matrix-summary-box,
+body.dark-mode .view-item,
+body.dark-mode .extracted-content {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: #0f172a;
+  color: #e5e7eb;
+  border-color: #334155;
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: #64748b;
+}
+
+body.dark-mode .btn-secondary,
+body.dark-mode .btn-outline,
+body.dark-mode .icon-btn,
+body.dark-mode .tab-btn:hover {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+body.dark-mode .btn-outline:hover,
+body.dark-mode .icon-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+body.dark-mode .ds-table thead,
+body.dark-mode .summary-table th {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+body.dark-mode .ds-table td,
+body.dark-mode .summary-table td,
+body.dark-mode .summary-row,
+body.dark-mode .security-row,
+body.dark-mode .setting-item {
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+body.dark-mode .dl-sidebar {
+  background: rgba(15, 23, 42, 0.92);
+  border-right-color: rgba(148, 163, 184, 0.2);
+}
+
+body.dark-mode .dl-topbar {
+  background: rgba(15, 23, 42, 0.82);
+  border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
+body.dark-mode .dl-sidebar:not(.sidebar-dark) .dl-nav-item {
+  color: #cbd5e1;
+}
+
+body.dark-mode .dl-sidebar:not(.sidebar-dark) .dl-nav-item:hover:not(.active) {
+  background: rgba(99, 102, 241, 0.16);
+  color: #e0e7ff;
+}
+
+body.dark-mode .dl-sidebar:not(.sidebar-dark) .dl-nav-item.active {
+  color: #e0e7ff;
+  box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.35), 0 4px 14px rgba(99, 102, 241, 0.25);
+}
+
+body.dark-mode .teacher-home-header h1,
+body.dark-mode .page-title,
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4 {
+  color: #e5e7eb;
+}
+
+body.dark-mode .teacher-home-header p,
+body.dark-mode .teacher-home-card p,
+body.dark-mode .muted,
+body.dark-mode p {
+  color: #94a3b8;
+}
+
+body.dark-mode .teacher-home-card {
+  background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+  border-color: #334155;
+}
+
+body.dark-mode .teacher-home-card:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.dark-mode .teacher-home-card::after {
+  opacity: 0.72;
+}
+
+body.dark-mode .modal-overlay {
+  background: rgba(2, 6, 23, 0.7);
+}
+
+body.dark-mode .navbar,
+body.dark-mode .navbar.scrolled {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(148, 163, 184, 0.24);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .parent-dropdown,
+body.dark-mode .dropdown-item {
+  background: #111827;
+  color: #e5e7eb;
+  border-color: #334155;
+}
+
+/* Legacy inline style rescue: normalize hardcoded white surfaces in dark mode */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: #fff"],
+body.dark-mode [style*="background:#fff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background-color: white"],
+body.dark-mode [style*="background-color:white"] {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+body.dark-mode [style*="rgba(255,255,255"],
+body.dark-mode [style*="rgba(255, 255, 255"] {
+  background: rgba(17, 24, 39, 0.78) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+body.dark-mode [style*="color: #1f2937"],
+body.dark-mode [style*="color:#1f2937"],
+body.dark-mode [style*="color: #334155"],
+body.dark-mode [style*="color:#334155"],
+body.dark-mode [style*="color: black"],
+body.dark-mode [style*="color:black"] {
+  color: #e5e7eb !important;
+}
+
+/* Keep exported PDF container readable when user exports */
+body.dark-mode .pdf-only-header,
+body.dark-mode .pdf-only-header * {
+  color: #e5e7eb;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -39,6 +239,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 /* Utilities */
@@ -142,9 +343,9 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
 }
 
 .btn {

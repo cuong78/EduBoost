@@ -23,7 +23,9 @@ public class UserMapper {
                 .token(token)
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
+                .isNew(user.isNew())
                 .build();
+
     }
     public CustomerResponse toUserResponse(User user) {
         return CustomerResponse.builder()

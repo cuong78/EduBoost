@@ -6,6 +6,7 @@ import com.fptu.eduBoostBackend.entities.enums.DifficultyLevel;
 import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 import com.fptu.eduBoostBackend.entities.enums.QuestionType;
 import com.fptu.eduBoostBackend.repositories.*;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.FileStorageService;
 import com.fptu.eduBoostBackend.service.WordImportService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,6 +44,7 @@ public class WordImportServiceImpl implements WordImportService {
     private final FileStorageService fileStorageService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final ActivityLogService activityLogService;
 
     @Value("${ai.deepseek.api-key:}")
     private String deepseekApiKey;
@@ -105,7 +107,7 @@ public class WordImportServiceImpl implements WordImportService {
             // Save all questions
             questions = questionBankRepository.saveAll(questions);
             log.info("Saved {} questions from Word file", questions.size());
-
+            activityLogService.log("Đã tạo "+questions+" câu hỏi từ file Word");
             // 4. AI classification if requested
             if (useAiClassification && !deepseekApiKey.isBlank() && !questions.isEmpty()) {
                 classifyQuestionsWithAI(questions);
