@@ -21,6 +21,7 @@ import {
   Shuffle,
   Clock,
   X,
+  Send,
 } from "lucide-react";
 import { knowledgeService } from "../../services/knowledgeService";
 import { examService } from "../../services/examService";
@@ -28,6 +29,7 @@ import { questionBankService } from "../../services/questionBankService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import RichTextEditor from "../../components/common/RichTextEditor";
 import { exportHtmlToPdf } from "../../utils/pdfExport";
+import AssignExamModal from "./AssignExamModal";
 import MathRenderer from "../../components/common/MathRenderer";
 import { jsPDF } from "jspdf";
 
@@ -161,6 +163,9 @@ const ExamGenerator = () => {
 
   // Per-question answer randomize state
   const [randomizingId, setRandomizingId] = useState(null);
+
+  // Assign exam modal
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   const loadVariants = async (examId) => {
     try {
@@ -1564,6 +1569,18 @@ const ExamGenerator = () => {
                   <Shuffle size={16} /> Trộn đề
                 </button>
               )}
+              {/* Assign exam button — always visible for owner */}
+              {canEdit && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowAssignModal(true)}
+                  disabled={!currentExam?.id || previewQuestions.length === 0}
+                  style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }}
+                  title="Giao đề thi cho học sinh"
+                >
+                  <Send size={16} /> Giao đề
+                </button>
+              )}
             </div>
           </div>
 
@@ -2425,7 +2442,17 @@ const ExamGenerator = () => {
         .shuffle-modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid rgba(0,0,0,0.06); }
             `}</style>
     </div>
+
+      {/* Assign Exam Modal */}
+      {showAssignModal && currentExam && (
+        <AssignExamModal
+          exam={currentExam}
+          variants={variants || []}
+          onClose={() => setShowAssignModal(false)}
+        />
+      )}
   );
 };
 
 export default ExamGenerator;
+

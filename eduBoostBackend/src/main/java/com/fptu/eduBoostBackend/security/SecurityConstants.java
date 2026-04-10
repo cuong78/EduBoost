@@ -21,7 +21,9 @@ public class SecurityConstants {
             "/api/token_generate",        // VietQR callback: get token
             "/bank/api/transaction-sync", // VietQR callback: payment notification
             "/api/admin/**",  // TODO: Remove after fixing role check
-            "/api/files/**"   // Public file serving from MinIO (images in questions)
+            "/api/files/**",  // Public file serving from MinIO (images in questions)
+            "/ws/**",         // SockJS WebSocket handshake
+            "/ws"             // SockJS base endpoint
     );
 
     public static final String AUTHORIZATION_HEADER = "Authorization";

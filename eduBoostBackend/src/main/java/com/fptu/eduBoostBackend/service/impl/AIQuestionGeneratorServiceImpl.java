@@ -196,7 +196,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         sb.append("```json\n");
         sb.append("[\n");
         sb.append("  {\n");
-        sb.append("    \"questionText\": \"Nội dung câu hỏi\",\n");
+        sb.append("    \"questionText\": \"Nội dung câu hỏi. Nếu cần hình vẽ đơn giản (biểu đồ Ven, trục số, hình hộp, đồ thị...) hãy nhúng SVG trực tiếp vào đây: <svg viewBox=\\\"0 0 300 200\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\">...</svg>\",\n");
         sb.append("    \"correctAnswer\": \"Đáp án đúng\",\n");
         sb.append("    \"wrongAnswers\": [\"Đáp án sai 1\", \"Đáp án sai 2\", \"Đáp án sai 3\"],\n");
         sb.append("    \"explanation\": \"Giải thích tại sao đáp án đúng\",\n");
@@ -204,6 +204,12 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         sb.append("  }\n");
         sb.append("]\n");
         sb.append("```\n");
+        sb.append("\nLƯU Ý QUAN TRỌNG VỀ SVG:\n");
+        sb.append("- Khi vẽ biểu đồ Ven: dùng <circle>, <text>, màu fill nhạt, stroke đậm\n");
+        sb.append("- Khi vẽ trục số: dùng <line>, <text>, mũi tên <polygon>\n");
+        sb.append("- Khi vẽ hình học: <rect>, <polygon>, <path>, ghi nhãn bằng <text>\n");
+        sb.append("- SVG width tối đa 400, height tối đa 300, có đủ padding\n");
+        sb.append("- KHÔNG dùng placeholder [hình ảnh] hay [...] - vẽ thật hoặc chọn câu hỏi khác\n");
         
         return sb.toString();
     }
@@ -222,14 +228,21 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         // Build request body (OpenAI-compatible format)
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", deepseekModel);
-        requestBody.put("max_tokens", Math.max(4096, numberOfQuestions * 500));
+        requestBody.put("max_tokens", Math.max(6000, numberOfQuestions * 800));
         requestBody.put("temperature", 0.7);
         
         List<Map<String, String>> messages = new ArrayList<>();
         
         Map<String, String> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content", "Bạn là giáo viên chuyên tạo câu hỏi trắc nghiệm. Luôn trả về JSON hợp lệ.");
+        systemMessage.put("content",
+            "Bạn là giáo viên chuyên tạo câu hỏi trắc nghiệm cho học sinh Việt Nam. " +
+            "Luôn trả về JSON hợp lệ. " +
+            "QUAN TRỌNG: Khi câu hỏi cần hình vẽ minh họa đơn giản (biểu đồ Ven, trục số, hình học phẳng, đồ thị đơn giản, sơ đồ, bảng), " +
+            "hãy tự vẽ bằng SVG inline và đặt thẻ <svg>...</svg> trực tiếp trong trường questionText. " +
+            "SVG phải đẹp, rõ ràng, có màu sắc hợp lý, viewBox phù hợp. " +
+            "KHÔNG dùng placeholder như [hình ảnh], [image], [...] thay cho hình vẽ. " +
+            "Nếu không thể vẽ SVG cho câu hỏi đó, hãy chọn câu hỏi khác không cần hình vẽ.");
         messages.add(systemMessage);
         
         Map<String, String> userMessage = new HashMap<>();

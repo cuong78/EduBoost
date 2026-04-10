@@ -80,6 +80,7 @@ import SubscriptionAdmin from "./pages/admin/SubscriptionAdmin";
 import FeedbackPage from "./pages/teacher/FeedbackPage";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 import LessonCoverage from "./pages/admin/LessonCoverage";
+import ExamMonitor from "./pages/teacher/ExamMonitor";
 
 const DashboardPlaceholder = ({ title }) => (
   <div style={{ padding: "2rem", textAlign: "center" }}>
@@ -154,8 +155,13 @@ function App() {
             <Route path="profile" element={<UserProfile />} />
           </Route>
 
-          {/* Standalone Exam Route (Full Screen) */}
+          {/* Standalone Exam Route (Full Screen) - new: uses assignmentId */}
+          <Route path="/student/take-exam/:assignmentId" element={<TakeExam />} />
+          {/* Legacy route kept for backward compat */}
           <Route path="/student/exam/:id" element={<TakeExam />} />
+
+          {/* Standalone Teacher Exam Monitor (fullscreen, no layout) */}
+          <Route path="/teacher/exam-monitor/:assignmentId" element={<ExamMonitor />} />
 
           {/* Teacher Dashboard Routes */}
           <Route element={<RequireRole allow={["TEACHER"]} />}>
@@ -191,6 +197,7 @@ function App() {
               <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="matrix-templates" element={<MatrixManagement />} />
+              <Route path="assignments" element={<ExamManagement />} />
               <Route path="subscription" element={<SubscriptionManagement />} />
               <Route path="feedback" element={<FeedbackPage />} />
               <Route path="guide" element={<TeacherGuide />} />
