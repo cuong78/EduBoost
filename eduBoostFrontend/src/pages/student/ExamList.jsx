@@ -34,14 +34,14 @@ const getExamStatus = (assignment) => {
     const now = new Date();
     const start = new Date(assignment.startTime);
     const end = new Date(assignment.endTime);
-    const status = assignment.status;
 
-    // If student already submitted (check via result presence — we mark on client side)
-    if (assignment._submitted) return 'Completed';
+    // Student already submitted → Completed
+    if (assignment.alreadySubmittedResultId) return 'Completed';
 
-    if (status === 'ENDED' || now > end) return 'Missed';
-    if (status === 'ACTIVE' || (now >= start && now <= end)) return 'Available';
-    if (status === 'SCHEDULED' || now < start) return 'Upcoming';
+    // Time-based status
+    if (now > end) return 'Missed';       // Ended + not submitted = Không thi
+    if (now >= start && now <= end) return 'Available'; // Active = Đang mở
+    if (now < start) return 'Upcoming';   // Scheduled = Sắp thi
     return 'Available';
 };
 
@@ -57,7 +57,7 @@ const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     </div>
 );
 
-const ExamCard = ({ title, course, duration, deadline, status, assignmentId, accessCode, gradeLevel }) => {
+const ExamCard = ({ title, course, duration, deadline, status, assignmentId, accessCode, gradeLevel, resultId }) => {
     const statusConfig = {
         'Available': {
             class: 'status-available',
@@ -69,21 +69,21 @@ const ExamCard = ({ title, course, duration, deadline, status, assignmentId, acc
         'Upcoming': {
             class: 'status-upcoming',
             icon: Calendar,
-            label: 'Sắp diễn ra',
+            label: 'Sắp thi',
             action: 'Chưa đến giờ',
             btnClass: 'btn-disabled'
         },
         'Completed': {
             class: 'status-completed',
             icon: CheckCircle,
-            label: 'Đã hoàn thành',
-            action: 'Đã nộp bài',
+            label: 'Đã xong',
+            action: 'Xem kết quả',
             btnClass: 'btn-secondary'
         },
         'Missed': {
             class: 'status-missed',
             icon: AlertCircle,
-            label: 'Đã kết thúc',
+            label: 'Không thi',
             action: 'Hết hạn',
             btnClass: 'btn-disabled'
         },
@@ -131,9 +131,13 @@ const ExamCard = ({ title, course, duration, deadline, status, assignmentId, acc
                     <Link to={`/student/take-exam/${assignmentId}`} className={`btn ${config.btnClass} full-width`}>
                         {config.action} <ArrowRight size={18} />
                     </Link>
+                ) : status === 'Completed' && resultId ? (
+                    <Link to={`/student/exam-result/${resultId}`} className={`btn ${config.btnClass} full-width`}>
+                        {config.action} <ArrowRight size={18} />
+                    </Link>
                 ) : (
-                    <button className={`btn ${config.btnClass} full-width`} disabled={status === 'Missed' || status === 'Upcoming'}>
-                        {config.action} {status === 'Completed' && <CheckCircle size={16} />}
+                    <button className={`btn ${config.btnClass} full-width`} disabled>
+                        {config.action}
                     </button>
                 )}
             </div>
@@ -179,6 +183,7 @@ const ExamList = () => {
             status: getExamStatus(a),
             accessCode: a.accessCode,
             gradeLevel: a.gradeLevel,
+            resultId: a.alreadySubmittedResultId || null,
         }));
     }, [assignments]);
 
@@ -189,8 +194,8 @@ const ExamList = () => {
         const missed = allExams.filter(e => e.status === 'Missed').length;
         return [
             { label: 'Bài tập đang chờ', value: String(pending), icon: Clock, colorClass: 'text-green' },
-            { label: 'Đã hoàn thành', value: String(completed), icon: CheckCircle, colorClass: 'text-indigo' },
-            { label: 'Đã kết thúc', value: String(missed), icon: AlertCircle, colorClass: 'text-yellow' },
+            { label: 'Đã xong', value: String(completed), icon: CheckCircle, colorClass: 'text-indigo' },
+            { label: 'Không thi', value: String(missed), icon: AlertCircle, colorClass: 'text-yellow' },
         ];
     }, [allExams]);
 
@@ -216,7 +221,7 @@ const ExamList = () => {
         { id: 'Available', label: 'Đang mở' },
         { id: 'Upcoming', label: 'Sắp thi' },
         { id: 'Completed', label: 'Đã xong' },
-        { id: 'Missed', label: 'Đã kết thúc' },
+        { id: 'Missed', label: 'Không thi' },
     ];
 
     return (

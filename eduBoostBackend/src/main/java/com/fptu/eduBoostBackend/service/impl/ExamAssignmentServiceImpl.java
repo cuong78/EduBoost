@@ -131,9 +131,16 @@ public class ExamAssignmentServiceImpl {
         Student student = studentRepository.findByUser(user).orElse(null);
         if (student == null || student.getSchoolClass() == null) return List.of();
         String classId = student.getSchoolClass().getClassId();
+        String studentId = student.getStudentId();
         return assignmentRepository.findBySchoolClassClassId(classId)
                 .stream()
-                .map(a -> toResponse(a, 0))
+                .map(a -> {
+                    ExamAssignmentResponse resp = toResponse(a, 0);
+                    // Check if student already submitted this assignment
+                    resultRepository.findByStudentAndAssignment(studentId, a.getAssignmentId())
+                            .ifPresent(r -> resp.setAlreadySubmittedResultId(r.getResultId()));
+                    return resp;
+                })
                 .collect(Collectors.toList());
     }
 

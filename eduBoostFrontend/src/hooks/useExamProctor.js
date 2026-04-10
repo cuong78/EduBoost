@@ -18,6 +18,9 @@ import { API } from '../constants/api';
 const HEARTBEAT_INTERVAL_MS = 8000; // 8 seconds
 const IDLE_THRESHOLD_MS = 120000;   // 2 minutes idle = suspicious
 
+// Detect mobile devices — used to skip fullscreen enforcement
+const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 export const useExamProctor = ({ assignmentId, studentId, studentName, enabled = true, onAutoSubmit }) => {
     const [violations, setViolations] = useState([]);
     const [tabActive, setTabActive] = useState(true);
@@ -63,7 +66,7 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
             const idleSeconds = Math.floor((Date.now() - lastActivityRef.current) / 1000);
             const payload = {
                 tabActive: !document.hidden,
-                fullscreen: !!document.fullscreenElement,
+                fullscreen: isMobile() ? true : !!document.fullscreenElement, // Mobile doesn't support fullscreen API
                 idleSeconds,
                 copyPasteCount: copyPasteCountRef.current,
                 networkOnline: navigator.onLine,
@@ -103,11 +106,21 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     }, []);
 
+    const fullscreenDebounceRef = useRef(null);
+
     const exitFullscreenHandler = useCallback(() => {
         const inFs = !!document.fullscreenElement;
         setIsFullscreen(inFs);
+        // On mobile, skip fullscreen violation entirely
+        if (isMobile()) return;
         if (!inFs && enabled) {
-            sendAlert('FULLSCREEN_EXIT');
+            // Debounce to avoid rapid-fire false positives
+            clearTimeout(fullscreenDebounceRef.current);
+            fullscreenDebounceRef.current = setTimeout(() => {
+                if (!document.fullscreenElement) {
+                    sendAlert('FULLSCREEN_EXIT');
+                }
+            }, 500);
         }
     }, [enabled, sendAlert]);
 
@@ -120,8 +133,10 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
         }
     }, [enabled, sendAlert]);
 
-    // ── Window blur (leaving page without tab switch) ──────────────────────
+    // ── Window blur — DESKTOP ONLY ─────────────────────────────────────────
+    // On mobile, blur fires during normal scroll/touch — causes false positives.
     const blurHandler = useCallback(() => {
+        if (isMobile()) return; // Skip on mobile
         if (enabled) sendAlert('WINDOW_BLUR');
     }, [enabled, sendAlert]);
 
@@ -157,8 +172,10 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
     useEffect(() => {
         if (!enabled) return;
 
-        // 1. Enter fullscreen
-        requestFullscreen();
+        // 1. Enter fullscreen (desktop only — mobile doesn't support it well)
+        if (!isMobile()) {
+            requestFullscreen();
+        }
 
         // 2. Connect WebSocket
         connectWs();
@@ -172,6 +189,7 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
         document.addEventListener('contextmenu', (e) => e.preventDefault());
         document.addEventListener('keydown', preventDevTools);
         document.addEventListener('mousemove', activityHandler);
+        document.addEventListener('touchstart', activityHandler); // Mobile activity tracking
         document.addEventListener('keydown', activityHandler);
         window.addEventListener('online', networkHandler);
         window.addEventListener('offline', networkHandler);
@@ -189,12 +207,13 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
             document.removeEventListener('contextmenu', (e) => e.preventDefault());
             document.removeEventListener('keydown', preventDevTools);
             document.removeEventListener('mousemove', activityHandler);
+            document.removeEventListener('touchstart', activityHandler);
             document.removeEventListener('keydown', activityHandler);
             window.removeEventListener('online', networkHandler);
             window.removeEventListener('offline', networkHandler);
 
-            // Exit fullscreen on unmount
-            if (document.fullscreenElement) document.exitFullscreen?.();
+            // Exit fullscreen on unmount (desktop only)
+            if (!isMobile() && document.fullscreenElement) document.exitFullscreen?.();
         };
     }, [enabled, connectWs]);
 
