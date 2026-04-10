@@ -989,6 +989,7 @@ const ExamGenerator = () => {
   };
 
   return (
+    <>
     <div className="create-exam-page">
       {/* Step indicator - hide in view mode */}
       {!viewMode && (
@@ -2451,8 +2452,10 @@ const ExamGenerator = () => {
           onClose={() => setShowAssignModal(false)}
         />
       )}
+    </>
   );
 };
 
 export default ExamGenerator;
+
 
