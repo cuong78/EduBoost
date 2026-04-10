@@ -353,8 +353,8 @@ const Navbar = () => {
         }
 
         .site-navbar__link:hover {
-          background: rgba(15, 124, 240, 0.08);
-          color: #0f7cf0;
+          background: rgba(99, 102, 241, 0.1);
+          color: #6366f1;
         }
 
         .site-navbar__link--parent {
@@ -364,15 +364,15 @@ const Navbar = () => {
         }
 
         .site-navbar__link--parent:hover {
-          border-color: #0f7cf0;
-          color: #0f7cf0;
-          background: rgba(15, 124, 240, 0.05);
+          border-color: #6366f1;
+          color: #6366f1;
+          background: rgba(99, 102, 241, 0.08);
         }
 
         .site-navbar__mobile-link--parent {
           color: #37536b;
           font-weight: 700;
-          background: rgba(245, 249, 255, 0.95);
+          background: rgba(246, 242, 255, 0.95);
           border: 1.5px solid rgba(55, 83, 107, 0.2);
         }
 
@@ -382,8 +382,8 @@ const Navbar = () => {
         }
 
         .nav-dropdown__trigger--active {
-          background: rgba(15, 124, 240, 0.08);
-          color: #0f7cf0;
+          background: rgba(99, 102, 241, 0.1);
+          color: #6366f1;
         }
 
         .nav-dropdown__chevron {
@@ -429,8 +429,8 @@ const Navbar = () => {
         }
 
         .nav-dropdown__item:hover {
-          background: rgba(15, 124, 240, 0.07);
-          color: #0f7cf0;
+          background: rgba(99, 102, 241, 0.08);
+          color: #6366f1;
         }
 
         .site-navbar__button,
@@ -441,7 +441,7 @@ const Navbar = () => {
           min-height: 48px;
           padding: 0.82rem 1.3rem;
           border-radius: 999px;
-          background: linear-gradient(135deg, #0f7cf0, #18a0fb);
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
           color: #ffffff;
           font-weight: 800;
           box-shadow: 0 14px 28px rgba(15, 124, 240, 0.2);
@@ -590,14 +590,14 @@ const Navbar = () => {
           border-radius: 16px;
           color: #244259;
           font-weight: 700;
-          background: rgba(245, 249, 255, 0.95);
+          background: rgba(246, 242, 255, 0.95);
         }
 
         .site-navbar__mobile-link--sub {
           padding-left: 1.5rem;
           font-weight: 600;
           font-size: 0.93rem;
-          background: rgba(240, 246, 255, 0.9);
+          background: rgba(243, 238, 255, 0.9);
         }
 
         .site-navbar__mobile-section-label {

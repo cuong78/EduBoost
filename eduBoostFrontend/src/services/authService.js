@@ -7,6 +7,7 @@ import axios from 'axios';
 const API_BASE = `${API.BASE}`;
 const API_GET_USER = `${API.USER}/profile`;
 const API_FORGOT_PASSWORD = `${API.BASE}/forgot-password`;
+const normalizeNewFlag = (value) => value === true || value === "true" || value === 1 || value === "1";
 
 export const authService = {
     getMyInfo: async () => {
@@ -99,7 +100,8 @@ export const authService = {
             return {
                 token: res.data.token,
                 refreshToken: res.data.refreshToken,
-                roles: res.data.roles || []
+                roles: res.data.roles || [],
+                isNew: normalizeNewFlag(res.data?.new)
             };
         }
         
@@ -258,7 +260,8 @@ export const authService = {
                     message: res.message || 'Google login successful',
                     data: {
                         token: res.data.token,
-                        refreshToken: res.data.refreshToken
+                        refreshToken: res.data.refreshToken,
+                        isNew: normalizeNewFlag(res.data?.new)
                     }
                 };
             }

@@ -975,23 +975,22 @@ const ExamGenerator = () => {
           <div className="row3">
             <div className="field">
               <label>Khối</label>
-              <select
-                value={gradeLevel}
-                onChange={(e) => setGradeLevel(Number(e.target.value))}
-              >
+              <div className="option-chips">
                 {GRADE_OPTIONS.map((g) => (
-                  <option key={g} value={g}>
+                  <button
+                    key={g}
+                    type="button"
+                    className={`option-chip ${gradeLevel === g ? "active" : ""}`}
+                    onClick={() => setGradeLevel(g)}
+                  >
                     Khối {g}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             <div className="field">
               <label>Loại đề</label>
-              <select
-                value={examType}
-                onChange={(e) => setExamType(e.target.value)}
-              >
+              <div className="option-chips">
                 {(examTypes.length
                   ? examTypes.map((t) => ({
                       value: t.typeCode,
@@ -999,11 +998,16 @@ const ExamGenerator = () => {
                     }))
                   : DEFAULT_EXAM_TYPES
                 ).map((t) => (
-                  <option key={t.value} value={t.value}>
+                  <button
+                    key={t.value}
+                    type="button"
+                    className={`option-chip ${examType === t.value ? "active" : ""}`}
+                    onClick={() => setExamType(t.value)}
+                  >
                     {t.label}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             <div className="field">
               <label>Tên đề thi</label>
@@ -1015,20 +1019,22 @@ const ExamGenerator = () => {
             </div>
             <div className="field">
               <label>Môn học</label>
-              <select
-                value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)}
-              >
+              <div className="option-chips">
                 {filteredSubjects.length > 0 ? (
                   filteredSubjects.map((s) => (
-                    <option key={s.id} value={String(s.id)}>
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`option-chip ${String(subjectId) === String(s.id) ? "active" : ""}`}
+                      onClick={() => setSubjectId(String(s.id))}
+                    >
                       {s.subjectName || s.name || ""}
-                    </option>
+                    </button>
                   ))
                 ) : (
-                  <option value="">-- Không có môn phù hợp --</option>
+                  <span className="muted">Không có môn phù hợp</span>
                 )}
-              </select>
+              </div>
             </div>
           </div>
 
@@ -1141,18 +1147,20 @@ const ExamGenerator = () => {
             <>
               {chapters.length > 0 && (
                 <div className="row2">
-                  <div className="field">
+                  <div className="field field-full">
                     <label>Chương</label>
-                    <select
-                      value={chapterId}
-                      onChange={(e) => setChapterId(e.target.value)}
-                    >
+                    <div className="option-chips chapter-chips">
                       {chapters.map((c) => (
-                        <option key={c.id} value={String(c.id)}>
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={`option-chip chapter-chip ${String(chapterId) === String(c.id) ? "active" : ""}`}
+                          onClick={() => setChapterId(String(c.id))}
+                        >
                           Chương {c.chapterNumber}: {c.chapterName}
-                        </option>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2119,14 +2127,15 @@ const ExamGenerator = () => {
         .s.active .n { background: var(--color-accent-1); color: white; }
         .line { width: 46px; height: 2px; background: rgba(0,0,0,0.08); }
 
-        .panel { padding: 1.5rem; border-radius: 16px; }
+        .panel { padding: 1.25rem; border-radius: 16px; }
         h2 { margin: 0 0 1rem; display: flex; align-items: center; gap: 8px; }
         h3 { margin: 0 0 0.75rem; }
         .muted { color: var(--color-text-secondary); }
         .divider { height: 1px; background: rgba(0,0,0,0.06); margin: 1.25rem 0; }
 
-        .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+        .row3 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
         .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 1200px) { .row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 980px) { .row3, .row2 { grid-template-columns: 1fr; } }
 
         /* Matrix selection */
@@ -2158,9 +2167,51 @@ const ExamGenerator = () => {
         .summary-table th { background: rgba(99,102,241,0.06); padding: 0.5rem 0.75rem; text-align: left; font-size: 0.8rem; color: var(--color-text-secondary); }
         .summary-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.04); }
 
-        .field { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.9rem; }
-        input, select { width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8); }
+        .field { margin-bottom: 0.7rem; }
+        .field-full { grid-column: 1 / -1; }
+        label { display: block; margin-bottom: 4px; font-weight: 700; font-size: 0.88rem; }
+        input, select { width: 100%; padding: 0.62rem 0.72rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8); }
+
+        .option-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .option-chip {
+          border: 1px solid #cbd5e1;
+          background: #f8fafc;
+          color: #0f172a;
+          border-radius: 10px;
+          height: 36px;
+          padding: 0 10px;
+          font-size: 0.86rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.18s ease;
+        }
+        .option-chip:hover {
+          border-color: rgba(99,102,241,0.35);
+          background: rgba(99,102,241,0.08);
+          color: #4338ca;
+        }
+        .option-chip.active {
+          border-color: rgba(99,102,241,0.45);
+          background: linear-gradient(135deg, var(--color-accent-1), var(--color-accent-2));
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(99,102,241,0.24);
+        }
+
+        .chapter-chips {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 8px;
+        }
+
+        .chapter-chip {
+          width: 100%;
+          height: auto;
+          min-height: 44px;
+          padding: 8px 12px;
+          text-align: left;
+          white-space: normal;
+          line-height: 1.35;
+        }
 
         .lesson-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
         .lesson-pill { display: flex; gap: 10px; align-items: center; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.06); cursor: pointer; }

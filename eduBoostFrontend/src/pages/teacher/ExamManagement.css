@@ -104,6 +104,62 @@
 }
 .em-filter-row select:focus { border-color: var(--ds-primary); }
 
+.em-filter-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.em-chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.em-chip-group-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-muted);
+}
+
+.em-filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.em-filter-chip {
+  border: 1px solid var(--ds-border);
+  background: var(--ds-bg-subtle);
+  color: var(--ds-text-secondary);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.em-filter-chip:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--ds-text);
+  transform: translateY(-1px);
+}
+
+.em-filter-chip.is-active {
+  background: linear-gradient(135deg, var(--ds-secondary-hover), var(--ds-primary));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.28);
+}
+
+.em-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ─── Card / Table ─── */
 .em-card {
   background: rgba(255,255,255,0.72);
@@ -309,7 +365,7 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   animation: emSlideUp 0.22s ease;
 }
-.em-modal--wide { max-width: 820px; }
+.em-modal--wide { max-width: min(1120px, 96vw); }
 
 @keyframes emSlideUp {
   from { opacity:0; transform: translateY(24px); }
@@ -427,6 +483,8 @@
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem;
   padding-top: 1.2rem;
   margin-top: 1rem;
   border-top: 1px solid var(--ds-border-light);
@@ -492,6 +550,9 @@
 @media (max-width: 768px) {
   .em-page { padding: 1rem; }
   .em-table { display: none; }
+  .em-filter-actions {
+    justify-content: flex-start;
+  }
 }
 
 /* ─── Tabs ─── */
@@ -571,3 +632,69 @@
 }
 .em-comm-actions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
 .em-comm-date { font-size: 0.73rem; color: #c4c4c4; margin-top: 0.25rem; }
+
+/* ─── Dark Mode Polish ─── */
+body.dark-mode .em-filters,
+body.dark-mode .em-tabs,
+body.dark-mode .em-card,
+body.dark-mode .em-modal,
+body.dark-mode .em-confirm,
+body.dark-mode .em-comm-card,
+body.dark-mode .em-export-menu,
+body.dark-mode .em-pagination button {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: var(--ds-text);
+}
+
+body.dark-mode .em-table thead,
+body.dark-mode .em-lesson-table th {
+  background: rgba(30, 41, 59, 0.92);
+}
+
+body.dark-mode .em-table td,
+body.dark-mode .em-table th,
+body.dark-mode .em-table tbody tr,
+body.dark-mode .em-info-cell,
+body.dark-mode .em-modal-header,
+body.dark-mode .em-modal-footer,
+body.dark-mode .em-pagination {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+body.dark-mode .em-search,
+body.dark-mode .em-filter-row select,
+body.dark-mode .em-q-item,
+body.dark-mode .em-ans {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+body.dark-mode .em-filter-chip {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #cbd5e1;
+}
+
+body.dark-mode .em-filter-chip:hover {
+  border-color: rgba(129, 140, 248, 0.55);
+  color: #e5e7eb;
+}
+
+body.dark-mode .em-chip-group-label {
+  color: #94a3b8;
+}
+
+body.dark-mode .em-q-text,
+body.dark-mode .em-name span,
+body.dark-mode .em-comm-title,
+body.dark-mode .em-confirm h3,
+body.dark-mode .em-confirm p {
+  color: #e5e7eb;
+}
+
+body.dark-mode .em-comm-date,
+body.dark-mode .em-date {
+  color: #94a3b8;
+}

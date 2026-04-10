@@ -3,12 +3,53 @@
  * Mỗi key tương ứng với 1 pathname, chứa array các step cho react-joyride.
  */
 
+import {
+  BookOpen,
+  ClipboardList,
+  FilePlus,
+  FolderOpen,
+  Library,
+  PenLine,
+  Send,
+  Table2,
+  Users,
+} from "lucide-react";
+
 // ─── Helper: tạo step nhanh ──────────────────────────────────────────────────
-const s = (target, title, content, placement = "bottom") => ({
+const s = (target, title, content, placement = "bottom", Icon = null) => ({
   target,
   content: (
     <div>
-      <h4 style={{ margin: "0 0 6px", fontSize: "1rem", fontWeight: 700 }}>{title}</h4>
+      <h4
+        style={{
+          margin: "0 0 6px",
+          fontSize: "1rem",
+          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        {Icon ? (
+          <span
+            style={{
+              width: "24px",
+              height: "24px",
+              borderRadius: "8px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+              border: "1px solid #e2e8f0",
+              color: "#4f46e5",
+              flexShrink: 0,
+            }}
+          >
+            <Icon size={14} />
+          </span>
+        ) : null}
+        <span>{title}</span>
+      </h4>
       <p style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.5 }}>{content}</p>
     </div>
   ),
@@ -21,58 +62,73 @@ const s = (target, title, content, placement = "bottom") => ({
 // ═══════════════════════════════════════════════════════════════════════════════
 export const TEACHER_SIDEBAR_STEPS = [
   s(
+    "body",
+    "Bắt đầu tour EduBoost",
+    "Mình sẽ hướng dẫn nhanh các khu vực quan trọng ở thanh menu bên trái để bạn dùng hệ thống dễ hơn.",
+    "center"
+  ),
+  s(
     '[data-tour="nav-classes"]',
-    "📚 Lớp học",
+    "Lớp học",
     "Quản lý danh sách lớp, xem học sinh, mời học sinh vào lớp.",
-    "right"
+    "right",
+    Users
   ),
   s(
     '[data-tour="nav-create-question"]',
-    "✏️ Tạo câu hỏi",
+    "Tạo câu hỏi",
     "Tạo câu hỏi bằng nhiều cách: nhập tay, import file Word, hoặc AI tự động sinh.",
-    "right"
+    "right",
+    PenLine
   ),
   s(
     '[data-tour="nav-question-bank"]',
-    "📦 Ngân hàng câu hỏi",
+    "Ngân hàng câu hỏi",
     "Xem tất cả câu hỏi đã tạo, lọc theo môn/chương/bài, sửa/xóa câu hỏi.",
-    "right"
+    "right",
+    Library
   ),
   s(
     '[data-tour="nav-resources"]',
-    "📁 Quản lý tài nguyên",
+    "Quản lý tài nguyên",
     "Upload tài liệu bài học (.docx, .pdf) để AI sử dụng khi tạo câu hỏi.",
-    "right"
+    "right",
+    FolderOpen
   ),
   s(
     '[data-tour="nav-matrix"]',
-    "📊 Quản lý ma trận",
+    "Quản lý ma trận",
     "Tạo ma trận phân bổ câu hỏi theo mức độ nhận thức. Cần có trước khi tạo đề 1 tiết trở lên.",
-    "right"
+    "right",
+    Table2
   ),
   s(
     '[data-tour="nav-exams"]',
-    "📝 Quản lý đề thi",
+    "Quản lý đề thi",
     "Xem, xuất PDF, xuất bản, thống kê tất cả đề thi bạn đã tạo.",
-    "right"
+    "right",
+    ClipboardList
   ),
   s(
     '[data-tour="nav-create-exam"]',
-    "🎯 Tạo đề thi",
+    "Tạo đề thi",
     "Tạo đề thi mới: chọn môn, ma trận → hệ thống tự chọn câu từ ngân hàng + AI sinh thêm nếu thiếu.",
-    "right"
+    "right",
+    FilePlus
   ),
   s(
     '[data-tour="nav-feedback"]',
-    "💬 Góp ý",
+    "Góp ý",
     "Gửi phản hồi, báo lỗi hoặc đề xuất tính năng mới cho hệ thống.",
-    "right"
+    "right",
+    Send
   ),
   s(
     '[data-tour="nav-guide"]',
-    "📖 Hướng dẫn",
+    "Hướng dẫn",
     "Bạn có thể xem lại hướng dẫn sử dụng chi tiết bất cứ lúc nào tại đây!",
-    "right"
+    "right",
+    BookOpen
   ),
 ];
 

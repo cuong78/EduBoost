@@ -21,6 +21,7 @@ const UserProfile = () => {
     const [showOldPassword, setShowOldPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     // Initial state from authUser
     const [user, setUser] = useState({
@@ -30,6 +31,8 @@ const UserProfile = () => {
         bio: '',
         role: ''
     });
+
+    const isTeacherRole = String(user.role || '').toUpperCase().includes('TEACHER');
 
     useEffect(() => {
         if (authUser) {
@@ -56,12 +59,29 @@ const UserProfile = () => {
         setActiveTab(initialTab);
     }, [initialTab]);
 
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('eduboost-theme');
+        setIsDarkMode(savedTheme === 'dark');
+    }, []);
+
+    useEffect(() => {
+        if (isTeacherRole && activeTab === 'history') {
+            setActiveTab('account');
+        }
+    }, [isTeacherRole, activeTab]);
+
     const handleSave = () => {
         // Mock API call
         setTimeout(() => {
             setIsEditing(false);
             showSuccessToast('Cập nhật thông tin thành công!');
         }, 500);
+    };
+
+    const handleToggleDarkMode = (checked) => {
+        setIsDarkMode(checked);
+        localStorage.setItem('eduboost-theme', checked ? 'dark' : 'light');
+        document.body.classList.toggle('dark-mode', checked);
     };
 
     const handleChangePassword = async (e) => {
@@ -104,12 +124,14 @@ const UserProfile = () => {
                     >
                         <User size={20} /> Tài khoản
                     </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('history')}
-                    >
-                        <FileCheck size={20} /> Lịch sử học tập
-                    </button>
+                    {!isTeacherRole && (
+                        <button
+                            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('history')}
+                        >
+                            <FileCheck size={20} /> Lịch sử học tập
+                        </button>
+                    )}
                     <button
                         className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
                         onClick={() => setActiveTab('settings')}
@@ -187,7 +209,7 @@ const UserProfile = () => {
                         </div>
                     )}
 
-                    {activeTab === 'history' && (
+                    {!isTeacherRole && activeTab === 'history' && (
                         <div className="tab-pane fade-in">
                             <h3 className="section-title">Hoạt động gần đây</h3>
                             <div className="history-list">
@@ -239,7 +261,11 @@ const UserProfile = () => {
                                     <p>Sử dụng giao diện tối để bảo vệ mắt</p>
                                 </div>
                                 <label className="data-switch">
-                                    <input type="checkbox" />
+                                    <input
+                                        type="checkbox"
+                                        checked={isDarkMode}
+                                        onChange={(e) => handleToggleDarkMode(e.target.checked)}
+                                    />
                                     <span className="slider"></span>
                                 </label>
                             </div>

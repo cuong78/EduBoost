@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Joyride, STATUS } from "react-joyride";
+import { Joyride } from "react-joyride";
+import "../../styles/guided-tour.css";
 
 /**
  * GuidedTour — wrapper cho react-joyride
@@ -63,8 +64,11 @@ const TOOLTIP_STYLES = {
     fontFamily: "'Inter', sans-serif",
   },
   buttonClose: {
-    width: "28px",
-    height: "28px",
+    width: "22px",
+    height: "22px",
+    top: "12px",
+    right: "12px",
+    color: "#64748b",
   },
   spotlight: {
     borderRadius: "12px",
@@ -78,12 +82,41 @@ const TOOLTIP_STYLES = {
 const GuidedTour = ({ steps, tourKey, run: forcedRun, onFinish }) => {
   const storageKey = `eduboost_tour_${tourKey}`;
   const [run, setRun] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+
+  const hasAtLeastOneTarget = useCallback((tourSteps) => {
+    if (!tourSteps || tourSteps.length === 0) return false;
+
+    return tourSteps.some((step) => {
+      const { target } = step || {};
+      if (!target) return false;
+      if (typeof target === "string") return Boolean(document.querySelector(target));
+      return target instanceof HTMLElement;
+    });
+  }, []);
 
   useEffect(() => {
     if (forcedRun === true) {
-      setRun(true);
-      setStepIndex(0);
+      let attempt = 0;
+      const maxAttempts = 30;
+      const retryDelay = 120;
+
+      const startWhenReady = () => {
+        if (hasAtLeastOneTarget(steps) || attempt >= maxAttempts) {
+          setRun(true);
+          return;
+        }
+
+        attempt += 1;
+        setTimeout(startWhenReady, retryDelay);
+      };
+
+      setRun(false);
+      startWhenReady();
+      return;
+    }
+
+    if (forcedRun === false) {
+      setRun(false);
       return;
     }
     // Auto-run if never seen
@@ -95,15 +128,11 @@ const GuidedTour = ({ steps, tourKey, run: forcedRun, onFinish }) => {
     }
   }, [forcedRun, storageKey, steps]);
 
-  const handleCallback = useCallback(
+  const handleEvent = useCallback(
     (data) => {
-      const { status, action, index, type } = data;
+      const { status } = data;
 
-      if (type === "step:after") {
-        setStepIndex(index + (action === "prev" ? -1 : 1));
-      }
-
-      if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      if (["finished", "skipped"].includes(status)) {
         setRun(false);
         localStorage.setItem(storageKey, "true");
         if (onFinish) onFinish();
@@ -118,14 +147,14 @@ const GuidedTour = ({ steps, tourKey, run: forcedRun, onFinish }) => {
     <Joyride
       steps={steps}
       run={run}
-      stepIndex={stepIndex}
+      initialStepIndex={0}
       continuous
       showSkipButton
       showProgress
       scrollToFirstStep
       scrollOffset={120}
-      disableOverlayClose={false}
-      callback={handleCallback}
+      overlayClickAction={null}
+      onEvent={handleEvent}
       styles={TOOLTIP_STYLES}
       locale={{
         back: "← Trước",

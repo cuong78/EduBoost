@@ -206,8 +206,8 @@ const Footer = () => {
         .site-footer__badges span {
           padding: 0.7rem 0.95rem;
           border-radius: 999px;
-          background: rgba(15, 124, 240, 0.08);
-          color: #0f7cf0;
+          background: rgba(99, 102, 241, 0.1);
+          color: #6366f1;
           font-weight: 800;
           font-size: 0.85rem;
         }
@@ -221,7 +221,7 @@ const Footer = () => {
         .site-footer__column {
           padding: 1.1rem;
           border-radius: 24px;
-          background: rgba(245, 249, 255, 0.94);
+          background: rgba(246, 242, 255, 0.94);
           border: 1px solid rgba(148, 163, 184, 0.12);
         }
 
@@ -244,7 +244,7 @@ const Footer = () => {
 
         .site-footer__links a:hover,
         .site-footer__bottom-links a:hover {
-          color: #0f7cf0;
+          color: #6366f1;
         }
 
         .site-footer__bottom {

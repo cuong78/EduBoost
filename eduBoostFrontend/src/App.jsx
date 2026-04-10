@@ -54,6 +54,7 @@ import StudentInvitations from "./pages/teacher/StudentInvitations";
 import EditStudent from "./pages/teacher/EditStudent";
 import MatrixManagement from "./pages/teacher/MatrixManagement";
 import TeacherGuide from "./pages/teacher/TeacherGuide";
+import TeacherHome from "./pages/teacher/TeacherHome";
 import LinkStudent from "./pages/parent/LinkStudent";
 import MyStudents from "./pages/parent/MyStudents";
 import ParentStudentDetail from "./pages/parent/StudentDetail";
@@ -159,7 +160,8 @@ function App() {
           {/* Teacher Dashboard Routes */}
           <Route element={<RequireRole allow={["TEACHER"]} />}>
             <Route path="/teacher" element={<TeacherLayout />}>
-              <Route index element={<Navigate to="classes" replace />} />
+              <Route index element={<Navigate to="home" replace />} />
+              <Route path="home" element={<TeacherHome />} />
               {/* dashboard route removed */}
               <Route path="classes" element={<ClassList />} />
               <Route

@@ -441,7 +441,7 @@ const MatrixManagement = () => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }} data-tour="mm-tabs">
+      <div className="matrix-tabs" data-tour="mm-tabs">
         <button
           className={`btn ${activeTab === "mine" ? "btn-primary" : "btn-outline"}`}
           onClick={() => setActiveTab("mine")}
@@ -998,13 +998,15 @@ const MatrixManagement = () => {
         .page-header h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 0.25rem; }
         .subtitle { color: var(--color-text-secondary); margin: 0; font-size: 0.9rem; }
 
+        .matrix-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+
         .filters { padding: 1rem; border-radius: 16px; margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
         .search-box { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.6); padding: 0.6rem 1rem; border-radius: 10px; }
         .search-box input { border: none; background: none; flex: 1; outline: none; }
-        .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; background: transparent; border: none; }
         .filter-group select { padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8); }
 
-        .matrix-list { padding: 1.25rem; border-radius: 16px; }
+        .matrix-list { padding: 1.25rem; border-radius: 16px; background: rgba(255,255,255,0.72); border: 1px solid rgba(15,23,42,0.08); }
         .matrix-table { width: 100%; border-collapse: collapse; }
         .matrix-table th { text-align: left; padding: 0.75rem 1rem; border-bottom: 2px solid rgba(0,0,0,0.08); font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 700; text-transform: uppercase; }
         .matrix-table td { padding: 0.7rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.04); }
@@ -1024,7 +1026,7 @@ const MatrixManagement = () => {
         .btn-icon:hover { background: rgba(99,102,241,0.12); color: var(--color-accent-1); }
         .btn-icon.danger:hover { background: rgba(239,68,68,0.1); color: var(--ds-error); }
 
-        .empty-state { padding: 3rem; text-align: center; color: var(--color-text-secondary); }
+        .empty-state { padding: 3rem; text-align: center; color: var(--color-text-secondary); border-radius: 14px; }
         .empty-state h3 { margin: 0.75rem 0 0.25rem; }
         .empty-state p { margin: 0 0 1.25rem; }
 
@@ -1085,6 +1087,65 @@ const MatrixManagement = () => {
           .detail-grid { grid-template-columns: 1fr 1fr; }
           .detail-item.full { grid-column: span 2; }
           .row3 { grid-template-columns: 1fr 1fr; }
+        }
+
+        body.dark-mode .matrix-tabs .btn-outline {
+          background: rgba(30, 41, 59, 0.74);
+          border-color: rgba(148, 163, 184, 0.28);
+          color: #dbeafe;
+        }
+
+        body.dark-mode .filters,
+        body.dark-mode .matrix-list {
+          background: rgba(15, 23, 42, 0.78) !important;
+          border-color: rgba(148, 163, 184, 0.24);
+        }
+
+        body.dark-mode .search-box,
+        body.dark-mode .filter-group select,
+        body.dark-mode .lesson-check-pill,
+        body.dark-mode .field input,
+        body.dark-mode .field select,
+        body.dark-mode .field textarea,
+        body.dark-mode .num-input,
+        body.dark-mode .modal,
+        body.dark-mode .matrix-list {
+          background: rgba(15, 23, 42, 0.85);
+          border-color: rgba(148, 163, 184, 0.22);
+          color: var(--ds-text);
+        }
+
+        body.dark-mode .matrix-table th,
+        body.dark-mode .matrix-input-table th {
+          background: rgba(30, 41, 59, 0.92);
+          color: #cbd5e1;
+          border-bottom-color: rgba(148, 163, 184, 0.22);
+        }
+
+        body.dark-mode .matrix-table td,
+        body.dark-mode .matrix-input-table td,
+        body.dark-mode .modal-header,
+        body.dark-mode .modal-footer,
+        body.dark-mode .expand-row td {
+          border-color: rgba(148, 163, 184, 0.18);
+        }
+
+        body.dark-mode .matrix-table tr:hover td {
+          background: rgba(99,102,241,0.12);
+        }
+
+        body.dark-mode .empty-state {
+          background: rgba(15, 23, 42, 0.54);
+          border: 1px dashed rgba(99, 102, 241, 0.35);
+          color: #cbd5e1;
+        }
+
+        body.dark-mode .empty-state h3 {
+          color: #e5e7eb;
+        }
+
+        body.dark-mode .empty-state p {
+          color: #94a3b8;
         }
       `}</style>
     </div>

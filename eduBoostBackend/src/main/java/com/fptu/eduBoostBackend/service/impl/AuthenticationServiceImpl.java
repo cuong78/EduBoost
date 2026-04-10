@@ -309,15 +309,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .findByUsername(loginRequest.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found after authentication"));
 
-        // Tạo authentication với authorities từ permissions
         Authentication authentication =
                 new UsernamePasswordAuthenticationToken(user.getUsername(), null, user.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        boolean wasNewUser = user.isNew();
+
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
         String token = tokenService.generateToken(user);
 
-        return UserMapper.toResponse(user, token, refreshToken.getToken());
+        UserResponse response = UserMapper.toResponse(user, token, refreshToken.getToken());
+
+        if (wasNewUser) {
+            user.setNew(false);
+        }
+        user.setLastLogin(java.time.LocalDateTime.now());
+        userRepository.save(user);
+
+        return response;
     }
 
     private Date calculateExpiryDate() {
@@ -564,12 +573,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             }
 
             // Generate tokens
+            boolean wasNewUser = user.isNew();
+
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
             String token = tokenService.generateToken(user);
 
-            log.info("Google login successful for user: {}", email);
-            return UserMapper.toResponse(user, token, refreshToken.getToken());
+            UserResponse response = UserMapper.toResponse(user, token, refreshToken.getToken());
 
+            if (wasNewUser) {
+                user.setNew(false);
+            }
+            user.setLastLogin(java.time.LocalDateTime.now());
+            userRepository.save(user);
+
+            return response;
         } catch (BadRequestException e) {
             // Re-throw BadRequestException as-is
             log.error("BadRequestException in Google login: {}", e.getMessage());
@@ -598,10 +615,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         
         // Generate tokens giống như login thông thường
+        boolean wasNewUser = user.isNew();
+
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
         String token = tokenService.generateToken(user);
-        
-        log.info("Auto-login successful for user: {}", username);
-        return UserMapper.toResponse(user, token, refreshToken.getToken());
+
+        UserResponse response = UserMapper.toResponse(user, token, refreshToken.getToken());
+
+        if (wasNewUser) {
+            user.setNew(false);
+        }
+        user.setLastLogin(java.time.LocalDateTime.now());
+        userRepository.save(user);
+
+        return response;
     }
 }
