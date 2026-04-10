@@ -72,13 +72,14 @@ const quickActions = [
     icon: Send,
     tone: "teal",
   },
-  {
-    title: "Gói đăng ký",
-    subtitle: "Theo dõi gói hiện tại",
-    to: "/teacher/subscription",
-    icon: Gem,
-    tone: "amber",
-  },
+  // Tạm ẩn - Gói đăng ký
+  // {
+  //   title: "Gói đăng ký",
+  //   subtitle: "Theo dõi gói hiện tại",
+  //   to: "/teacher/subscription",
+  //   icon: Gem,
+  //   tone: "amber",
+  // },
   {
     title: "Hướng dẫn",
     subtitle: "Tài liệu sử dụng",
