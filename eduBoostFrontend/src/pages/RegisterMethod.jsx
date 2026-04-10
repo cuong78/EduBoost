@@ -108,11 +108,12 @@ const RegisterMethod = () => {
                     style={{ 
                         display: 'flex', 
                         justifyContent: 'center',
-                        marginBottom: '1.5rem'
+                        marginBottom: '1.5rem',
+                        width: '100%'
                     }}
                 >
                     {/* Always render the container, Google button will be rendered inside by useEffect */}
-                    <div ref={googleButtonRef} style={{ width: '100%', minHeight: '40px' }}></div>
+                    <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '40px' }}></div>
                 </div>
 
                 <div className="auth-separator">

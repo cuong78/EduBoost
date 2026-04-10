@@ -84,7 +84,6 @@ const LanguageSwitcher = ({ mobile = false }) => {
 
 const PRODUCTS = [
   { label: "Thi - Kiểm tra online", to: "/features/exam" },
-  { label: "Chuyển đổi số Nhà trường", to: "/features/digital" },
   { label: "Trộn đề - Chấm phiếu offline", to: "/features/offline" },
   { label: "Ngân hàng câu hỏi", to: "/features/question-bank" },
 ];
@@ -151,7 +150,6 @@ const Navbar = () => {
           <img src={logo} alt="EduBoost" />
           <div>
             <strong>EduBoost</strong>
-            <span>{copy.brandSubtitle}</span>
           </div>
         </Link>
 
@@ -253,10 +251,11 @@ const Navbar = () => {
         }
 
         .site-navbar--scrolled {
-          padding-top: 0.38rem;
+          padding-top: 0;
         }
 
         .site-navbar__inner {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -284,11 +283,12 @@ const Navbar = () => {
           min-height: 64px;
           padding-top: 0.68rem;
           padding-bottom: 0.68rem;
-          border-radius: 28px;
-          background: rgba(255, 255, 255, 0.44);
-          border-color: rgba(148, 163, 184, 0.07);
-          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
-          backdrop-filter: blur(30px) saturate(150%);
+          border-radius: 0 0 24px 24px;
+          background: rgba(255, 255, 255, 0.92);
+          border-top: none;
+          border-color: rgba(148, 163, 184, 0.16);
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+          backdrop-filter: blur(24px);
         }
 
         .site-navbar__brand {
@@ -325,20 +325,30 @@ const Navbar = () => {
           font-weight: 600;
         }
 
-        .site-navbar__links,
+        .site-navbar__links {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+        }
+
         .site-navbar__actions {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
         }
 
         .site-navbar__link {
           display: inline-flex;
           align-items: center;
           gap: 0.3rem;
+          margin: 0;
           padding: 0.72rem 1rem;
           border-radius: 999px;
           color: #37536b;
+          font-family: inherit;
           font-size: 0.96rem;
           font-weight: 700;
           background: none;

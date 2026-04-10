@@ -1,4 +1,4 @@
-﻿.landing-home {
+.landing-home {
   position: relative;
   z-index: 1;
 }
@@ -89,10 +89,22 @@
 }
 
 .landing-hero h1 {
-  max-width: 14ch;
-  font-size: clamp(2.7rem, 5vw, 4.7rem);
-  line-height: 1.02;
-  letter-spacing: -0.06em;
+  max-width: 15ch;
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hero-text-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+  padding-right: 0.05em;
 }
 
 .landing-hero__subtitle {
@@ -564,6 +576,62 @@
   object-fit: cover;
   border-radius: 22px;
 }
+
+/* Adjustments for the role spotlight when placed in the hero visually */
+.hero-role-spotlight .role-panel {
+  grid-template-columns: 1fr;
+  padding: 1.5rem;
+  gap: 1.5rem;
+  border-radius: 28px;
+}
+
+.hero-role-spotlight .role-tabs {
+  margin-bottom: 1rem;
+}
+
+.hero-role-spotlight .role-tab {
+  padding: 0.65rem 1.15rem;
+  min-height: 42px;
+  font-size: 0.9rem;
+}
+
+.hero-role-spotlight .role-panel__content h2 {
+  font-size: clamp(1.6rem, 2vw, 2rem);
+}
+
+.hero-role-spotlight .role-feature-item__icon {
+  width: 40px;
+  height: 40px;
+}
+
+.hero-role-spotlight .role-feature-item h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.25rem;
+}
+
+.hero-role-spotlight .role-feature-list {
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.hero-role-spotlight .role-panel__image-shell {
+  padding: 0.55rem;
+  border-radius: 20px;
+}
+
+.hero-role-spotlight .role-panel__image-shell img {
+  min-height: 220px;
+  border-radius: 16px;
+}
+
+.hero-role-spotlight .role-panel__media::before {
+  width: 120px;
+  height: 120px;
+  top: -0.5rem;
+  right: 0.2rem;
+  border-radius: 20px;
+}
+
 
 .landing-section-heading {
   max-width: 760px;
