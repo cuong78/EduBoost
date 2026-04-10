@@ -33,6 +33,8 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
     const lastActivityRef = useRef(Date.now());
     const violationCountRef = useRef(0);
     const timeLeftRef = useRef(null); // updated externally
+    const visibilityDebounceRef = useRef(null); // debounce for mobile screen lock
+    const wakeLockRef = useRef(null); // Screen Wake Lock API
 
     // ── Connect WebSocket ──────────────────────────────────────────────────
     const connectWs = useCallback(() => {
@@ -125,11 +127,28 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
     }, [enabled, sendAlert]);
 
     // ── Visibility / tab switch ────────────────────────────────────────────
+    // On mobile, screen lock fires visibilitychange = hidden.
+    // Debounce: only alert if hidden for >3 seconds (real tab switch).
+    // Screen lock/unlock cycle is usually <2s.
     const visibilityHandler = useCallback(() => {
         const active = !document.hidden;
         setTabActive(active);
+
         if (!active && enabled) {
-            sendAlert('TAB_SWITCH');
+            if (isMobile()) {
+                // Debounce for mobile — screen lock fires this too
+                clearTimeout(visibilityDebounceRef.current);
+                visibilityDebounceRef.current = setTimeout(() => {
+                    if (document.hidden) {
+                        sendAlert('TAB_SWITCH');
+                    }
+                }, 3000); // 3 seconds grace period
+            } else {
+                sendAlert('TAB_SWITCH');
+            }
+        } else {
+            // User came back — cancel pending alert
+            clearTimeout(visibilityDebounceRef.current);
         }
     }, [enabled, sendAlert]);
 
@@ -177,6 +196,18 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
             requestFullscreen();
         }
 
+        // 1b. Try to keep screen on via Wake Lock API (mobile + desktop)
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLockRef.current = await navigator.wakeLock.request('screen');
+                }
+            } catch (e) {
+                // Wake Lock not supported or denied — OK to ignore
+            }
+        };
+        requestWakeLock();
+
         // 2. Connect WebSocket
         connectWs();
 
@@ -214,6 +245,15 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
 
             // Exit fullscreen on unmount (desktop only)
             if (!isMobile() && document.fullscreenElement) document.exitFullscreen?.();
+
+            // Release wake lock
+            if (wakeLockRef.current) {
+                wakeLockRef.current.release().catch(() => {});
+                wakeLockRef.current = null;
+            }
+
+            // Clear debounce timers
+            clearTimeout(visibilityDebounceRef.current);
         };
     }, [enabled, connectWs]);
 

@@ -21,14 +21,73 @@ const ExamMonitor = () => {
     const stompRef = useRef(null);
     const alertsRef = useRef([]);
 
-    // ── Load assignment info ───────────────────────────────────────────────
+    // ── Load assignment info + historical logs ─────────────────────────
     useEffect(() => {
-        examAssignmentService.getTeacherAssignments()
-            .then(list => {
+        const load = async () => {
+            try {
+                const list = await examAssignmentService.getTeacherAssignments();
                 const a = list.find(x => String(x.assignmentId) === String(assignmentId));
                 if (a) setAssignment(a);
-            })
-            .finally(() => setLoading(false));
+
+                // Load historical violation logs from database
+                try {
+                    const logs = await examAssignmentService.getViolationLogs(assignmentId);
+                    if (Array.isArray(logs) && logs.length > 0) {
+                        // Build alerts from historical logs
+                        const historyAlerts = logs.map((log, idx) => ({
+                            id: `hist-${log.id || idx}`,
+                            studentName: log.studentName || 'N/A',
+                            violations: log.violationType,
+                            timestamp: log.timestamp
+                                ? new Date(log.timestamp).toLocaleTimeString('vi-VN')
+                                : '—',
+                            severity: 'medium',
+                        }));
+                        alertsRef.current = historyAlerts;
+                        setAlerts(historyAlerts);
+
+                        // Build student summary from historical violations
+                        const studentMap = {};
+                        logs.forEach(log => {
+                            const key = log.studentId || log.studentName || 'unknown';
+                            if (!studentMap[key]) {
+                                studentMap[key] = {
+                                    studentId: log.studentId,
+                                    studentName: log.studentName || 'N/A',
+                                    violationCount: 0,
+                                    violations: [],
+                                    online: false,
+                                    tabActive: true,
+                                    fullscreen: true,
+                                    networkOnline: true,
+                                    lastSeen: '—',
+                                };
+                            }
+                            studentMap[key].violationCount += 1;
+                            if (log.violationType) {
+                                log.violationType.split(' ').filter(Boolean).forEach(v => {
+                                    if (!studentMap[key].violations.includes(v)) {
+                                        studentMap[key].violations.push(v);
+                                    }
+                                });
+                            }
+                            // Use latest timestamp as lastSeen
+                            if (log.timestamp) {
+                                studentMap[key].lastSeen = new Date(log.timestamp).toLocaleTimeString('vi-VN');
+                            }
+                        });
+                        setStudents(prev => ({ ...studentMap, ...prev }));
+                    }
+                } catch (e) {
+                    console.warn('Failed to load violation logs:', e);
+                }
+            } catch (e) {
+                console.error('Failed to load assignment:', e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
     }, [assignmentId]);
 
     // ── WebSocket connection ───────────────────────────────────────────────
@@ -171,8 +230,8 @@ const ExamMonitor = () => {
                     {studentList.length === 0 ? (
                         <div className="empty-state">
                             <Users size={48} color="#cbd5e1" />
-                            <p>Chờ học sinh tham gia...</p>
-                            <p className="muted" style={{fontSize:'0.85rem'}}>Dữ liệu realtime sẽ xuất hiện khi học sinh vào thi.</p>
+                            <p>Chưa có dữ liệu học sinh</p>
+                            <p className="muted" style={{fontSize:'0.85rem'}}>Chưa có học sinh nào tham gia hoặc chưa có log vi phạm.</p>
                         </div>
                     ) : (
                         <div className="student-grid">

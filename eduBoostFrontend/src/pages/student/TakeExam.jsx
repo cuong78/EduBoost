@@ -221,7 +221,9 @@ const TakeExam = () => {
                         )}
                         <div className="warning-info">
                             <Shield size={16} />
-                            <span>Bài thi sẽ chạy toàn màn hình. Thoát khỏi bài thi sẽ bị giáo viên ghi nhận.</span>
+                            <div>
+                                <span>Bài thi sẽ chạy toàn màn hình. Thoát khỏi bài thi sẽ bị giáo viên ghi nhận.</span>
+                            </div>
                         </div>
                         <button type="submit" className="btn btn-primary full-width" disabled={validatingCode || codeInput.length < 6}>
                             {validatingCode ? 'Đang kiểm tra...' : '🔓 Vào thi'}
