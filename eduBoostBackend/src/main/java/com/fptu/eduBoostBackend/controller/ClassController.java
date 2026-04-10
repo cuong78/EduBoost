@@ -77,7 +77,6 @@ public class ClassController {
     @DeleteMapping("/{classId}")
     @Operation(summary = "Delete class", 
                description = "Deletes a class (only if no students are enrolled)")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteClass(
             @Parameter(description = "Class ID", required = true)
             @PathVariable String classId) {
