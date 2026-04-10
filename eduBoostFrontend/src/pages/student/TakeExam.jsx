@@ -103,16 +103,19 @@ const TakeExam = () => {
             const duration = data.durationMinutes ? data.durationMinutes * 60 : secsLeft;
             setTimeLeft(Math.min(secsLeft, duration));
 
-            // Load exam questions directly via API
+            // Load exam questions via GET /exams/{examId}
             setLoadingExam(true);
             try {
                 const { apiClient } = await import('../../services/api');
-                const examResp = await apiClient.get(`/api/exams/${data.examId}/questions`);
-                const questionsData = examResp.data;
-                if (Array.isArray(questionsData)) {
-                    setQuestions(questionsData);
-                } else if (questionsData?.questions) {
-                    setQuestions(questionsData.questions);
+                const examResp = await apiClient.get(`/exams/${data.examId}`);
+                const examData = examResp.data;
+                // ExamResponse contains examQuestions array
+                if (Array.isArray(examData?.examQuestions)) {
+                    setQuestions(examData.examQuestions);
+                } else if (Array.isArray(examData?.questions)) {
+                    setQuestions(examData.questions);
+                } else if (Array.isArray(examData)) {
+                    setQuestions(examData);
                 }
             } catch (qErr) {
                 console.warn('Failed to load questions:', qErr);

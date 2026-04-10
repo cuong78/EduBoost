@@ -46,7 +46,7 @@ const AIChat = () => {
             .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text }));
 
         try {
-            const { data } = await apiClient.post('/api/ai-chat/message', {
+            const { data } = await apiClient.post('/ai-chat/message', {
                 message: userMsg.text,
                 history: history.slice(0, -1), // send history before current message
             });
