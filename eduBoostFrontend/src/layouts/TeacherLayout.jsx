@@ -7,6 +7,7 @@ import {
   PenLine,
   FilePlus,
   ClipboardList,
+  ClipboardCheck,
   Users,
   Library,
   FolderOpen,
@@ -149,6 +150,14 @@ const TeacherLayout = () => {
             data-tour="nav-create-exam"
           >
             <FilePlus size={20} /> <span className="dl-nav-label">Tạo đề thi</span>
+          </Link>
+          <Link
+            to="/teacher/assignments"
+            className={`dl-nav-item ${isActive("/teacher/assignments") ? "active" : ""}`}
+            onClick={closeSidebar}
+            data-tour="nav-assignments"
+          >
+            <ClipboardCheck size={20} /> <span className="dl-nav-label">Bài đã giao</span>
           </Link>
           <Link
             to="/teacher/feedback"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Clock,
     AlertCircle,
@@ -8,9 +8,42 @@ import {
     Search,
     Filter,
     BookOpen,
-    Trophy
+    Trophy,
+    RefreshCw,
+    X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import examAssignmentService from '../../services/examAssignmentService';
+
+/* ── Helper: format datetime to Vietnamese locale ── */
+const fmtDateVN = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    const pad = (n) => String(n).padStart(2, '0');
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    let h = d.getHours();
+    const period = h >= 12 ? 'chiều' : 'sáng';
+    h = h % 12 || 12;
+    return `${day}/${month} lúc ${h}:${pad(d.getMinutes())} ${period}`;
+};
+
+/* ── Helper: determine display status from assignment data ── */
+const getExamStatus = (assignment) => {
+    const now = new Date();
+    const start = new Date(assignment.startTime);
+    const end = new Date(assignment.endTime);
+    const status = assignment.status;
+
+    // If student already submitted (check via result presence — we mark on client side)
+    if (assignment._submitted) return 'Completed';
+
+    if (status === 'ENDED' || now > end) return 'Missed';
+    if (status === 'ACTIVE' || (now >= start && now <= end)) return 'Available';
+    if (status === 'SCHEDULED' || now < start) return 'Upcoming';
+    return 'Available';
+};
 
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     <div className="stat-card glass">
@@ -24,7 +57,7 @@ const StatCard = ({ icon: Icon, label, value, colorClass }) => (
     </div>
 );
 
-const ExamCard = ({ title, course, duration, deadline, status, id }) => {
+const ExamCard = ({ title, course, duration, deadline, status, assignmentId, accessCode, gradeLevel }) => {
     const statusConfig = {
         'Available': {
             class: 'status-available',
@@ -33,18 +66,25 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
             action: 'Làm bài ngay',
             btnClass: 'btn-primary'
         },
+        'Upcoming': {
+            class: 'status-upcoming',
+            icon: Calendar,
+            label: 'Sắp diễn ra',
+            action: 'Chưa đến giờ',
+            btnClass: 'btn-disabled'
+        },
         'Completed': {
             class: 'status-completed',
             icon: CheckCircle,
             label: 'Đã hoàn thành',
-            action: 'Xem kết quả',
+            action: 'Đã nộp bài',
             btnClass: 'btn-secondary'
         },
         'Missed': {
             class: 'status-missed',
             icon: AlertCircle,
-            label: 'Đã bỏ lỡ',
-            action: 'Không khả dụng',
+            label: 'Đã kết thúc',
+            action: 'Hết hạn',
             btnClass: 'btn-disabled'
         },
     };
@@ -77,17 +117,23 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
                         <Calendar size={16} />
                         <span>{deadline}</span>
                     </div>
+                    {gradeLevel && (
+                        <div className="meta-item">
+                            <BookOpen size={16} />
+                            <span>Khối {gradeLevel}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div className="exam-actions">
                 {status === 'Available' ? (
-                    <Link to={`/student/exam/${id}`} className={`btn ${config.btnClass} full-width`}>
+                    <Link to={`/student/take-exam/${assignmentId}`} className={`btn ${config.btnClass} full-width`}>
                         {config.action} <ArrowRight size={18} />
                     </Link>
                 ) : (
-                    <button className={`btn ${config.btnClass} full-width`} disabled={status === 'Missed'}>
-                        {config.action} {status === 'Completed' && <ArrowRight size={16} />}
+                    <button className={`btn ${config.btnClass} full-width`} disabled={status === 'Missed' || status === 'Upcoming'}>
+                        {config.action} {status === 'Completed' && <CheckCircle size={16} />}
                     </button>
                 )}
             </div>
@@ -97,32 +143,80 @@ const ExamCard = ({ title, course, duration, deadline, status, id }) => {
 
 const ExamList = () => {
     const [filter, setFilter] = useState('All');
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
-    // Mock Data
-    const stats = [
-        { label: 'Bài tập đang chờ', value: '3', icon: Clock, colorClass: 'text-green' },
-        { label: 'Đã hoàn thành', value: '12', icon: CheckCircle, colorClass: 'text-indigo' },
-        { label: 'Điểm trung bình', value: '8.5', icon: Trophy, colorClass: 'text-yellow' },
-    ];
+    // Fetch assignments from API
+    useEffect(() => {
+        loadAssignments();
+    }, []);
 
-    const allExams = [
-        { id: 1, title: 'Kiểm tra giữa kỳ Giải tích 1', course: 'Toán học', duration: 60, deadline: 'Tối nay, 23:59', status: 'Available' },
-        { id: 2, title: 'Vật lý Đại cương: Điện xoay chiều', course: 'Vật lý', duration: 45, deadline: 'Ngày mai, 12:00', status: 'Available' },
-        { id: 3, title: 'Quiz: Từ vựng tiếng Anh chuyên ngành', course: 'Tiếng Anh', duration: 30, deadline: '20/01', status: 'Completed' },
-        { id: 4, title: 'An toàn phòng thí nghiệm', course: 'Hóa học', duration: 15, deadline: '15/01', status: 'Missed' },
-        { id: 5, title: 'Lập trình C++ cơ bản', course: 'Tin học', duration: 90, deadline: 'CN tuần này', status: 'Available' },
-        { id: 6, title: 'Lịch sử Đảng CSVN', course: 'Triết học', duration: 60, deadline: '01/01', status: 'Completed' },
-    ];
+    const loadAssignments = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await examAssignmentService.getStudentAssignments();
+            setAssignments(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to load assignments:', err);
+            setError('Không thể tải danh sách bài kiểm tra');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const filteredExams = filter === 'All'
-        ? allExams
-        : allExams.filter(exam => exam.status === filter);
+    // Map assignments to display items
+    const allExams = useMemo(() => {
+        return assignments.map(a => ({
+            assignmentId: a.assignmentId,
+            title: a.examTitle || 'Bài kiểm tra',
+            course: a.subjectName || 'Chưa xác định',
+            duration: a.durationMinutes || 0,
+            deadline: fmtDateVN(a.endTime),
+            status: getExamStatus(a),
+            accessCode: a.accessCode,
+            gradeLevel: a.gradeLevel,
+        }));
+    }, [assignments]);
+
+    // Compute stats
+    const stats = useMemo(() => {
+        const pending = allExams.filter(e => e.status === 'Available' || e.status === 'Upcoming').length;
+        const completed = allExams.filter(e => e.status === 'Completed').length;
+        const missed = allExams.filter(e => e.status === 'Missed').length;
+        return [
+            { label: 'Bài tập đang chờ', value: String(pending), icon: Clock, colorClass: 'text-green' },
+            { label: 'Đã hoàn thành', value: String(completed), icon: CheckCircle, colorClass: 'text-indigo' },
+            { label: 'Đã kết thúc', value: String(missed), icon: AlertCircle, colorClass: 'text-yellow' },
+        ];
+    }, [allExams]);
+
+    // Filter and search
+    const filteredExams = useMemo(() => {
+        let result = filter === 'All'
+            ? allExams
+            : allExams.filter(exam => exam.status === filter);
+
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter(e =>
+                e.title.toLowerCase().includes(term) ||
+                e.course.toLowerCase().includes(term)
+            );
+        }
+
+        return result;
+    }, [allExams, filter, searchTerm]);
 
     const tabs = [
         { id: 'All', label: 'Tất cả' },
         { id: 'Available', label: 'Đang mở' },
+        { id: 'Upcoming', label: 'Sắp thi' },
         { id: 'Completed', label: 'Đã xong' },
-        { id: 'Missed', label: 'Bỏ lỡ' },
+        { id: 'Missed', label: 'Đã kết thúc' },
     ];
 
     return (
@@ -136,14 +230,34 @@ const ExamList = () => {
                     <p>Quản lý và theo dõi tiến độ học tập của bạn.</p>
                 </div>
                 <div className="header-actions">
-                    <button className="btn btn-outline">
-                        <Filter size={18} /> Lọc
+                    <button className="btn btn-outline" onClick={() => setShowSearch(!showSearch)}>
+                        {showSearch ? <X size={18} /> : <Search size={18} />} {showSearch ? 'Đóng' : 'Tìm kiếm'}
                     </button>
-                    <button className="btn btn-outline">
-                        <Search size={18} /> Tìm kiếm
+                    <button className="btn btn-outline" onClick={loadAssignments} disabled={loading}>
+                        <RefreshCw size={18} className={loading ? 'spin' : ''} /> Làm mới
                     </button>
                 </div>
             </div>
+
+            {/* Search bar */}
+            {showSearch && (
+                <div className="search-bar-container">
+                    <Search size={18} className="search-icon" />
+                    <input
+                        type="text"
+                        placeholder="Tìm theo tên bài kiểm tra hoặc môn học..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                        autoFocus
+                    />
+                    {searchTerm && (
+                        <button className="search-clear" onClick={() => setSearchTerm('')}>
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Stats Grid */}
             <div className="stats-grid">
@@ -168,20 +282,33 @@ const ExamList = () => {
                 ))}
             </div>
 
-            {/* Exam Grid */}
-            {filteredExams.length > 0 ? (
+            {/* Content */}
+            {loading ? (
+                <div className="loading-state">
+                    <RefreshCw size={32} className="spin" />
+                    <p>Đang tải bài kiểm tra...</p>
+                </div>
+            ) : error ? (
+                <div className="error-state">
+                    <AlertCircle size={32} />
+                    <h3>{error}</h3>
+                    <button className="btn btn-primary" onClick={loadAssignments}>
+                        <RefreshCw size={16} /> Thử lại
+                    </button>
+                </div>
+            ) : filteredExams.length > 0 ? (
                 <div className="exam-grid">
                     {filteredExams.map(exam => (
-                        <ExamCard key={exam.id} {...exam} />
+                        <ExamCard key={exam.assignmentId} {...exam} />
                     ))}
                 </div>
             ) : (
                 <div className="empty-state">
                     <div className="empty-icon">
-                        <Search size={32} />
+                        {allExams.length === 0 ? <BookOpen size={32} /> : <Search size={32} />}
                     </div>
-                    <h3>Không tìm thấy bài kiểm tra nào</h3>
-                    <p>Thử thay đổi bộ lọc hoặc tìm kiếm lại.</p>
+                    <h3>{allExams.length === 0 ? 'Chưa có bài kiểm tra nào' : 'Không tìm thấy bài kiểm tra nào'}</h3>
+                    <p>{allExams.length === 0 ? 'Giáo viên chưa giao bài cho lớp bạn.' : 'Thử thay đổi bộ lọc hoặc tìm kiếm lại.'}</p>
                 </div>
             )}
 
@@ -224,6 +351,80 @@ const ExamList = () => {
                     gap: 0.5rem;
                 }
 
+                /* Search bar */
+                .search-bar-container {
+                    position: relative;
+                    margin-bottom: 1.5rem;
+                }
+                .search-icon {
+                    position: absolute;
+                    left: 16px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #94a3b8;
+                    pointer-events: none;
+                }
+                .search-input {
+                    width: 100%;
+                    padding: 0.85rem 1rem 0.85rem 48px;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 14px;
+                    font-size: 0.95rem;
+                    font-family: inherit;
+                    outline: none;
+                    transition: border-color 0.2s;
+                    background: white;
+                    box-sizing: border-box;
+                }
+                .search-input:focus {
+                    border-color: #6366f1;
+                    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+                }
+                .search-clear {
+                    position: absolute;
+                    right: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    color: #94a3b8;
+                    padding: 4px;
+                    border-radius: 6px;
+                }
+                .search-clear:hover { background: #f1f5f9; }
+
+                /* Loading */
+                .loading-state {
+                    text-align: center;
+                    padding: 4rem 1rem;
+                    color: var(--color-text-secondary);
+                }
+                .loading-state p {
+                    margin-top: 1rem;
+                    font-size: 1rem;
+                }
+                .spin {
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+
+                /* Error state */
+                .error-state {
+                    text-align: center;
+                    padding: 4rem 1rem;
+                    color: #ef4444;
+                }
+                .error-state h3 {
+                    margin: 1rem 0;
+                }
+                .error-state .btn {
+                    margin-top: 0.5rem;
+                }
+
                 /* Buttons */
                 .btn-outline {
                     background: white;
@@ -237,8 +438,8 @@ const ExamList = () => {
                 }
 
                 .btn-secondary {
-                    background: #e0e7ff; /* indigo-100 */
-                    color: var(--ds-primary-hover); /* indigo-600 */
+                    background: #e0e7ff;
+                    color: var(--ds-primary-hover);
                 }
                 
                 .btn-secondary:hover {
@@ -356,9 +557,8 @@ const ExamList = () => {
                     border-radius: 1rem;
                     padding: 1.5rem;
                     display: flex;
-                    flex-col;
-                    justify-content: space-between;
                     flex-direction: column;
+                    justify-content: space-between;
                     transition: all 0.3s ease;
                     border: 1px solid rgba(255,255,255,0.5);
                     position: relative;
@@ -390,6 +590,7 @@ const ExamList = () => {
                 }
 
                 .status-available { background: #dcfce7; color: #15803d; }
+                .status-upcoming { background: #fef3c7; color: #92400e; }
                 .status-completed { background: #e0e7ff; color: #4338ca; }
                 .status-missed { background: var(--ds-error-bg); color: #b91c1c; }
 
@@ -419,6 +620,7 @@ const ExamList = () => {
                     margin-bottom: 1.5rem;
                     color: var(--color-text-secondary);
                     font-size: 0.9rem;
+                    flex-wrap: wrap;
                 }
 
                 .meta-item {

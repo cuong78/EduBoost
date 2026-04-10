@@ -81,6 +81,7 @@ import FeedbackPage from "./pages/teacher/FeedbackPage";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 import LessonCoverage from "./pages/admin/LessonCoverage";
 import ExamMonitor from "./pages/teacher/ExamMonitor";
+import AssignmentList from "./pages/teacher/AssignmentList";
 
 const DashboardPlaceholder = ({ title }) => (
   <div style={{ padding: "2rem", textAlign: "center" }}>
@@ -197,7 +198,7 @@ function App() {
               <Route path="exams" element={<ExamManagement />} />
               <Route path="create-exam" element={<ExamGenerator />} />
               <Route path="matrix-templates" element={<MatrixManagement />} />
-              <Route path="assignments" element={<ExamManagement />} />
+              <Route path="assignments" element={<AssignmentList />} />
               <Route path="subscription" element={<SubscriptionManagement />} />
               <Route path="feedback" element={<FeedbackPage />} />
               <Route path="guide" element={<TeacherGuide />} />
