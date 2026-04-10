@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -352,20 +351,17 @@ public class ExamAssignmentServiceImpl {
                 .collect(Collectors.toList());
     }
 
-    // ── Scheduler: auto activate/end assignments ───────────────────────────
+    // ── Compute status dynamically (replaces scheduler) ─────────────────
 
-    @Scheduled(fixedRate = 60000) // every 1 minute
-    @Transactional
-    public void syncAssignmentStatuses() {
+    /**
+     * Compute assignment status based on current time.
+     * No scheduler needed — status is always derived from startTime/endTime.
+     */
+    private String computeStatus(ExamAssignment a) {
         LocalDateTime now = LocalDateTime.now();
-        // Activate
-        List<ExamAssignment> toActivate = assignmentRepository.findToActivate(now);
-        toActivate.forEach(a -> a.setStatus("ACTIVE"));
-        if (!toActivate.isEmpty()) assignmentRepository.saveAll(toActivate);
-        // End
-        List<ExamAssignment> toEnd = assignmentRepository.findToEnd(now);
-        toEnd.forEach(a -> a.setStatus("ENDED"));
-        if (!toEnd.isEmpty()) assignmentRepository.saveAll(toEnd);
+        if (now.isBefore(a.getStartTime())) return "SCHEDULED";
+        if (now.isAfter(a.getEndTime()))     return "ENDED";
+        return "ACTIVE";
     }
 
     // ── AI Analysis ───────────────────────────────────────────────────────
@@ -461,7 +457,7 @@ public class ExamAssignmentServiceImpl {
                 .accessCode(a.getAccessCode())
                 .startTime(a.getStartTime())
                 .endTime(a.getEndTime())
-                .status(a.getStatus())
+                .status(computeStatus(a))
                 .allowedAttempts(a.getAllowedAttempts())
                 .durationMinutes(a.getDurationMinutes())
                 .notifyParent(a.getNotifyParent())
@@ -483,8 +479,9 @@ public class ExamAssignmentServiceImpl {
         ExamAssignment a = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
 
-        // Verify assignment is active
-        if (!"ACTIVE".equals(a.getStatus())) {
+        // Verify assignment is active by comparing time
+        String currentStatus = computeStatus(a);
+        if (!"ACTIVE".equals(currentStatus)) {
             throw new BadRequestException("Bài thi chưa bắt đầu hoặc đã kết thúc");
         }
 
