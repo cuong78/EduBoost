@@ -88,6 +88,8 @@ export default function CreateStudentPage() {
         return Object.keys(next).length === 0;
     };
 
+    const [existingStudentData, setExistingStudentData] = useState(null);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
@@ -105,10 +107,33 @@ export default function CreateStudentPage() {
             };
             if (form.password?.trim()) payload.password = form.password.trim();
             const data = await teacherService.createStudent(payload);
+            // Check if backend returned existing student flag
+            if (data.existingStudent) {
+                setExistingStudentData(data);
+                return;
+            }
             setCreated(data);
             showSuccessToast('Học sinh đã được tạo thành công');
         } catch (err) {
             showErrorToast(err?.response?.data?.message || 'Tạo học sinh thất bại');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleAddExisting = async () => {
+        if (!existingStudentData?.existingUserId) return;
+        setSubmitting(true);
+        try {
+            const data = await teacherService.addExistingStudentToClass(
+                existingStudentData.existingUserId,
+                form.classId
+            );
+            setCreated(data);
+            setExistingStudentData(null);
+            showSuccessToast('Đã thêm học sinh vào lớp thành công');
+        } catch (err) {
+            showErrorToast(err?.response?.data?.message || 'Thêm học sinh thất bại');
         } finally {
             setSubmitting(false);
         }
@@ -186,6 +211,54 @@ export default function CreateStudentPage() {
                     .small { font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 0.25rem; }
                     .success-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
                 `}</style>
+            </div>
+        );
+    }
+
+    // ── Existing student confirmation dialog ──────────────────────
+    if (existingStudentData) {
+        const es = existingStudentData.student;
+        return (
+            <div className="create-student-page">
+                <div className="existing-dialog glass" style={{
+                    maxWidth: 520, margin: '2rem auto', padding: '2rem', borderRadius: 16, textAlign: 'center'
+                }}>
+                    <div style={{ fontSize: 48, marginBottom: '1rem' }}>👤</div>
+                    <h2 style={{ marginBottom: '0.5rem' }}>Học sinh đã tồn tại</h2>
+                    <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
+                        Học sinh này đã có tài khoản trên hệ thống. Bạn có thể thêm trực tiếp vào lớp của bạn mà không cần tạo tài khoản mới.
+                    </p>
+                    <div style={{
+                        background: 'rgba(99,102,241,0.08)', borderRadius: 12, padding: '1.25rem',
+                        textAlign: 'left', marginBottom: '1.5rem'
+                    }}>
+                        <p><strong>Họ tên:</strong> {es?.fullName || '—'}</p>
+                        <p><strong>Email:</strong> {es?.email || '—'}</p>
+                        <p><strong>SĐT:</strong> {es?.phone || '—'}</p>
+                        {es?.className && <p><strong>Lớp hiện tại:</strong> {es.className}</p>}
+                        {es?.studentCode && <p><strong>Mã HS:</strong> {es.studentCode}</p>}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                            type="button"
+                            className="btn btn-glass"
+                            onClick={() => setExistingStudentData(null)}
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleAddExisting}
+                            disabled={submitting}
+                        >
+                            {submitting
+                                ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Đang thêm...</>
+                                : <><UserPlus size={18} /> Thêm vào lớp</>}
+                        </button>
+                    </div>
+                </div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }

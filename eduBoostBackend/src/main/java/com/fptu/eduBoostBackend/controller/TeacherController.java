@@ -72,10 +72,31 @@ public class TeacherController {
     @Operation(summary = "Create new student", description = "Tạo học sinh mới với tự động tạo mã mời (nếu cần)")
     public ResponseEntity<ResponseObject> createStudent(@Valid @RequestBody CreateStudentRequest request) {
         CreateStudentResponse response = teacherService.createStudent(request);
+        // If existing student found, return 200 with flag instead of 201
+        if (Boolean.TRUE.equals(response.getExistingStudent())) {
+            return ResponseEntity.ok()
+                    .body(new ResponseObject(
+                            HttpStatus.OK.value(),
+                            "Học sinh đã tồn tại trên hệ thống",
+                            response));
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ResponseObject(
                         HttpStatus.CREATED.value(),
                         "Học sinh đã được tạo thành công",
+                        response));
+    }
+
+    @PostMapping("/students/add-existing")
+    @Operation(summary = "Add existing student to class", description = "Thêm học sinh đã tồn tại vào lớp mới")
+    public ResponseEntity<ResponseObject> addExistingStudentToClass(
+            @RequestParam Long userId,
+            @RequestParam String classId) {
+        CreateStudentResponse response = teacherService.addExistingStudentToClass(userId, classId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ResponseObject(
+                        HttpStatus.CREATED.value(),
+                        "Đã thêm học sinh vào lớp thành công",
                         response));
     }
 

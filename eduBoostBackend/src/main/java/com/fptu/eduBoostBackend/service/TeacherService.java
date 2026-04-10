@@ -18,5 +18,6 @@
         void sendInvitation(String invitationId, String parentEmail);
         InvitationResponse createAndSendInvitation(String studentId, String parentEmail);
         StudentInvitationsResponse getStudentInvitations(String studentId, int page, int size);
+        CreateStudentResponse addExistingStudentToClass(Long userId, String classId);
 
     }

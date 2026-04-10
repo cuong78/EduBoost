@@ -123,7 +123,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         
         // Get studying class for students
         String studyingClass = null;
-        Student student = studentRepository.findByUser(user).orElse(null);
+        Student student = studentRepository.findFirstByUser(user).orElse(null);
         if (student != null && student.getSchoolClass() != null) {
             studyingClass = student.getSchoolClass().getClassName();
         }

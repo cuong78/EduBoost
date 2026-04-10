@@ -60,6 +60,13 @@ public class ExamAssignmentController {
         return ResponseEntity.ok(violationLogRepository.findByAssignmentIdOrderByTimestampDesc(id));
     }
 
+    /** Get grades for all students in a class across all assignments */
+    @GetMapping("/teacher/grades")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public ResponseEntity<Map<String, Object>> getClassGrades(@RequestParam String classId) {
+        return ResponseEntity.ok(service.getClassGrades(classId));
+    }
+
     // ── Student endpoints ──────────────────────────────────────────────────
 
     /** Student: get all assignments for their class */

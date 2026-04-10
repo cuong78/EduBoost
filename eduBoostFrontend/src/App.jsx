@@ -37,6 +37,7 @@ import AIChat from "./pages/student/AIChat";
 import Forum from "./pages/student/Forum";
 import ExamList from "./pages/student/ExamList";
 import TakeExam from "./pages/student/TakeExam";
+import ExamResult from "./pages/student/ExamResult";
 
 // Teacher Pages
 
@@ -160,6 +161,8 @@ function App() {
           <Route path="/student/take-exam/:assignmentId" element={<TakeExam />} />
           {/* Legacy route kept for backward compat */}
           <Route path="/student/exam/:id" element={<TakeExam />} />
+          {/* Exam result page */}
+          <Route path="/student/exam-result/:resultId" element={<ExamResult />} />
 
           {/* Standalone Teacher Exam Monitor (fullscreen, no layout) */}
           <Route path="/teacher/exam-monitor/:assignmentId" element={<ExamMonitor />} />

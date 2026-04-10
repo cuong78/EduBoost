@@ -147,7 +147,7 @@ const Login = () => {
           text: "signin_with",
           shape: "rectangular",
           logo_alignment: "left",
-          width: 360,
+          width: 300,
         });
       }
     };
@@ -315,7 +315,7 @@ const Login = () => {
         {googleClientId && window.google ? (
           <div
             ref={googleButtonRef}
-            style={{ margin: "0 auto", width: "fit-content", minHeight: "40px" }}
+            style={{ margin: "0 auto", width: "fit-content", maxWidth: "100%", minHeight: "40px", overflow: "hidden" }}
           ></div>
         ) : (
           <button

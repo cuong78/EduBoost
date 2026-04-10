@@ -175,19 +175,63 @@ const AssignmentList = () => {
         return { avg, passed, total: results.length, passRate: (passed / results.length * 100), highest, lowest };
     }, [results]);
 
+    const [activeTab, setActiveTab] = useState('assignments');
+
     /* ═══════════ RENDER ═══════════ */
     return (
         <div className="al-page">
             {/* Header */}
             <div className="al-header">
                 <div>
-                    <h1 className="al-title"><ClipboardCheck size={24} /> Bài đã giao</h1>
-                    <p className="al-sub">Quản lý đề thi đã giao cho học sinh và theo dõi kết quả</p>
+                    <h1 className="al-title"><BarChart2 size={24} /> Thống kê</h1>
+                    <p className="al-sub">Theo dõi bài thi đã giao và quản lý điểm học sinh</p>
                 </div>
-                <button className="al-btn al-btn-outline" onClick={loadAssignments} disabled={loading}>
-                    <RefreshCw size={16} className={loading ? 'al-spin' : ''} /> Làm mới
+                {activeTab === 'assignments' && (
+                    <button className="al-btn al-btn-outline" onClick={loadAssignments} disabled={loading}>
+                        <RefreshCw size={16} className={loading ? 'al-spin' : ''} /> Làm mới
+                    </button>
+                )}
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="al-tabs" style={{
+                display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0',
+            }}>
+                <button
+                    className={`al-tab-btn ${activeTab === 'assignments' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('assignments')}
+                    style={{
+                        padding: '0.75rem 1.5rem', background: 'none', border: 'none',
+                        borderBottom: activeTab === 'assignments' ? '2px solid #6366f1' : '2px solid transparent',
+                        marginBottom: '-2px', cursor: 'pointer', fontWeight: 600,
+                        color: activeTab === 'assignments' ? '#6366f1' : '#64748b',
+                        fontSize: '0.95rem', transition: 'all 0.2s',
+                    }}
+                >
+                    <ClipboardCheck size={16} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} />
+                    Bài đã giao
+                </button>
+                <button
+                    className={`al-tab-btn ${activeTab === 'grades' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('grades')}
+                    style={{
+                        padding: '0.75rem 1.5rem', background: 'none', border: 'none',
+                        borderBottom: activeTab === 'grades' ? '2px solid #6366f1' : '2px solid transparent',
+                        marginBottom: '-2px', cursor: 'pointer', fontWeight: 600,
+                        color: activeTab === 'grades' ? '#6366f1' : '#64748b',
+                        fontSize: '0.95rem', transition: 'all 0.2s',
+                    }}
+                >
+                    <Trophy size={16} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} />
+                    Quản lý điểm
                 </button>
             </div>
+
+            {activeTab === 'grades' ? (
+                <GradeManagementTab />
+            ) : (
+            <>
+
 
             {/* Stats */}
             <div className="al-stats">
@@ -494,7 +538,125 @@ const AssignmentList = () => {
                 </div>
             )}
         </div>
+            </>
+            )}
+        </div>
     );
 };
+
+/* ═══════════ GRADE MANAGEMENT TAB ═══════════ */
+
+const GradeManagementTab = () => {
+    const [classes, setClasses] = useState([]);
+    const [selectedClass, setSelectedClass] = useState('');
+    const [grades, setGrades] = useState(null);
+    const [loadingGrades, setLoadingGrades] = useState(false);
+
+    useEffect(() => {
+        examAssignmentService.getTeacherClasses?.()
+            .then(data => {
+                const list = Array.isArray(data) ? data : [];
+                setClasses(list);
+                if (list.length > 0) setSelectedClass(list[0].classId);
+            })
+            .catch(() => setClasses([]));
+    }, []);
+
+    useEffect(() => {
+        if (!selectedClass) return;
+        setLoadingGrades(true);
+        examAssignmentService.getClassGrades(selectedClass)
+            .then(data => setGrades(data))
+            .catch(() => setGrades(null))
+            .finally(() => setLoadingGrades(false));
+    }, [selectedClass]);
+
+    return (
+        <div>
+            {/* Class selector */}
+            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <label style={{ fontWeight: 600, color: '#334155' }}>Chọn lớp:</label>
+                <select
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    style={{
+                        padding: '0.6rem 1rem', borderRadius: 10, border: '1px solid #e2e8f0',
+                        fontSize: '0.95rem', minWidth: 200, background: 'white',
+                    }}
+                >
+                    {classes.map(c => (
+                        <option key={c.classId} value={c.classId}>{c.className}</option>
+                    ))}
+                </select>
+            </div>
+
+            {loadingGrades ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                    <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                    <p>Đang tải bảng điểm...</p>
+                </div>
+            ) : !grades || !grades.students || grades.students.length === 0 ? (
+                <div style={{
+                    textAlign: 'center', padding: '3rem', color: '#94a3b8',
+                    background: 'white', borderRadius: 16, border: '1px dashed #e2e8f0',
+                }}>
+                    <Trophy size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                    <p>Chưa có dữ liệu điểm cho lớp này</p>
+                </div>
+            ) : (
+                <div style={{ overflowX: 'auto', background: 'white', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead>
+                            <tr style={{ background: '#f8fafc' }}>
+                                <th style={thStyle}>STT</th>
+                                <th style={thStyle}>Mã HS</th>
+                                <th style={thStyle}>Họ tên</th>
+                                {(grades.exams || []).map((exam, i) => (
+                                    <th key={i} style={{ ...thStyle, minWidth: 100 }} title={exam.examTitle}>
+                                        {exam.examTitle?.length > 15
+                                            ? exam.examTitle.substring(0, 15) + '...'
+                                            : exam.examTitle}
+                                    </th>
+                                ))}
+                                <th style={{ ...thStyle, background: '#eef2ff', fontWeight: 700 }}>Điểm TB</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {grades.students.map((student, idx) => (
+                                <tr key={student.studentId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={tdStyle}>{idx + 1}</td>
+                                    <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '0.82rem' }}>{student.studentCode}</td>
+                                    <td style={{ ...tdStyle, fontWeight: 600 }}>{student.fullName}</td>
+                                    {(grades.exams || []).map((exam, i) => {
+                                        const score = student.scores?.[exam.assignmentId];
+                                        return (
+                                            <td key={i} style={{
+                                                ...tdStyle,
+                                                color: score == null ? '#cbd5e1' : score >= 5 ? '#16a34a' : '#ef4444',
+                                                fontWeight: score != null ? 600 : 400,
+                                            }}>
+                                                {score != null ? Number(score).toFixed(1) : '—'}
+                                            </td>
+                                        );
+                                    })}
+                                    <td style={{
+                                        ...tdStyle, fontWeight: 700, background: '#f8faff',
+                                        color: student.average >= 5 ? '#16a34a' : student.average != null ? '#ef4444' : '#94a3b8',
+                                    }}>
+                                        {student.average != null ? Number(student.average).toFixed(2) : '—'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+    );
+};
+
+const thStyle = { padding: '0.75rem 0.6rem', textAlign: 'left', fontWeight: 600, color: '#475569', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' };
+const tdStyle = { padding: '0.65rem 0.6rem', color: '#334155' };
 
 export default AssignmentList;

@@ -23,7 +23,5 @@ public interface ClassRepository extends JpaRepository<SchoolClass, String> {
     @Query("SELECT c FROM SchoolClass c WHERE c.teacher.user.userId = :userId")
     List<SchoolClass> findByTeacherUserId(@Param("userId") Long userId);
 
-    /** Find classes by gradeLevel ID and teacher userId */
-    @Query("SELECT c FROM SchoolClass c WHERE c.gradeLevel.gradeLevelId = :gradeLevelId AND c.teacher.user.userId = :userId")
-    List<SchoolClass> findByGradeLevelAndTeacherUserId(@Param("gradeLevelId") Long gradeLevelId, @Param("userId") Long userId);
+
 }

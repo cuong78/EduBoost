@@ -44,6 +44,10 @@ const examAssignmentService = {
     /** Teacher: get violation logs for an assignment */
     getViolationLogs: (assignmentId) =>
         apiClient.get(`/exam-assignments/${assignmentId}/violations`).then(r => r.data),
+
+    /** Teacher: get class grades for grade management */
+    getClassGrades: (classId) =>
+        apiClient.get(`/exam-assignments/teacher/grades?classId=${classId}`).then(r => r.data),
 };
 
 

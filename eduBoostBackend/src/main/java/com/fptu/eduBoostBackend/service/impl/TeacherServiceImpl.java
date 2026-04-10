@@ -172,9 +172,37 @@ public class TeacherServiceImpl implements TeacherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "classId", request.getClassId()));
         validateTeacherHasClassAccess(schoolClass);
         
-        // Validate email uniqueness
+        // Check if email already exists — if so, return info for teacher to decide
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ConflictException("Email already exists");
+            User existingUser = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            // Check if this user already has a student record in THIS class
+            List<Student> existingStudents = studentRepository.findByUser(existingUser);
+            boolean alreadyInClass = existingStudents.stream()
+                    .anyMatch(s -> s.getSchoolClass() != null
+                            && s.getSchoolClass().getClassId().equals(request.getClassId()));
+            if (alreadyInClass) {
+                throw new ConflictException("Học sinh này đã có trong lớp này rồi");
+            }
+            // Return existing student info for teacher confirmation
+            StudentResponse existingInfo = StudentResponse.builder()
+                    .fullName(existingUser.getFullName())
+                    .email(existingUser.getEmail())
+                    .phone(existingUser.getPhone())
+                    .build();
+            if (!existingStudents.isEmpty()) {
+                Student first = existingStudents.get(0);
+                existingInfo.setStudentId(first.getStudentId());
+                existingInfo.setStudentCode(first.getStudentCode());
+                if (first.getSchoolClass() != null) {
+                    existingInfo.setClassName(first.getSchoolClass().getClassName());
+                }
+            }
+            return CreateStudentResponse.builder()
+                    .student(existingInfo)
+                    .existingStudent(true)
+                    .existingUserId(existingUser.getUserId())
+                    .build();
         }
         
         // Generate password if not provided
@@ -330,6 +358,51 @@ public class TeacherServiceImpl implements TeacherService {
                                 .email(savedUser.getEmail())
                                 .temporaryPassword(temporaryPassword)
                                 .build() : null)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public CreateStudentResponse addExistingStudentToClass(Long userId, String classId) {
+        Teacher teacher = getCurrentTeacher();
+
+        SchoolClass schoolClass = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "classId", classId));
+        validateTeacherHasClassAccess(schoolClass);
+
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Check if this user already has a student record in THIS class
+        List<Student> existingStudents = studentRepository.findByUser(existingUser);
+        boolean alreadyInClass = existingStudents.stream()
+                .anyMatch(s -> s.getSchoolClass() != null
+                        && s.getSchoolClass().getClassId().equals(classId));
+        if (alreadyInClass) {
+            throw new ConflictException("Học sinh này đã có trong lớp này rồi");
+        }
+
+        String studentCode = generateStudentCode();
+        Student student = Student.builder()
+                .user(existingUser)
+                .studentCode(studentCode)
+                .schoolClass(schoolClass)
+                .enrollmentDate(LocalDate.now())
+                .build();
+        if (!existingStudents.isEmpty()) {
+            Student first = existingStudents.get(0);
+            student.setDateOfBirth(first.getDateOfBirth());
+            student.setGender(first.getGender());
+            student.setAddress(first.getAddress());
+        }
+        Student savedStudent = studentRepository.save(student);
+
+        log.info("Existing student (user {}) added to class {} by teacher {}",
+                userId, classId, teacher.getTeacherId());
+        activityLogService.log("Đã thêm học sinh " + existingUser.getFullName() + " vào lớp " + schoolClass.getClassName());
+
+        return CreateStudentResponse.builder()
+                .student(mapToStudentResponse(savedStudent))
                 .build();
     }
 

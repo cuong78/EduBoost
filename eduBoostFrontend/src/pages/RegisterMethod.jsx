@@ -80,7 +80,7 @@ const RegisterMethod = () => {
                         text: 'signin_with',
                         shape: 'rectangular',
                         logo_alignment: 'left',
-                        width: 360,
+                        width: 300,
                     });
                     console.log('Google button rendered successfully in RegisterMethod');
                 } catch (error) {
@@ -111,7 +111,7 @@ const RegisterMethod = () => {
                     }}
                 >
                     {/* margin: 0 auto centers the fixed-width iframe rendered by Google */}
-                    <div ref={googleButtonRef} style={{ margin: '0 auto', width: 'fit-content', minHeight: '40px' }}></div>
+                    <div ref={googleButtonRef} style={{ margin: '0 auto', width: 'fit-content', maxWidth: '100%', minHeight: '40px', overflow: 'hidden' }}></div>
                 </div>
 
                 <div className="auth-separator">

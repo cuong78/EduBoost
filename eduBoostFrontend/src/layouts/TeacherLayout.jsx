@@ -16,6 +16,7 @@ import {
   Gem,
   Send,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 import GuidedTour from "../components/common/GuidedTour";
@@ -157,7 +158,7 @@ const TeacherLayout = () => {
             onClick={closeSidebar}
             data-tour="nav-assignments"
           >
-            <ClipboardCheck size={20} /> <span className="dl-nav-label">Bài đã giao</span>
+            <BarChart3 size={20} /> <span className="dl-nav-label">Thống kê</span>
           </Link>
           <Link
             to="/teacher/feedback"

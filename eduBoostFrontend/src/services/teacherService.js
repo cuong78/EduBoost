@@ -167,4 +167,8 @@ export const teacherService = {
             URL.revokeObjectURL(link.href);
         });
     },
+
+    addExistingStudentToClass: (userId, classId) =>
+        apiClient.post(`${API.TEACHER_STUDENTS}/add-existing?userId=${userId}&classId=${classId}`)
+            .then((res) => res.data?.data ?? res.data),
 };

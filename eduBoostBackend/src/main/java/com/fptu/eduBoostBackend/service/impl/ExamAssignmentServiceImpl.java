@@ -127,21 +127,28 @@ public class ExamAssignmentServiceImpl {
     @Transactional(readOnly = true)
     public List<ExamAssignmentResponse> getStudentAssignments() {
         User user = getCurrentUser();
-        // Get student's class and find assignments for it
-        Student student = studentRepository.findByUser(user).orElse(null);
-        if (student == null || student.getSchoolClass() == null) return List.of();
-        String classId = student.getSchoolClass().getClassId();
-        String studentId = student.getStudentId();
-        return assignmentRepository.findBySchoolClassClassId(classId)
-                .stream()
-                .map(a -> {
-                    ExamAssignmentResponse resp = toResponse(a, 0);
-                    // Check if student already submitted this assignment
-                    resultRepository.findByStudentAndAssignment(studentId, a.getAssignmentId())
-                            .ifPresent(r -> resp.setAlreadySubmittedResultId(r.getResultId()));
-                    return resp;
-                })
-                .collect(Collectors.toList());
+        // Get ALL student records for this user (a student may belong to multiple classes)
+        List<Student> students = studentRepository.findByUser(user);
+        if (students.isEmpty()) return List.of();
+
+        // Collect assignments from all classes the student belongs to
+        List<ExamAssignmentResponse> allAssignments = new java.util.ArrayList<>();
+        for (Student student : students) {
+            if (student.getSchoolClass() == null) continue;
+            String classId = student.getSchoolClass().getClassId();
+            String studentId = student.getStudentId();
+            List<ExamAssignmentResponse> classAssignments = assignmentRepository.findBySchoolClassClassId(classId)
+                    .stream()
+                    .map(a -> {
+                        ExamAssignmentResponse resp = toResponse(a, 0);
+                        resultRepository.findByStudentAndAssignment(studentId, a.getAssignmentId())
+                                .ifPresent(r -> resp.setAlreadySubmittedResultId(r.getResultId()));
+                        return resp;
+                    })
+                    .collect(Collectors.toList());
+            allAssignments.addAll(classAssignments);
+        }
+        return allAssignments;
     }
 
     // ── Validate access code ───────────────────────────────────────────────
@@ -163,7 +170,7 @@ public class ExamAssignmentServiceImpl {
 
         // Check if student already submitted this assignment
         User user = getCurrentUser();
-        Student student = studentRepository.findByUser(user).orElse(null);
+        Student student = studentRepository.findFirstByUser(user).orElse(null);
         if (student != null) {
             resultRepository.findByStudentAndAssignment(student.getStudentId(), assignmentId)
                     .ifPresent(r -> response.setAlreadySubmittedResultId(r.getResultId()));
@@ -176,7 +183,7 @@ public class ExamAssignmentServiceImpl {
 
     public ExamResultDetailResponse submitExam(SubmitExamRequest request) {
         User user = getCurrentUser();
-        Student student = studentRepository.findByUser(user)
+        Student student = studentRepository.findFirstByUser(user)
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
 
         ExamAssignment assignment = assignmentRepository.findById(request.getAssignmentId())
@@ -465,9 +472,8 @@ public class ExamAssignmentServiceImpl {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
-    /** Get student String UUID from current user */
     private String resolveStudentId(User user) {
-        return studentRepository.findByUser(user)
+        return studentRepository.findFirstByUser(user)
                 .map(Student::getStudentId)
                 .orElse(null);
     }
@@ -547,5 +553,63 @@ public class ExamAssignmentServiceImpl {
 
             return b.build();
         }).collect(Collectors.toList());
+    }
+
+    // ── Grade Management ────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getClassGrades(String classId) {
+        SchoolClass schoolClass = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+
+        // Get all students in this class
+        List<Student> students = studentRepository.findBySchoolClass(schoolClass);
+
+        // Get all assignments for this class
+        List<ExamAssignment> assignments = assignmentRepository.findBySchoolClassClassId(classId);
+
+        // Build exam info list
+        List<Map<String, Object>> exams = assignments.stream().map(a -> {
+            Map<String, Object> exam = new LinkedHashMap<>();
+            exam.put("assignmentId", a.getAssignmentId());
+            exam.put("examTitle", a.getExam() != null ? a.getExam().getTitle() : "Bài thi #" + a.getAssignmentId());
+            return exam;
+        }).collect(Collectors.toList());
+
+        // Build student grades
+        List<Map<String, Object>> studentGrades = new ArrayList<>();
+        for (Student student : students) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("studentId", student.getStudentId());
+            row.put("studentCode", student.getStudentCode());
+            row.put("fullName", student.getUser().getFullName());
+
+            Map<Long, Double> scores = new LinkedHashMap<>();
+            double total = 0;
+            int count = 0;
+
+            for (ExamAssignment assignment : assignments) {
+                Optional<StudentExamResult> resultOpt = resultRepository
+                        .findByStudentAndAssignment(student.getStudentId(), assignment.getAssignmentId());
+                if (resultOpt.isPresent()) {
+                    StudentExamResult result = resultOpt.get();
+                    double score = result.getScore() != null ? result.getScore().doubleValue() : 0;
+                    scores.put(assignment.getAssignmentId(), score);
+                    total += score;
+                    count++;
+                } else {
+                    scores.put(assignment.getAssignmentId(), null);
+                }
+            }
+
+            row.put("scores", scores);
+            row.put("average", count > 0 ? total / count : null);
+            studentGrades.add(row);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("exams", exams);
+        result.put("students", studentGrades);
+        return result;
     }
 }

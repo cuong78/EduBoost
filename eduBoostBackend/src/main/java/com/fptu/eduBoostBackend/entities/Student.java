@@ -24,8 +24,8 @@ public class Student {
     @Column(name = "student_id", length = 36)
     private String studentId;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "student_code", nullable = false, unique = true, length = 20)
