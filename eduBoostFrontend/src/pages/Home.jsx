@@ -31,7 +31,11 @@ const COPY = {
   vi: {
     heroBadge: "EduBoost cho giáo dục Việt Nam",
     heroSubBadge: "Khảo thí, kho nội dung và LMS trong một nền tảng",
-    heroTitle: "Giáo dục tiện ích với EduBoost",
+    heroTitle: (
+      <>
+        Giáo dục tiện ích với <span className="hero-text-gradient">EduBoost</span>
+      </>
+    ),
     heroText:
       "Một không gian số hóa giúp giáo viên tạo đề, quản lý lớp, giao bài và theo dõi tiến độ học tập liền mạch hơn mỗi ngày.",
     primaryCta: "Bắt đầu miễn phí",
@@ -550,169 +554,63 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="landing-hero__visual">
-            <div className="hero-glow hero-glow--one"></div>
-            <div className="hero-glow hero-glow--two"></div>
-
-            <div className="hero-dashboard">
-              <div className="hero-dashboard__top">
-                <span className="hero-window-dot"></span>
-                <span className="hero-window-dot"></span>
-                <span className="hero-window-dot"></span>
+          <div className="landing-hero__visual" ref={roleSpotlightRef}>
+            <div className="role-spotlight hero-role-spotlight">
+              <div className="role-tabs" role="tablist" aria-label={copy.roleSpotlight.tabsLabel}>
+                {Object.entries(copy.roleSpotlight.roles).map(([key, role]) => (
+                  <button
+                    key={key}
+                    id={`role-tab-${key}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeRole === key}
+                    aria-controls={`role-panel-${key}`}
+                    tabIndex={activeRole === key ? 0 : -1}
+                    className={`role-tab ${activeRole === key ? "role-tab--active" : ""}`}
+                    onClick={() => setActiveRole(key)}
+                  >
+                    {role.tab}
+                  </button>
+                ))}
               </div>
-              <div className="hero-dashboard__content">
-                <div className="hero-dashboard__sidebar">
-                  {copy.mockSidebar.map((item, index) => (
-                    <div
-                      key={item}
-                      className={`hero-nav-item ${index === 0 ? "hero-nav-item--active" : ""}`}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-                <div className="hero-dashboard__main">
-                  <div className="hero-summary-row">
-                    {copy.mockSummary.map((item, index) => (
-                      <div
-                        key={item.label}
-                        className={`hero-summary-card ${index === 1 ? "hero-summary-card--accent" : ""}`}
-                      >
-                        <span>{item.label}</span>
-                        <strong>{item.value}</strong>
-                      </div>
-                    ))}
-                  </div>
 
-                  <div className="hero-analytics">
-                    <div className="hero-analytics__chart">
-                      <div style={{ height: "42%" }}></div>
-                      <div style={{ height: "64%" }}></div>
-                      <div style={{ height: "58%" }}></div>
-                      <div style={{ height: "82%" }}></div>
-                      <div style={{ height: "74%" }}></div>
-                    </div>
-                    <div className="hero-analytics__notes">
-                      <div className="hero-note">
-                        <span>{language === "vi" ? "AI nhắc việc" : "AI reminders"}</span>
-                        <strong>
-                          {language === "vi"
-                            ? "15 học sinh cần hỗ trợ thêm"
-                            : "15 students need extra support"}
-                        </strong>
-                      </div>
-                      <div className="hero-note">
-                        <span>{language === "vi" ? "Quy trình chấm bài" : "Grading workflow"}</span>
-                        <strong>
-                          {language === "vi"
-                            ? "Online và OCR trong một luồng"
-                            : "Online and OCR in one flow"}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="hero-file-strip">
-                    <span>
-                      <FileText size={16} />
-                      DOCX
-                    </span>
-                    <span>
-                      <FileText size={16} />
-                      XLSX
-                    </span>
-                    <span>
-                      <BookCopy size={16} />
-                      {language === "vi" ? "Kho câu hỏi" : "Question bank"}
-                    </span>
+              <div
+                id={`role-panel-${activeRole}`}
+                className="role-panel"
+                role="tabpanel"
+                aria-labelledby={`role-tab-${activeRole}`}
+              >
+                <div className="role-panel__content">
+                  <h2>{activeRoleContent.title}</h2>
+                  <div className="role-feature-list">
+                    {activeRoleContent.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <article key={item.title} className="role-feature-item">
+                          <div className="role-feature-item__icon">
+                            <Icon size={22} />
+                          </div>
+                          <div>
+                            <h3>{item.title}</h3>
+                            <p>{item.description}</p>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="hero-floating-card hero-floating-card--top">
-              <Bot size={18} />
-              <div>
-                <strong>{language === "vi" ? "AI trợ lý giáo viên" : "AI teacher assistant"}</strong>
-                <span>
-                  {language === "vi"
-                    ? "Gợi ý nội dung, theo dõi tiến độ và hỗ trợ học tập"
-                    : "Suggests content, tracks progress, and supports learning"}
-                </span>
-              </div>
-            </div>
-
-            <div className="hero-floating-card hero-floating-card--bottom">
-              <ScanLine size={18} />
-              <div>
-                <strong>{language === "vi" ? "OCR và đối soát" : "OCR and reconciliation"}</strong>
-                <span>
-                  {language === "vi"
-                    ? "Liên thông kiểm tra online, bài nộp và chấm phiếu"
-                    : "Connects online tests, submissions, and sheet grading"}
-                </span>
+                <div className="role-panel__media">
+                  <div className="role-panel__image-shell">
+                    <img src={activeRoleContent.image} alt={activeRoleContent.title} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="roles" className="landing-section landing-section--roles">
-        <div className="container reveal" ref={roleSpotlightRef}>
-          <div className="role-spotlight">
-            <div className="role-tabs" role="tablist" aria-label={copy.roleSpotlight.tabsLabel}>
-              {Object.entries(copy.roleSpotlight.roles).map(([key, role]) => (
-                <button
-                  key={key}
-                  id={`role-tab-${key}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeRole === key}
-                  aria-controls={`role-panel-${key}`}
-                  tabIndex={activeRole === key ? 0 : -1}
-                  className={`role-tab ${activeRole === key ? "role-tab--active" : ""}`}
-                  onClick={() => setActiveRole(key)}
-                >
-                  {role.tab}
-                </button>
-              ))}
-            </div>
-
-            <div
-              id={`role-panel-${activeRole}`}
-              className="role-panel"
-              role="tabpanel"
-              aria-labelledby={`role-tab-${activeRole}`}
-            >
-              <div className="role-panel__content">
-                <h2>{activeRoleContent.title}</h2>
-                <div className="role-feature-list">
-                  {activeRoleContent.items.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <article key={item.title} className="role-feature-item">
-                        <div className="role-feature-item__icon">
-                          <Icon size={22} />
-                        </div>
-                        <div>
-                          <h3>{item.title}</h3>
-                          <p>{item.description}</p>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="role-panel__media">
-                <div className="role-panel__image-shell">
-                  <img src={activeRoleContent.image} alt={activeRoleContent.title} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section id="audiences" className="landing-section landing-section--soft">
         <div className="container reveal" ref={audienceRef}>
@@ -814,19 +712,6 @@ const Home = () => {
                 </article>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      <section id="partners" className="landing-section">
-        <div className="container reveal" ref={stackRef}>
-          <SectionHeading {...copy.stackHeading} />
-          <div className="stack-grid">
-            {copy.stack.map((chip) => (
-              <div key={chip} className="stack-chip">
-                {chip}
-              </div>
-            ))}
           </div>
         </div>
       </section>

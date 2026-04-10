@@ -316,7 +316,7 @@ const Login = () => {
         {googleClientId && window.google ? (
           <div
             ref={googleButtonRef}
-            style={{ width: "100%", maxWidth: "400px" }}
+            style={{ display: "flex", justifyContent: "center", width: "100%", maxWidth: "400px" }}
           ></div>
         ) : (
           <button
