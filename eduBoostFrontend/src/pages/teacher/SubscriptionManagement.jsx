@@ -91,7 +91,7 @@ export default function SubscriptionManagement() {
   const daysLeft = sub?.daysRemaining;
 
   return (
-    <div style={{ padding: "1.5rem 2rem", maxWidth: 900, margin: "0 auto" }}>
+    <div className="subscription-page" style={{ padding: "1.5rem 2rem", maxWidth: 900, margin: "0 auto" }}>
       <div style={{ marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--ds-text)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <Crown size={22} color="var(--ds-warning)"/> Gói đăng ký
@@ -100,7 +100,7 @@ export default function SubscriptionManagement() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.7)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.8)", borderRadius: 14, padding: 5, width: "fit-content", marginBottom: "1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+      <div className="subscription-tabs" style={{ display: "flex", gap: 4, backdropFilter: "blur(10px)", borderRadius: 14, padding: 5, width: "fit-content", marginBottom: "1.5rem" }}>
         {[["current", "Gói hiện tại"], ["history", "Lịch sử thanh toán"]].map(([k, label]) => (
           <button key={k} onClick={() => setActiveTab(k)} style={{ padding: "0.5rem 1.2rem", borderRadius: 10, border: "none", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", transition: "all 0.18s", background: activeTab === k ? "linear-gradient(135deg,var(--ds-secondary-hover),var(--ds-primary))" : "transparent", color: activeTab === k ? "#fff" : "var(--ds-text-secondary)", boxShadow: activeTab === k ? "0 2px 10px rgba(99,102,241,0.3)" : "none" }}>
             {label}
@@ -113,7 +113,7 @@ export default function SubscriptionManagement() {
       ) : activeTab === "current" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           {/* Current Plan Card */}
-          <div style={{ background: isPro ? "linear-gradient(135deg,var(--ds-primary),var(--ds-secondary-hover))" : "#fff", borderRadius: 18, padding: "2rem", border: isPro ? "none" : "1.5px solid var(--ds-border)", boxShadow: isPro ? "0 8px 32px rgba(99,102,241,0.3)" : "0 4px 20px rgba(0,0,0,0.05)", color: isPro ? "#fff" : "var(--ds-text)" }}>
+          <div className={`current-plan-card ${isPro ? "pro" : "free"}`} style={{ background: isPro ? "linear-gradient(135deg,var(--ds-primary),var(--ds-secondary-hover))" : "var(--sub-surface)", borderRadius: 18, padding: "2rem", border: isPro ? "none" : "1.5px solid var(--sub-border)", boxShadow: isPro ? "0 8px 32px rgba(99,102,241,0.3)" : "var(--sub-shadow)", color: isPro ? "#fff" : "var(--ds-text)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
               <div>
                 <div style={{ fontSize: "0.82rem", fontWeight: 600, opacity: 0.7, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Gói hiện tại</div>
@@ -150,7 +150,7 @@ export default function SubscriptionManagement() {
           </div>
 
           {/* Quota overview */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.5rem", border: "1px solid var(--ds-border)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+          <div className="quota-card" style={{ borderRadius: 16, padding: "1.5rem" }}>
             <h3 style={{ margin: "0 0 1rem", fontSize: "0.95rem", fontWeight: 700, color: "var(--ds-text)" }}>Giới hạn sử dụng</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem" }}>
               {[
@@ -171,7 +171,7 @@ export default function SubscriptionManagement() {
         </div>
       ) : (
         /* History tab */
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--ds-border)", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        <div className="tx-history-card" style={{ borderRadius: 16, overflow: "hidden" }}>
           {txs.length === 0 ? (
             <div style={{ padding: "3rem", textAlign: "center", color: "var(--ds-text-muted)" }}>
               <CreditCard size={40} opacity={0.25}/>
@@ -211,7 +211,51 @@ export default function SubscriptionManagement() {
       )}
 
       {viewTx && <QRDisplay tx={viewTx} onClose={() => setViewTx(null)}/>}
-      <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        .spin{animation:spin 1s linear infinite}
+        @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+        .subscription-page {
+          --sub-surface: #ffffff;
+          --sub-border: var(--ds-border);
+          --sub-shadow: 0 2px 12px rgba(0,0,0,0.04);
+          --sub-tab-bg: rgba(255,255,255,0.7);
+          --sub-tab-border: rgba(255,255,255,0.8);
+        }
+
+        .subscription-tabs {
+          background: var(--sub-tab-bg);
+          border: 1px solid var(--sub-tab-border);
+          box-shadow: var(--sub-shadow);
+        }
+
+        .quota-card,
+        .tx-history-card {
+          background: var(--sub-surface);
+          border: 1px solid var(--sub-border);
+          box-shadow: var(--sub-shadow);
+        }
+
+        body.dark-mode .subscription-page {
+          --sub-surface: rgba(17, 24, 39, 0.9);
+          --sub-border: rgba(148,163,184,0.22);
+          --sub-shadow: 0 16px 30px rgba(2, 6, 23, 0.34);
+          --sub-tab-bg: rgba(30, 41, 59, 0.72);
+          --sub-tab-border: rgba(148,163,184,0.22);
+        }
+
+        body.dark-mode .subscription-page [style*="var(--ds-text-muted)"] {
+          color: #94a3b8 !important;
+        }
+
+        body.dark-mode .subscription-page .current-plan-card.free {
+          color: #e5e7eb !important;
+        }
+
+        body.dark-mode .subscription-page table thead {
+          background: rgba(30, 41, 59, 0.92) !important;
+        }
+      `}</style>
     </div>
   );
 }

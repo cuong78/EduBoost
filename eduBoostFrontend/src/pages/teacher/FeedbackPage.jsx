@@ -86,10 +86,21 @@ export default function FeedbackPage() {
     } finally { setSubmitting(false); }
   };
 
-  const inputStyle = { width: "100%", padding: "0.7rem 1rem", border: "1.5px solid var(--ds-border)", borderRadius: 10, fontSize: "0.9rem", outline: "none", transition: "border 0.2s", boxSizing: "border-box" };
+  const inputStyle = {
+    width: "100%",
+    padding: "0.7rem 1rem",
+    border: "1.5px solid var(--fb-border)",
+    borderRadius: 10,
+    fontSize: "0.9rem",
+    outline: "none",
+    transition: "border 0.2s",
+    boxSizing: "border-box",
+    background: "var(--fb-input-bg)",
+    color: "var(--ds-text)",
+  };
 
   return (
-    <div style={{ padding: "1.5rem 2rem", maxWidth: 800 }}>
+    <div className="feedback-page" style={{ padding: "1.5rem 2rem", maxWidth: 800 }}>
       {/* Header */}
       <div style={{ marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--ds-text)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -99,7 +110,7 @@ export default function FeedbackPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "#fff", borderRadius: 12, padding: 4, width: "fit-content", marginBottom: "1.5rem", border: "1px solid var(--ds-border)" }}>
+      <div className="feedback-tabs" style={{ display: "flex", gap: 4, borderRadius: 12, padding: 4, width: "fit-content", marginBottom: "1.5rem" }}>
         {[["create", " Gửi góp ý"], ["history", " Lịch sử"]].map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             padding: "0.5rem 1.2rem", borderRadius: 9, border: "none", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer",
@@ -111,15 +122,15 @@ export default function FeedbackPage() {
 
       {tab === "create" ? (
         /* ─── Create form ─── */
-        <form onSubmit={handleSubmit} style={{ background: "#fff", borderRadius: 16, padding: "1.5rem", border: "1px solid var(--ds-border)", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <form className="feedback-form" onSubmit={handleSubmit} style={{ borderRadius: 16, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           {/* Category */}
           <div>
             <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--ds-text)", marginBottom: 8, display: "block" }}>Loại feedback *</label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
               {CATEGORIES.map(c => (
-                <button key={c.value} type="button" onClick={() => setCategory(c.value)} style={{
+                <button key={c.value} type="button" className="feedback-category-btn" onClick={() => setCategory(c.value)} style={{
                   padding: "0.7rem", borderRadius: 10, border: `2px solid ${category === c.value ? c.color : "var(--ds-border)"}`,
-                  background: category === c.value ? c.color + "10" : "#fff",
+                  background: category === c.value ? c.color + "10" : "var(--fb-input-bg)",
                   cursor: "pointer", fontWeight: 600, fontSize: "0.85rem", color: category === c.value ? c.color : "var(--ds-text-secondary)",
                   transition: "all 0.2s"
                 }}>{c.label}</button>
@@ -131,7 +142,7 @@ export default function FeedbackPage() {
           <div>
             <label style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--ds-text)", marginBottom: 6, display: "block" }}>Tiêu đề *</label>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Nhập tiêu đề ngắn gọn..."
-              style={inputStyle} onFocus={e => e.target.style.borderColor = "var(--ds-primary)"} onBlur={e => e.target.style.borderColor = "var(--ds-border)"} />
+              style={inputStyle} onFocus={e => e.target.style.borderColor = "var(--ds-primary)"} onBlur={e => e.target.style.borderColor = "var(--fb-border)"} />
           </div>
 
           {/* Content */}
@@ -140,7 +151,7 @@ export default function FeedbackPage() {
             <textarea value={content} onChange={e => setContent(e.target.value)} rows={5}
               placeholder="Mô tả chi tiết vấn đề hoặc góp ý của bạn..."
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
-              onFocus={e => e.target.style.borderColor = "var(--ds-primary)"} onBlur={e => e.target.style.borderColor = "var(--ds-border)"} />
+              onFocus={e => e.target.style.borderColor = "var(--ds-primary)"} onBlur={e => e.target.style.borderColor = "var(--fb-border)"} />
           </div>
 
           {/* Rating */}
@@ -168,7 +179,7 @@ export default function FeedbackPage() {
             <RefreshCw size={24} style={{ animation: "spin 1s linear infinite" }} />
           </div>
         ) : feedbacks.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "3rem", background: "#fff", borderRadius: 16, border: "1px solid var(--ds-border)" }}>
+          <div className="feedback-empty-card" style={{ textAlign: "center", padding: "3rem", borderRadius: 16 }}>
             <MessageSquare size={40} color="#d1d5db" />
             <p style={{ color: "var(--ds-text-muted)", marginTop: 8 }}>Bạn chưa gửi feedback nào</p>
           </div>
@@ -178,7 +189,7 @@ export default function FeedbackPage() {
               const cat = CATEGORIES.find(c => c.value === fb.category);
               const isExpanded = expandedId === fb.id;
               return (
-                <div key={fb.id} style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--ds-border)", overflow: "hidden", transition: "box-shadow 0.2s" }}>
+                <div key={fb.id} className="feedback-history-card" style={{ borderRadius: 14, overflow: "hidden", transition: "box-shadow 0.2s" }}>
                   {/* Header row */}
                   <div onClick={() => setExpandedId(isExpanded ? null : fb.id)} style={{
                     padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
@@ -200,7 +211,7 @@ export default function FeedbackPage() {
                       <p style={{ color: "var(--ds-text)", fontSize: "0.9rem", lineHeight: 1.6, margin: "0 0 1rem", whiteSpace: "pre-wrap" }}>{fb.content}</p>
 
                       {fb.adminResponse && (
-                        <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "0.85rem 1rem", borderLeft: "4px solid var(--ds-success)" }}>
+                        <div className="feedback-admin-response" style={{ borderRadius: 10, padding: "0.85rem 1rem", borderLeft: "4px solid var(--ds-success)" }}>
                           <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#065f46", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
                             <CheckCircle size={14} /> Phản hồi từ Admin
                           </div>
@@ -210,7 +221,7 @@ export default function FeedbackPage() {
                       )}
 
                       {!fb.adminResponse && (fb.status === "SUBMITTED" || fb.status === "IN_PROGRESS") && (
-                        <div style={{ background: "var(--ds-warning-bg)", borderRadius: 10, padding: "0.7rem 1rem", display: "flex", alignItems: "center", gap: 8 }}>
+                        <div className="feedback-pending-response" style={{ borderRadius: 10, padding: "0.7rem 1rem", display: "flex", alignItems: "center", gap: 8 }}>
                           <Clock size={14} color="#92400e" />
                           <span style={{ fontSize: "0.82rem", color: "#92400e" }}>Đang chờ admin xử lý...</span>
                         </div>
@@ -224,7 +235,54 @@ export default function FeedbackPage() {
         )
       )}
 
-      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+        .feedback-page {
+          --fb-surface: #ffffff;
+          --fb-input-bg: #ffffff;
+          --fb-border: var(--ds-border);
+          --fb-success-bg: #f0fdf4;
+          --fb-warning-bg: var(--ds-warning-bg);
+        }
+
+        .feedback-tabs,
+        .feedback-form,
+        .feedback-empty-card,
+        .feedback-history-card {
+          background: var(--fb-surface);
+          border: 1px solid var(--fb-border);
+        }
+
+        .feedback-admin-response {
+          background: var(--fb-success-bg);
+        }
+
+        .feedback-pending-response {
+          background: var(--fb-warning-bg);
+        }
+
+        body.dark-mode .feedback-page {
+          --fb-surface: rgba(17, 24, 39, 0.9);
+          --fb-input-bg: rgba(15, 23, 42, 0.88);
+          --fb-border: rgba(148, 163, 184, 0.24);
+          --fb-success-bg: rgba(16, 185, 129, 0.15);
+          --fb-warning-bg: rgba(245, 158, 11, 0.16);
+        }
+
+        body.dark-mode .feedback-page [style*="var(--ds-text-muted)"] {
+          color: #94a3b8 !important;
+        }
+
+        body.dark-mode .feedback-page input,
+        body.dark-mode .feedback-page textarea {
+          color: #e5e7eb;
+        }
+
+        body.dark-mode .feedback-page .feedback-admin-response {
+          border-color: rgba(16, 185, 129, 0.28);
+        }
+      `}</style>
     </div>
   );
 }

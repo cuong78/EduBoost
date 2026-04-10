@@ -1,0 +1,232 @@
+.teacher-home {
+  width: 100%;
+}
+
+.teacher-home-header {
+  margin-bottom: 18px;
+}
+
+.teacher-home-header h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.1vw, 1.85rem);
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.teacher-home-header p {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 0.98rem;
+}
+
+.teacher-home-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .teacher-home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .teacher-home-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.teacher-home-card {
+  position: relative;
+  text-decoration: none;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 16px;
+  min-height: 138px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.teacher-home-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.teacher-home-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.teacher-home-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.96;
+  clip-path: circle(0% at 14% 12%);
+  transition: clip-path 0.4s ease;
+  pointer-events: none;
+}
+
+.teacher-home-card:hover::after {
+  clip-path: circle(170% at 14% 12%);
+}
+
+.teacher-home-card::before {
+  content: "";
+  position: absolute;
+  inset: -35% auto auto -20%;
+  width: 56%;
+  height: 80%;
+  border-radius: 999px;
+  opacity: 0.8;
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.teacher-home-card-icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.teacher-home-card-icon svg {
+  stroke-width: 2.4;
+}
+
+.teacher-home-card h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.teacher-home-card p {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: #6b7280;
+}
+
+.teacher-home-card-cta {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.teacher-home-card.tone-blue {
+  border-color: #dbeafe;
+}
+
+.teacher-home-card.tone-blue::after {
+  background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.teacher-home-card.tone-blue::before {
+  background: #dbeafe;
+}
+
+.teacher-home-card.tone-blue .teacher-home-card-icon {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.teacher-home-card.tone-blue h2,
+.teacher-home-card.tone-blue .teacher-home-card-cta {
+  color: #1e3a8a;
+}
+
+.teacher-home-card.tone-violet {
+  border-color: #ede9fe;
+}
+
+.teacher-home-card.tone-violet::after {
+  background: linear-gradient(180deg, #ede9fe 0%, #ddd6fe 100%);
+}
+
+.teacher-home-card.tone-violet::before {
+  background: #ede9fe;
+}
+
+.teacher-home-card.tone-violet .teacher-home-card-icon {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.teacher-home-card.tone-violet h2,
+.teacher-home-card.tone-violet .teacher-home-card-cta {
+  color: #5b21b6;
+}
+
+.teacher-home-card.tone-teal {
+  border-color: #ccfbf1;
+}
+
+.teacher-home-card.tone-teal::after {
+  background: linear-gradient(180deg, #ccfbf1 0%, #99f6e4 100%);
+}
+
+.teacher-home-card.tone-teal::before {
+  background: #ccfbf1;
+}
+
+.teacher-home-card.tone-teal .teacher-home-card-icon {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.teacher-home-card.tone-teal h2,
+.teacher-home-card.tone-teal .teacher-home-card-cta {
+  color: #115e59;
+}
+
+.teacher-home-card.tone-amber {
+  border-color: #fde68a;
+}
+
+.teacher-home-card.tone-amber::after {
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.teacher-home-card.tone-amber::before {
+  background: #fef3c7;
+}
+
+.teacher-home-card.tone-amber .teacher-home-card-icon {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.teacher-home-card.tone-amber h2,
+.teacher-home-card.tone-amber .teacher-home-card-cta {
+  color: #92400e;
+}
+
+.teacher-home-card.tone-indigo {
+  border-color: #c7d2fe;
+}
+
+.teacher-home-card.tone-indigo::after {
+  background: linear-gradient(180deg, #c7d2fe 0%, #a5b4fc 100%);
+}
+
+.teacher-home-card.tone-indigo::before {
+  background: #c7d2fe;
+}
+
+.teacher-home-card.tone-indigo .teacher-home-card-icon {
+  background: #c7d2fe;
+  color: #3730a3;
+}
+
+.teacher-home-card.tone-indigo h2,
+.teacher-home-card.tone-indigo .teacher-home-card-cta {
+  color: #3730a3;
+}

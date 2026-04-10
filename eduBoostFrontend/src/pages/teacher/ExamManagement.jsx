@@ -34,6 +34,31 @@ const StatusBadge = ({ status }) => {
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 const fmtPoints = (n) => n != null ? Number(n).toFixed(1) : "—";
 
+const FilterChipGroup = ({ label, value, onChange, options, allLabel = "Tất cả" }) => (
+  <div className="em-chip-group">
+    <span className="em-chip-group-label">{label}</span>
+    <div className="em-filter-chip-row">
+      <button
+        type="button"
+        className={`em-filter-chip ${!value ? "is-active" : ""}`}
+        onClick={() => onChange("")}
+      >
+        {allLabel}
+      </button>
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          className={`em-filter-chip ${String(value) === String(opt.value) ? "is-active" : ""}`}
+          onClick={() => onChange(String(opt.value))}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
 /* ═══════════════════════════════════════════════════════════════ */
 const ExamManagement = () => {
   const navigate = useNavigate();
@@ -66,16 +91,10 @@ const ExamManagement = () => {
 
   /* modals */
   const [selectedExam,      setSelectedExam]     = useState(null);
-  const [detailExam,        setDetailExam]       = useState(null);
-  const [loadingDetail,     setLoadingDetail]    = useState(false);
-  const [showDetail,        setShowDetail]       = useState(false);
   const [showStats,         setShowStats]        = useState(false);
   const [examStats,         setExamStats]        = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingExam,      setDeletingExam]     = useState(null);
-  const [commDetail,        setCommDetail]       = useState(null);
-  const [commDetailLoading, setCommDetailLoading] = useState(false);
-  const [showCommDetail,    setShowCommDetail]   = useState(false);
 
   /* action */
   const [actionLoading, setActionLoading] = useState({});
@@ -156,19 +175,6 @@ const ExamManagement = () => {
   /* ════════ ACTIONS ════════ */
   const setActionFor = (id, val) => setActionLoading(prev => ({ ...prev, [id]: val }));
 
-  const openDetail = async (exam) => {
-    setSelectedExam(exam);
-    setShowDetail(true);
-    setLoadingDetail(true);
-    try {
-      setDetailExam(await examService.getExamById(exam.id));
-    } catch {
-      showErrorToast("Không thể tải chi tiết"); setShowDetail(false);
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
   const openStats = async (exam) => {
     setSelectedExam(exam);
     try {
@@ -178,20 +184,6 @@ const ExamManagement = () => {
       showErrorToast("Không thể tải thống kê");
     }
   };
-
-  const openCommDetail = async (exam) => {
-    setShowCommDetail(true);
-    setCommDetailLoading(true);
-    try {
-      setCommDetail(await examService.getExamById(exam.id));
-    } catch {
-      showErrorToast("Không thể tải chi tiết"); setShowCommDetail(false);
-    } finally {
-      setCommDetailLoading(false);
-    }
-  };
-
-
 
   const handlePublish = async (exam) => {
     setActionFor(exam.id, "publish");
@@ -289,20 +281,31 @@ const ExamManagement = () => {
               <Search size={16}/>
               <input placeholder="Tìm đề thi cộng đồng..." value={cfSearch} onChange={e => setCfSearch(e.target.value)}/>
             </div>
-            <div className="em-filter-row">
-              <select value={cfSubject} onChange={e => setCfSubject(e.target.value)}>
-                <option value="">Tất cả môn</option>
-                {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectCode} — {s.subjectName || s.name}</option>)}
-              </select>
-              <select value={cfGrade} onChange={e => setCfGrade(e.target.value)}>
-                <option value="">Tất cả khối</option>
-                {GRADE_OPTIONS.map(g => <option key={g} value={g}>Khối {g}</option>)}
-              </select>
-              <select value={cfType} onChange={e => setCfType(e.target.value)}>
-                <option value="">Loại đề</option>
-                {examTypes.map(t => <option key={t.id} value={t.id}>{t.typeName}</option>)}
-              </select>
-              <button className="em-btn em-btn-ghost" onClick={loadCommunityExams}><RefreshCw size={15}/></button>
+            <div className="em-filter-groups">
+              <FilterChipGroup
+                label="Môn học"
+                value={cfSubject}
+                onChange={setCfSubject}
+                options={subjects.map((s) => ({ value: s.id, label: `${s.subjectCode} — ${s.subjectName || s.name}` }))}
+                allLabel="Tất cả môn"
+              />
+              <FilterChipGroup
+                label="Khối"
+                value={cfGrade}
+                onChange={setCfGrade}
+                options={GRADE_OPTIONS.map((g) => ({ value: g, label: `Khối ${g}` }))}
+                allLabel="Tất cả khối"
+              />
+              <FilterChipGroup
+                label="Loại đề"
+                value={cfType}
+                onChange={setCfType}
+                options={examTypes.map((t) => ({ value: t.id, label: t.typeName }))}
+                allLabel="Tất cả loại đề"
+              />
+            </div>
+            <div className="em-filter-actions">
+              <button className="em-btn em-btn-ghost" onClick={loadCommunityExams}><RefreshCw size={15}/> Làm mới</button>
             </div>
           </div>
 
@@ -359,24 +362,38 @@ const ExamManagement = () => {
               <Search size={16}/>
               <input placeholder="Tìm theo tên / mã đề..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
             </div>
-            <div className="em-filter-row">
-              <select value={filterSubject} onChange={e => resetAndFilter(setFilterSubject, e.target.value)}>
-                <option value="">Tất cả môn</option>
-                {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectCode} — {s.subjectName || s.name}</option>)}
-              </select>
-              <select value={filterGrade} onChange={e => resetAndFilter(setFilterGrade, e.target.value)}>
-                <option value="">Tất cả khối</option>
-                {GRADE_OPTIONS.map(g => <option key={g} value={g}>Khối {g}</option>)}
-              </select>
-              <select value={filterType} onChange={e => resetAndFilter(setFilterType, e.target.value)}>
-                <option value="">Loại đề</option>
-                {examTypes.map(t => <option key={t.id} value={t.id}>{t.typeName}</option>)}
-              </select>
-              <select value={filterStatus} onChange={e => resetAndFilter(setFilterStatus, e.target.value)}>
-                <option value="">Trạng thái</option>
-                {Object.entries(EXAM_STATUS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-              <button className="em-btn em-btn-ghost" onClick={loadExams}><RefreshCw size={15}/></button>
+            <div className="em-filter-groups">
+              <FilterChipGroup
+                label="Môn học"
+                value={filterSubject}
+                onChange={(val) => resetAndFilter(setFilterSubject, val)}
+                options={subjects.map((s) => ({ value: s.id, label: `${s.subjectCode} — ${s.subjectName || s.name}` }))}
+                allLabel="Tất cả môn"
+              />
+              <FilterChipGroup
+                label="Khối"
+                value={filterGrade}
+                onChange={(val) => resetAndFilter(setFilterGrade, val)}
+                options={GRADE_OPTIONS.map((g) => ({ value: g, label: `Khối ${g}` }))}
+                allLabel="Tất cả khối"
+              />
+              <FilterChipGroup
+                label="Loại đề"
+                value={filterType}
+                onChange={(val) => resetAndFilter(setFilterType, val)}
+                options={examTypes.map((t) => ({ value: t.id, label: t.typeName }))}
+                allLabel="Tất cả loại đề"
+              />
+              <FilterChipGroup
+                label="Trạng thái"
+                value={filterStatus}
+                onChange={(val) => resetAndFilter(setFilterStatus, val)}
+                options={Object.entries(EXAM_STATUS).map(([k, v]) => ({ value: k, label: v.label }))}
+                allLabel="Tất cả trạng thái"
+              />
+            </div>
+            <div className="em-filter-actions">
+              <button className="em-btn em-btn-ghost" onClick={loadExams}><RefreshCw size={15}/> Làm mới</button>
             </div>
           </div>
 
@@ -476,8 +493,6 @@ const ExamManagement = () => {
           </div>
         </div>
       )}
-
-
 
       {/* ════════ STATISTICS MODAL ════════ */}
       {showStats && examStats && (
