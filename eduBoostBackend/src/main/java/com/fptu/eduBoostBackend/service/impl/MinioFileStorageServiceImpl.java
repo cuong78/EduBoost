@@ -164,4 +164,33 @@ public class MinioFileStorageServiceImpl implements FileStorageService {
         
         return "others";
     }
+    @Override
+    public String storeBytes(byte[] data, String originalFilename) {
+        try {
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String objectKey = "others/" + UUID.randomUUID() + extension;
+
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .contentLength((long) data.length)
+                    .build();
+
+            s3Client.putObject(
+                    putObjectRequest,
+                    RequestBody.fromBytes(data)
+            );
+
+            log.info("Bytes uploaded to MinIO successfully: {}", objectKey);
+            return objectKey;
+
+        } catch (S3Exception e) {
+            log.error("Failed to store bytes in MinIO", e);
+            throw new RuntimeException("Failed to store file", e);
+        }
+    }
 }

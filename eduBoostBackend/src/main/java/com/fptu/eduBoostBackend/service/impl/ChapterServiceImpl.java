@@ -8,6 +8,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ChapterRepository;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.SubjectRepository;
+import com.fptu.eduBoostBackend.repositories.projection.LessonCountProjection;
 import com.fptu.eduBoostBackend.service.ChapterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,29 +32,47 @@ public class ChapterServiceImpl implements ChapterService {
     @Transactional(readOnly = true)
     public List<ChapterResponse> getChaptersBySubject(Long subjectId, Integer gradeLevel) {
         log.info("Fetching chapters for subject: {}, gradeLevel: {}", subjectId, gradeLevel);
-        
+
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
 
-        List<Chapter> chapters;
-        if (gradeLevel != null) {
-            chapters = chapterRepository.findBySubjectAndGradeLevel(subject, gradeLevel);
-        } else {
-            chapters = chapterRepository.findBySubject(subject);
+        List<Chapter> chapters = (gradeLevel != null)
+                ? chapterRepository.findBySubjectAndGradeLevel(subject, gradeLevel)
+                : chapterRepository.findBySubject(subject);
+
+        if (chapters.isEmpty()) {
+            return List.of();
         }
 
+        List<Long> chapterIds = chapters.stream()
+                .map(Chapter::getId)
+                .toList();
+
+        Map<Long, Long> lessonCountMap = lessonRepository.countLessonsByChapterIds(chapterIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        LessonCountProjection::getChapterId,
+                        LessonCountProjection::getLessonCount
+                ));
+
         return chapters.stream()
-                .map(this::mapToResponse)
+                .map(chapter -> mapToResponse(
+                        chapter,
+                        lessonCountMap.getOrDefault(chapter.getId(), 0L).intValue()
+                ))
                 .collect(Collectors.toList());
     }
-
     @Override
     @Transactional(readOnly = true)
     public ChapterResponse getChapterById(Long id) {
         log.info("Fetching chapter with id: {}", id);
+
         Chapter chapter = chapterRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found with id: " + id));
-        return mapToResponse(chapter);
+
+        int lessonCount = (int) lessonRepository.countByChapterId(chapter.getId());
+
+        return mapToResponse(chapter, lessonCount);
     }
 
     @Override
@@ -73,7 +93,7 @@ public class ChapterServiceImpl implements ChapterService {
 
         Chapter savedChapter = chapterRepository.save(chapter);
         log.info("Chapter created successfully with id: {}", savedChapter.getId());
-        return mapToResponse(savedChapter);
+        return mapToResponse(savedChapter, 0);
     }
 
     @Override
@@ -90,8 +110,10 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setDescription(request.getDescription());
 
         Chapter updatedChapter = chapterRepository.save(chapter);
+        int lessonCount = (int) lessonRepository.countByChapterId(updatedChapter.getId());
+
         log.info("Chapter updated successfully with id: {}", updatedChapter.getId());
-        return mapToResponse(updatedChapter);
+        return mapToResponse(updatedChapter, lessonCount);
     }
 
     @Override
@@ -109,7 +131,7 @@ public class ChapterServiceImpl implements ChapterService {
         log.info("Chapter deleted successfully with id: {}", id);
     }
 
-    private ChapterResponse mapToResponse(Chapter chapter) {
+    private ChapterResponse mapToResponse(Chapter chapter, Integer lessonCount) {
         return ChapterResponse.builder()
                 .id(chapter.getId())
                 .subjectId(chapter.getSubject().getId())
@@ -119,7 +141,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .chapterNumber(chapter.getChapterNumber())
                 .chapterName(chapter.getChapterName())
                 .description(chapter.getDescription())
-                .lessonCount((int) lessonRepository.countByChapterId(chapter.getId()))
+                .lessonCount(lessonCount)
                 .createdAt(chapter.getCreatedAt())
                 .build();
     }

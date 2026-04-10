@@ -9,4 +9,5 @@ public interface FileStorageService {
     Resource loadFileAsResource(String fileName);
     void deleteFile(String fileName);
     long getFileSize(String fileName);
+    String storeBytes(byte[] data, String originalFilename);
 }

@@ -1,6 +1,7 @@
 package com.fptu.eduBoostBackend.service.impl;
 
 import com.fptu.eduBoostBackend.dto.response.ClassResponse;
+import com.fptu.eduBoostBackend.dto.response.ClassStudentCountProjection;
 import com.fptu.eduBoostBackend.dto.response.TeacherSimpleResponse;
 import com.fptu.eduBoostBackend.dto.request.CreateClassRequest;
 import com.fptu.eduBoostBackend.dto.request.UpdateClassRequest;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,12 +32,19 @@ public class ClassServiceImpl implements ClassService {
     private final ActivityLogService activityLogService;
     @Override
     public List<ClassResponse> getAllClasses() {
-        List<SchoolClass> classes = classRepository.findAll();
+        List<SchoolClass> classes = classRepository.findAllWithDetails();
+
+        Map<String, Long> studentCountMap = classRepository.countStudentsForAllClasses()
+                .stream()
+                .collect(Collectors.toMap(
+                        ClassStudentCountProjection::getClassId,
+                        ClassStudentCountProjection::getStudentCount
+                ));
+
         return classes.stream()
-                .map(this::convertToClassResponse)
+                .map(c -> convertToClassResponse(c, studentCountMap))
                 .collect(Collectors.toList());
     }
-
     @Override
     public ClassResponse getClassById(String classId) {
         SchoolClass schoolClass = classRepository.findById(classId)
@@ -166,11 +175,39 @@ public class ClassServiceImpl implements ClassService {
                 .collect(Collectors.toList());
     }
 
-    private ClassResponse convertToClassResponse(SchoolClass schoolClass) {
-        int studentCount = classRepository.countStudentsByClassId(schoolClass.getClassId());
-        
+    private ClassResponse convertToClassResponse(SchoolClass schoolClass,
+                                                 Map<String, Long> studentCountMap) {
+
+        Long studentCount = studentCountMap.getOrDefault(schoolClass.getClassId(), 0L);
+
         String teacherName = null;
         String teacherId = null;
+
+        if (schoolClass.getTeacher() != null) {
+            teacherName = schoolClass.getTeacher().getUser().getFullName();
+            teacherId = schoolClass.getTeacher().getTeacherId();
+        }
+
+        return ClassResponse.builder()
+                .classId(schoolClass.getClassId())
+                .className(schoolClass.getClassName())
+                .classCode(schoolClass.getClassCode())
+                .gradeLevelName(schoolClass.getGradeLevel().getGradeName())
+                .gradeLevelId(schoolClass.getGradeLevel().getGradeLevelId())
+                .teacherId(teacherId)
+                .teacherName(teacherName)
+                .schoolYear(schoolClass.getSchoolYear())
+                .description(schoolClass.getDescription())
+                .status(schoolClass.getStatus())
+                .studentCount(studentCount.intValue())
+                .build();
+    }
+    private ClassResponse convertToClassResponse(SchoolClass schoolClass) {
+        int studentCount = classRepository.countStudentsByClassId(schoolClass.getClassId());
+
+        String teacherName = null;
+        String teacherId = null;
+
         if (schoolClass.getTeacher() != null) {
             teacherName = schoolClass.getTeacher().getUser().getFullName();
             teacherId = schoolClass.getTeacher().getTeacherId();

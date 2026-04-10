@@ -1,5 +1,6 @@
 package com.fptu.eduBoostBackend.repositories;
 
+import com.fptu.eduBoostBackend.dto.response.ClassStudentCountProjection;
 import com.fptu.eduBoostBackend.entities.GradeLevel;
 import com.fptu.eduBoostBackend.entities.SchoolClass;
 import com.fptu.eduBoostBackend.entities.Teacher;
@@ -17,4 +18,34 @@ public interface ClassRepository extends JpaRepository<SchoolClass, String> {
     
     @Query("SELECT COUNT(s) FROM Student s WHERE s.schoolClass.classId = :classId")
     int countStudentsByClassId(@Param("classId") String classId);
+    @Query("""
+    SELECT c
+    FROM SchoolClass c
+    LEFT JOIN FETCH c.teacher t
+    LEFT JOIN FETCH t.user
+    LEFT JOIN FETCH c.gradeLevel
+""")
+    List<SchoolClass> findAllWithDetails();
+    @Query("""
+    SELECT s.schoolClass.classId as classId, COUNT(s) as studentCount
+    FROM Student s
+    GROUP BY s.schoolClass.classId
+""")
+    List<ClassStudentCountProjection> countStudentsForAllClasses();
+    @Query("""
+    SELECT c
+    FROM SchoolClass c
+    LEFT JOIN FETCH c.gradeLevel
+    LEFT JOIN FETCH c.teacher t
+    LEFT JOIN FETCH t.user
+    WHERE c.teacher = :teacher
+""")
+    List<SchoolClass> findByTeacherWithDetails(@Param("teacher") Teacher teacher);
+    @Query("""
+    SELECT s.schoolClass.classId as classId, COUNT(s) as studentCount
+    FROM Student s
+    WHERE s.schoolClass.teacher = :teacher
+    GROUP BY s.schoolClass.classId
+""")
+    List<ClassStudentCountProjection> countStudentsForTeacherClasses(@Param("teacher") Teacher teacher);
 }

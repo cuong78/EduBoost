@@ -52,6 +52,7 @@ public class User implements UserDetails {
     private LocalDateTime lastLogin;
 
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 
     @Column(name = "is_verify", nullable = false)

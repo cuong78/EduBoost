@@ -77,7 +77,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         }
 
         // 4. Fetch cognitive levels
-        List<CognitiveLevel> cognitiveLevels = cognitiveLevelRepository.findAll();
+        List<CognitiveLevel> cognitiveLevels = cognitiveLevelRepository.findAllByOrderByDisplayOrderAsc();
         
         // 5. Build prompt and call AI
         String prompt = buildPrompt(content, request, cognitiveLevels, lesson);

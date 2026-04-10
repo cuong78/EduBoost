@@ -1,8 +1,6 @@
 package com.fptu.eduBoostBackend.service.impl;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.fptu.eduBoostBackend.service.ActivityLogService;
@@ -73,7 +71,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     @Transactional(readOnly = true)
     public QuestionBankResponse getQuestionById(Long id) {
         log.info("Fetching question with id: {}", id);
-        QuestionBank question = questionBankRepository.findById(id)
+        QuestionBank question = questionBankRepository.findDetailById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found with id: " + id));
         return mapToResponse(question);
     }
@@ -231,18 +229,35 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     @Transactional
     public List<QuestionBankResponse> createQuestionsBatch(List<QuestionBankRequest> requests) {
         log.info("Creating {} questions in batch", requests.size());
+        Set<Long> lessonIds = requests.stream()
+                .map(QuestionBankRequest::getLessonId)
+                .collect(Collectors.toSet());
 
+        Set<Long> cognitiveIds = requests.stream()
+                .map(QuestionBankRequest::getCognitiveLevelId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Lesson> lessonMap = lessonRepository.findAllById(lessonIds)
+                .stream()
+                .collect(Collectors.toMap(Lesson::getId, l -> l));
+
+        Map<Long, CognitiveLevel> cognitiveMap = cognitiveLevelRepository.findAllById(cognitiveIds)
+                .stream()
+                .collect(Collectors.toMap(CognitiveLevel::getId, c -> c));
         // Get current user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
         List<QuestionBank> questions = requests.stream().map(request -> {
-            Lesson lesson = lessonRepository.findById(request.getLessonId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId()));
+            Lesson lesson = lessonMap.get(request.getLessonId());
+            if (lesson == null) {
+                throw new ResourceNotFoundException("Lesson not found with id: " + request.getLessonId());
+            }
 
-            CognitiveLevel cognitiveLevel = cognitiveLevelRepository.findById(request.getCognitiveLevelId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Cognitive level not found with id: " + request.getCognitiveLevelId()));
-
+            CognitiveLevel cognitiveLevel = cognitiveMap.get(request.getCognitiveLevelId());
+            if (cognitiveLevel == null) {
+                throw new ResourceNotFoundException("Cognitive level not found with id: " + request.getCognitiveLevelId());
+            }
             return QuestionBank.builder()
                     .lesson(lesson)
                     .questionText(request.getQuestionText())
@@ -258,8 +273,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                     .usageCount(0)
                     .build();
         }).collect(Collectors.toList());
-        questions = questionBankRepository.saveAll(questions);
-        activityLogService.log("Đã import "+questions.size()+" câu hỏi");
+        questions = saveQuestionsInChunks(questions);
+        activityLogService.log("Đã import câu hỏi");
 
         return questions.stream()
                 .map(this::mapToResponse)
@@ -288,5 +303,18 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+    private List<QuestionBank> saveQuestionsInChunks(List<QuestionBank> questions) {
+        List<QuestionBank> saved = new ArrayList<>();
+        int batchSize = 100;
+
+        for (int i = 0; i < questions.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, questions.size());
+            List<QuestionBank> chunk = questionBankRepository.saveAll(questions.subList(i, end));
+            questionBankRepository.flush();
+            saved.addAll(chunk);
+        }
+
+        return saved;
     }
 }

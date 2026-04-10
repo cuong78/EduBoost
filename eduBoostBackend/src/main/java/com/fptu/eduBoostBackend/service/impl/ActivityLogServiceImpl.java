@@ -14,7 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,6 +24,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     private final ActivityLogRepository activityLogRepository;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(String action) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -31,7 +33,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 return;
             }
 
-            if (!(authentication.getPrincipal() instanceof User user)) {
+            Object principal = authentication.getPrincipal();
+
+            if (!(principal instanceof User user)) {
                 return;
             }
 

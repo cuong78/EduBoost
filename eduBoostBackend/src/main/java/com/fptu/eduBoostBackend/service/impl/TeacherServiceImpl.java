@@ -33,6 +33,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -90,25 +91,36 @@ public class TeacherServiceImpl implements TeacherService {
     @Transactional(readOnly = true)
     public List<ClassResponse> getMyClasses() {
         Teacher teacher = getCurrentTeacher();
-        List<SchoolClass> classes = classRepository.findByTeacher(teacher);
-        
-        return classes.stream().map(classEntity -> {
-            int studentCount = studentRepository.findBySchoolClass(classEntity).size();
-            return ClassResponse.builder()
-                    .classId(classEntity.getClassId())
-                    .className(classEntity.getClassName())
-                    .classCode(classEntity.getClassCode())
-                    .gradeLevelName(classEntity.getGradeLevel().getGradeName())
-                    .teacherId(teacher.getTeacherId())
-                    .teacherName(teacher.getUser().getFullName() != null ? 
-                            teacher.getUser().getFullName() : teacher.getUser().getUsername())
-                    .schoolYear(classEntity.getSchoolYear())
-                    .description(classEntity.getDescription())
-                    .studentCount(studentCount)
-                    .build();
-        }).collect(Collectors.toList());
-    }
 
+        List<SchoolClass> classes = classRepository.findByTeacherWithDetails(teacher);
+
+        Map<String, Long> studentCountMap = classRepository.countStudentsForTeacherClasses(teacher)
+                .stream()
+                .collect(Collectors.toMap(
+                        ClassStudentCountProjection::getClassId,
+                        ClassStudentCountProjection::getStudentCount
+                ));
+
+        return classes.stream()
+                .map(classEntity -> ClassResponse.builder()
+                        .classId(classEntity.getClassId())
+                        .className(classEntity.getClassName())
+                        .classCode(classEntity.getClassCode())
+                        .gradeLevelName(classEntity.getGradeLevel().getGradeName())
+                        .gradeLevelId(classEntity.getGradeLevel().getGradeLevelId())
+                        .teacherId(teacher.getTeacherId())
+                        .teacherName(
+                                teacher.getUser().getFullName() != null
+                                        ? teacher.getUser().getFullName()
+                                        : teacher.getUser().getUsername()
+                        )
+                        .schoolYear(classEntity.getSchoolYear())
+                        .description(classEntity.getDescription())
+                        .status(classEntity.getStatus())
+                        .studentCount(studentCountMap.getOrDefault(classEntity.getClassId(), 0L).intValue())
+                        .build())
+                .collect(Collectors.toList());
+    }
     @Override
     @Transactional
     public ClassResponse createClass(CreateClassRequest request) {

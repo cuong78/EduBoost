@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
@@ -87,8 +88,10 @@ public class WordImportServiceImpl implements WordImportService {
             String[] rawQuestions = fullContent.split("(?=Câu\\s+\\d+[:.])");
 
             List<QuestionBank> questions = new ArrayList<>();
-            CognitiveLevel defaultLevel = cognitiveLevelRepository.findAll().stream()
-                    .findFirst().orElse(null);
+            CognitiveLevel defaultLevel = cognitiveLevelRepository.findAllByOrderByDisplayOrderAsc()
+                    .stream()
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No cognitive level found"));
 
             for (String rawQ : rawQuestions) {
                 rawQ = rawQ.trim();
@@ -105,13 +108,12 @@ public class WordImportServiceImpl implements WordImportService {
             }
 
             // Save all questions
-            questions = questionBankRepository.saveAll(questions);
+            questions = saveQuestionsInChunks(questions);
             log.info("Saved {} questions from Word file", questions.size());
-            activityLogService.log("Đã tạo "+questions+" câu hỏi từ file Word");
-            // 4. AI classification if requested
+            activityLogService.log("Đã import " + questions.size() + " câu hỏi từ file Word");            // 4. AI classification if requested
             if (useAiClassification && !deepseekApiKey.isBlank() && !questions.isEmpty()) {
                 classifyQuestionsWithAI(questions);
-                questions = questionBankRepository.saveAll(questions);
+                questions = saveQuestionsInChunks(questions);
             }
 
             return questions.stream().map(this::mapToResponse).collect(Collectors.toList());
@@ -130,27 +132,32 @@ public class WordImportServiceImpl implements WordImportService {
         for (XWPFPictureData pic : document.getAllPictures()) {
             try {
                 String extension = pic.suggestFileExtension();
-                String contentType = "image/" + (extension.equals("emf") || extension.equals("wmf") ? "png" : extension);
+//                String contentType = "image/" + (extension.equals("emf") || extension.equals("wmf") ? "png" : extension);
                 String fileName = UUID.randomUUID() + "." + extension;
                 byte[] data = pic.getData();
 
-                // Create a simple MultipartFile from bytes
-                MultipartFile multipartFile = new MultipartFile() {
-                    @Override public String getName() { return "image"; }
-                    @Override public String getOriginalFilename() { return fileName; }
-                    @Override public String getContentType() { return contentType; }
-                    @Override public boolean isEmpty() { return data.length == 0; }
-                    @Override public long getSize() { return data.length; }
-                    @Override public byte[] getBytes() { return data; }
-                    @Override public InputStream getInputStream() { return new ByteArrayInputStream(data); }
-                    @Override public void transferTo(java.io.File dest) throws IOException {
-                        try (FileOutputStream fos = new FileOutputStream(dest)) { fos.write(data); }
-                    }
-                };
+                //Không dùng đến
+//                // Create a simple MultipartFile from bytes
+//                MultipartFile multipartFile = new MultipartFile() {
+//                    @Override public String getName() { return "image"; }
+//                    @Override public String getOriginalFilename() { return fileName; }
+//                    @Override public String getContentType() { return contentType; }
+//                    @Override public boolean isEmpty() { return data.length == 0; }
+//                    @Override public long getSize() { return data.length; }
+//                    @Override public byte[] getBytes() { return data; }
+//                    @Override public InputStream getInputStream() { return new ByteArrayInputStream(data); }
+//                    @Override public void transferTo(java.io.File dest) throws IOException {
+//                        try (FileOutputStream fos = new FileOutputStream(dest)) { fos.write(data); }
+//                    }
+//                };
 
-                String objectKey = fileStorageService.storeFile(multipartFile);
-                // Map by relationship IDs — all relations for this picture
-                imageMap.put(pic.getPackagePart().getPartName().getName(), objectKey);
+                String objectKey = fileStorageService.storeBytes(data, fileName);                // Map by relationship IDs — all relations for this picture
+                for (POIXMLDocumentPart.RelationPart relationPart : document.getRelationParts()) {
+                    if (relationPart.getDocumentPart() == pic) {
+                        String relationId = relationPart.getRelationship().getId();
+                        imageMap.put(relationId, objectKey);
+                    }
+                }
                 log.debug("Uploaded image: {} -> {}", pic.getFileName(), objectKey);
 
             } catch (Exception e) {
@@ -167,8 +174,7 @@ public class WordImportServiceImpl implements WordImportService {
         StringBuilder result = new StringBuilder();
 
         // Get the underlying XML
-        XmlObject xmlObj = paragraph.getCTP().copy();
-        Node domNode = xmlObj.getDomNode();
+        Node domNode = paragraph.getCTP().getDomNode();
 
         NodeList children = domNode.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
@@ -281,27 +287,29 @@ public class WordImportServiceImpl implements WordImportService {
         if (node == null) return null;
 
         if ("blip".equals(node.getLocalName())) {
-            // Get r:embed attribute
-            Node embed = node.getAttributes() != null ? node.getAttributes().getNamedItemNS(
-                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed") : null;
-            if (embed != null) {
-                // This gives us a relationship ID, would need to resolve
-                // For simplicity, search imageMap by key pattern
-                for (Map.Entry<String, String> entry : imageMap.entrySet()) {
-                    return entry.getValue(); // Return first match as fallback
+            if (node.getAttributes() != null) {
+                Node embed = node.getAttributes().getNamedItemNS(
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+                        "embed"
+                );
+
+                if (embed != null) {
+                    String relationId = embed.getNodeValue();
+                    return imageMap.get(relationId);
                 }
             }
         }
 
-        // Recurse into children
         NodeList children = node.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             String result = findBlipUrl(children.item(i), imageMap);
-            if (result != null) return result;
+            if (result != null) {
+                return result;
+            }
         }
+
         return null;
     }
-
     // ======================== OMML TO LATEX CONVERSION ========================
 
     private String parseOmmlToLatex(Node node) {
@@ -939,5 +947,18 @@ public class WordImportServiceImpl implements WordImportService {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+    private List<QuestionBank> saveQuestionsInChunks(List<QuestionBank> questions) {
+        List<QuestionBank> saved = new ArrayList<>();
+        int batchSize = 100;
+
+        for (int i = 0; i < questions.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, questions.size());
+            List<QuestionBank> chunk = questionBankRepository.saveAll(questions.subList(i, end));
+            questionBankRepository.flush();
+            saved.addAll(chunk);
+        }
+
+        return saved;
     }
 }

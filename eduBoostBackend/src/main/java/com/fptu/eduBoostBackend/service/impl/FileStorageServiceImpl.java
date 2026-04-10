@@ -96,4 +96,21 @@ public class FileStorageServiceImpl implements FileStorageService {
             return 0;
         }
     }
+    @Override
+    public String storeBytes(byte[] data, String originalFilename) {
+        try {
+            String fileExtension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String fileName = UUID.randomUUID() + fileExtension;
+            Path targetLocation = this.fileStorageLocation.resolve(fileName);
+            Files.write(targetLocation, data);
+
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Could not store file", e);
+        }
+    }
 }
