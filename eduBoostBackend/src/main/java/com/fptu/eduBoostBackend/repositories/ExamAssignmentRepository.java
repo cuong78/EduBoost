@@ -55,4 +55,12 @@ public interface ExamAssignmentRepository extends JpaRepository<ExamAssignment, 
     @Query("SELECT DISTINCT a.schoolClass FROM ExamAssignment a " +
            "WHERE a.createdBy.userId = :teacherId")
     List<com.fptu.eduBoostBackend.entities.SchoolClass> findClassesByTeacher(@Param("teacherId") Long teacherId);
+
+    /** Student: find assignments for a specific classId */
+    @Query("SELECT a FROM ExamAssignment a " +
+           "LEFT JOIN FETCH a.exam e " +
+           "LEFT JOIN FETCH a.schoolClass c " +
+           "WHERE c.classId = :classId " +
+           "ORDER BY a.startTime DESC")
+    List<ExamAssignment> findBySchoolClassClassId(@Param("classId") String classId);
 }

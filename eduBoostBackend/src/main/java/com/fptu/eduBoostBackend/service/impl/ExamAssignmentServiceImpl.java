@@ -127,9 +127,11 @@ public class ExamAssignmentServiceImpl {
     @Transactional(readOnly = true)
     public List<ExamAssignmentResponse> getStudentAssignments() {
         User user = getCurrentUser();
-        // Resolve student entity
-        Long studentId = resolveStudentId(user);
-        return assignmentRepository.findAllForStudent(studentId)
+        // Get student's class and find assignments for it
+        Student student = studentRepository.findByUser(user).orElse(null);
+        if (student == null || student.getSchoolClass() == null) return List.of();
+        String classId = student.getSchoolClass().getClassId();
+        return assignmentRepository.findBySchoolClassClassId(classId)
                 .stream()
                 .map(a -> toResponse(a, 0))
                 .collect(Collectors.toList());
@@ -156,13 +158,14 @@ public class ExamAssignmentServiceImpl {
 
     public ExamResultDetailResponse submitExam(SubmitExamRequest request) {
         User user = getCurrentUser();
-        Long studentId = resolveStudentId(user);
+        Student student = studentRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
 
         ExamAssignment assignment = assignmentRepository.findById(request.getAssignmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
 
-        // Check duplicate submission
-        resultRepository.findByStudentAndAssignment(studentId, assignment.getAssignmentId())
+        // Check duplicate submission using String studentId
+        resultRepository.findByStudentAndAssignment(student.getStudentId(), assignment.getAssignmentId())
                 .ifPresent(r -> { throw new BadRequestException("Bạn đã nộp bài làm này rồi"); });
 
         // Load exam questions
@@ -211,11 +214,7 @@ public class ExamAssignmentServiceImpl {
         String answersJson = "[]";
         try { answersJson = objectMapper.writeValueAsString(questionResults); } catch (Exception ignored) {}
 
-        // Lookup actual Student entity
-        User currentUser = getCurrentUser();
-        Student student = studentRepository.findByUser(currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for user: " + currentUser.getUsername()));
-
+        // Student entity already resolved above
         StudentExamResult result = StudentExamResult.builder()
                 .student(student)
                 .exam(assignment.getExam())
@@ -345,7 +344,7 @@ public class ExamAssignmentServiceImpl {
                     m.put("classId", c.getClassId());
                     m.put("className", c.getClassName());
                     m.put("classCode", c.getClassCode());
-                    m.put("gradeLevel", c.getGradeLevel() != null ? c.getGradeLevel().getGradeLevel() : null);
+                    m.put("gradeLevel", c.getGradeLevel() != null ? c.getGradeLevel().getGradeName() : null);
                     return m;
                 })
                 .collect(Collectors.toList());

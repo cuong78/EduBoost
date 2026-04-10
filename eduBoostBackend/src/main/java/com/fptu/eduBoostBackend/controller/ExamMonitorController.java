@@ -83,8 +83,8 @@ public class ExamMonitorController {
 
         // Broadcast to teacher monitoring channel
         messagingTemplate.convertAndSend(
-                "/topic/exam/" + assignmentId,
-                event
+                (Object) ("/topic/exam/" + assignmentId),
+                (Object) event
         );
     }
 
@@ -109,6 +109,6 @@ public class ExamMonitorController {
 
         log.warn("ALERT from student {} in assignment {}: {}", studentName, assignmentId, alert.get("reason"));
 
-        messagingTemplate.convertAndSend("/topic/exam/" + assignmentId, event);
+        messagingTemplate.convertAndSend((Object) ("/topic/exam/" + assignmentId), (Object) event);
     }
 }

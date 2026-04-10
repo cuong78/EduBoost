@@ -24,6 +24,14 @@ public interface StudentExamResultRepository extends JpaRepository<StudentExamRe
             @Param("studentId") String studentId,
             @Param("assignmentId") Long assignmentId);
 
+    /** Get student String UUID from current user */
+    @Query("SELECT r FROM StudentExamResult r " +
+           "WHERE r.student.studentId = :studentId " +
+           "AND r.resultId = :resultId")
+    Optional<StudentExamResult> findByStudentStudentIdAndResultId(
+            @Param("studentId") String studentId,
+            @Param("resultId") Long resultId);
+
     /** Lookup by User's userId (for anti-cheat tab switch endpoint) */
     @Query("SELECT r FROM StudentExamResult r " +
            "WHERE r.student.user.userId = :userId " +

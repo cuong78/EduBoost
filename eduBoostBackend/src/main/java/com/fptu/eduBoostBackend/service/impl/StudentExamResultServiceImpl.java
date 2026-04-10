@@ -42,7 +42,7 @@ public class StudentExamResultServiceImpl implements StudentExamResultService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
 
-        List<StudentExamResult> allResults = studentExamResultRepository.findByStudent(student);
+        List<StudentExamResult> allResults = studentExamResultRepository.findByStudentStudentId(studentId);
 
         List<StudentExamResult> filtered = allResults.stream()
                 .filter(result -> {
@@ -78,7 +78,7 @@ public class StudentExamResultServiceImpl implements StudentExamResultService {
     @Transactional(readOnly = true)
     public StudentExamResultDetailResponse getStudentResultDetail(String studentId, Long resultId) {
         StudentExamResult result = studentExamResultRepository
-                .findByStudent_StudentIdAndResultId(studentId, resultId)
+                .findByStudentStudentIdAndResultId(studentId, resultId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam result not found for this student"));
 
         return mapToDetail(result);
