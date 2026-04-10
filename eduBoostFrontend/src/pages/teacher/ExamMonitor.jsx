@@ -34,7 +34,7 @@ const ExamMonitor = () => {
     // ── WebSocket connection ───────────────────────────────────────────────
     useEffect(() => {
         const client = new Client({
-            webSocketFactory: () => new SockJS(`${API.BASE}/ws`),
+            webSocketFactory: () => new SockJS(`${API.BASE.replace('/api', '')}/ws`),
             reconnectDelay: 5000,
             onConnect: () => {
                 setConnected(true);

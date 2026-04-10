@@ -235,8 +235,17 @@ public class ExamAssignmentServiceImpl {
         result = resultRepository.save(result);
         activityLogService.log("Học sinh nộp bài thi, điểm: " + totalScore + "/" + maxScore);
 
-        // Trigger AI analysis async (non-blocking best-effort)
-        triggerAiAnalysisAsync(result, questionResults, assignment);
+        // Trigger AI analysis truly async (non-blocking)
+        final StudentExamResult savedResult = result;
+        final List<ExamResultDetailResponse.QuestionResultItem> savedQItems = questionResults;
+        final ExamAssignment savedAssignment = assignment;
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                triggerAiAnalysisAsync(savedResult, savedQItems, savedAssignment);
+            } catch (Exception e) {
+                log.warn("Async AI analysis failed: {}", e.getMessage());
+            }
+        });
 
         ExamResultDetailResponse response = ExamResultDetailResponse.builder()
                 .resultId(result.getResultId())
@@ -445,6 +454,12 @@ public class ExamAssignmentServiceImpl {
                 .orElse(null);
     }
 
+    /** Count students enrolled in a class */
+    private int countStudentsInClass(SchoolClass sc) {
+        if (sc == null) return 0;
+        return studentRepository.findBySchoolClass(sc).size();
+    }
+
     private ExamAssignmentResponse toResponse(ExamAssignment a, int submittedCount) {
         Exam e = a.getExam();
         return ExamAssignmentResponse.builder()
@@ -462,6 +477,7 @@ public class ExamAssignmentServiceImpl {
                 .durationMinutes(a.getDurationMinutes())
                 .notifyParent(a.getNotifyParent())
                 .submittedCount(submittedCount)
+                .totalStudents(countStudentsInClass(a.getSchoolClass()))
                 .createdAt(a.getCreatedAt())
                 .gradeLevel(e.getGradeLevel())
                 .subjectName(e.getSubject() != null ? e.getSubject().getSubjectName() : null)

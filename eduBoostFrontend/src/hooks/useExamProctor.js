@@ -36,7 +36,7 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
         if (!enabled || !assignmentId) return;
         try {
             const client = new Client({
-                webSocketFactory: () => new SockJS(`${API.BASE}/ws`),
+                webSocketFactory: () => new SockJS(`${API.BASE.replace('/api', '')}/ws`),
                 reconnectDelay: 5000,
                 connectHeaders: {
                     studentId: String(studentId || ''),
