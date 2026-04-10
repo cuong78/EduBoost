@@ -32,7 +32,11 @@ public class MinioFileStorageServiceImpl implements FileStorageService {
 
     @PostConstruct
     public void init() {
-        createBucketIfNotExists();
+        try {
+            createBucketIfNotExists();
+        } catch (Exception e) {
+            log.warn("⚠️ MinIO is not available — file storage features will be disabled until MinIO is reachable. Error: {}", e.getMessage());
+        }
     }
 
     private void createBucketIfNotExists() {
