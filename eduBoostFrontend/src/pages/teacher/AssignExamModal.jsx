@@ -140,19 +140,35 @@ const ViDateTimePicker = ({ value, onChange, label }) => {
                             <div className="vi-time-selectors">
                                 <div className="vi-time-col">
                                     <label>Giờ</label>
-                                    <select value={hour} onChange={e => handleTimeChange(Number(e.target.value), minute, period)}>
-                                        {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(h => (
-                                            <option key={h} value={h}>{h}</option>
-                                        ))}
-                                    </select>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={12}
+                                        value={hour}
+                                        onChange={e => {
+                                            let v = Number(e.target.value);
+                                            if (v < 1) v = 1;
+                                            if (v > 12) v = 12;
+                                            handleTimeChange(v, minute, period);
+                                        }}
+                                        className="vi-time-input"
+                                    />
                                 </div>
                                 <div className="vi-time-col">
                                     <label>Phút</label>
-                                    <select value={minute} onChange={e => handleTimeChange(hour, Number(e.target.value), period)}>
-                                        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => (
-                                            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                                        ))}
-                                    </select>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={59}
+                                        value={String(minute).padStart(2, '0')}
+                                        onChange={e => {
+                                            let v = Number(e.target.value);
+                                            if (v < 0) v = 0;
+                                            if (v > 59) v = 59;
+                                            handleTimeChange(hour, v, period);
+                                        }}
+                                        className="vi-time-input"
+                                    />
                                 </div>
                                 <div className="vi-time-col">
                                     <label>&nbsp;</label>
@@ -205,7 +221,10 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
         if (!startTime || !durationMinutes) return '';
         const start = new Date(startTime);
         if (isNaN(start.getTime())) return '';
-        return new Date(start.getTime() + Number(durationMinutes) * 60 * 1000).toISOString();
+        // Keep as local datetime string to avoid UTC conversion
+        const end = new Date(start.getTime() + Number(durationMinutes) * 60 * 1000);
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }, [startTime, durationMinutes]);
 
     const formatVN = (dateStr) => {
@@ -283,8 +302,8 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
             // If multiple exams selected, the backend will randomly distribute students
             const payload = {
                 examId: exam.id,
-                startTime: new Date(startTime).toISOString(),
-                endTime: endTime,
+                startTime: startTime,   // local datetime string — no UTC conversion
+                endTime: endTime,       // already local datetime string
                 durationMinutes: Number(durationMinutes),
                 notifyParent,
                 classIds,
@@ -579,11 +598,13 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                 .vi-time-label { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.5rem; color: #334155; }
                 .vi-time-selectors { display: flex; flex-direction: column; gap: 0.5rem; }
                 .vi-time-col label { display: block; font-size: 0.72rem; font-weight: 600; color: #94a3b8; margin-bottom: 3px; }
-                .vi-time-col select {
+                .vi-time-input {
                     width: 100%; padding: 6px 8px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-                    font-size: 0.85rem; font-family: inherit; cursor: pointer;
+                    font-size: 1rem; font-family: inherit; font-weight: 700; text-align: center;
+                    box-sizing: border-box;
                 }
-                .vi-time-col select:focus { outline: none; border-color: #6366f1; }
+                .vi-time-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.08); }
+                .vi-time-input::-webkit-inner-spin-button { opacity: 1; }
                 .vi-period-btns { display: flex; gap: 4px; }
                 .vi-period-btns button {
                     flex: 1; padding: 6px 0; border: 1.5px solid #e2e8f0; border-radius: 8px;
