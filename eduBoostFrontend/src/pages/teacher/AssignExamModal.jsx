@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     X, Calendar, Clock, Users, Key, CheckCircle, Copy, Printer, ChevronDown, ChevronUp, Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import examAssignmentService from '../../services/examAssignmentService';
-import examService from '../../services/examService';
 
 /**
  * AssignExamModal — lets teacher assign an exam (and its variants) to classes
@@ -15,12 +14,11 @@ import examService from '../../services/examService';
  */
 const AssignExamModal = ({ exam, variants = [], onClose }) => {
     const navigate = useNavigate();
-    const [classes, setClasses] = useState([]);
+    const [allClasses, setAllClasses] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Assignment form state
     const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
     const [durationMinutes, setDurationMinutes] = useState('');
     const [notifyParent, setNotifyParent] = useState(true);
 
@@ -31,18 +29,52 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
     const [results, setResults] = useState(null); // access codes after creation
     const [error, setError] = useState('');
 
+    // Auto-compute endTime from startTime + durationMinutes
+    const endTime = useMemo(() => {
+        if (!startTime || !durationMinutes) return '';
+        const start = new Date(startTime);
+        if (isNaN(start.getTime())) return '';
+        const end = new Date(start.getTime() + Number(durationMinutes) * 60 * 1000);
+        return end.toISOString();
+    }, [startTime, durationMinutes]);
+
+    // Format datetime to Vietnamese
+    const formatVN = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '—';
+        return d.toLocaleString('vi-VN', {
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     useEffect(() => {
         examAssignmentService.getTeacherClasses()
-            .then(data => {
-                // Filter classes matching exam's grade level
-                const filtered = exam?.gradeLevel
-                    ? data.filter(c => c.gradeLevel === exam.gradeLevel)
-                    : data;
-                setClasses(filtered);
-            })
-            .catch(() => setClasses([]))
+            .then(data => setAllClasses(data || []))
+            .catch(() => setAllClasses([]))
             .finally(() => setLoading(false));
-    }, [exam]);
+    }, []);
+
+    // Filter classes matching exam's grade level (smart comparison)
+    const classes = useMemo(() => {
+        if (!exam?.gradeLevel) return allClasses;
+        const examGrade = String(exam.gradeLevel); // e.g. "6"
+        return allClasses.filter(c => {
+            // Match by gradeLevelId (numeric)
+            if (c.gradeLevelId != null && String(c.gradeLevelId) === examGrade) return true;
+            // Match by gradeName (e.g., "Khối 6" contains "6")
+            if (c.gradeLevel) {
+                const num = c.gradeLevel.replace(/\D/g, ''); // extract digits
+                if (num === examGrade) return true;
+            }
+            return false;
+        });
+    }, [allClasses, exam?.gradeLevel]);
 
     const toggleClass = (classId) => {
         setClassVariantMap(prev => {
@@ -65,8 +97,9 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
 
     const handleSubmit = async () => {
         if (selectedClassIds.length === 0) { setError('Vui lòng chọn ít nhất 1 lớp'); return; }
-        if (!startTime || !endTime) { setError('Vui lòng chọn thời gian bắt đầu và kết thúc'); return; }
-        if (new Date(endTime) <= new Date(startTime)) { setError('Giờ kết thúc phải sau giờ bắt đầu'); return; }
+        if (!startTime) { setError('Vui lòng chọn thời gian bắt đầu'); return; }
+        if (!durationMinutes || Number(durationMinutes) < 1) { setError('Vui lòng nhập thời gian làm bài'); return; }
+        if (!endTime) { setError('Không tính được giờ kết thúc'); return; }
         setError('');
         setSubmitting(true);
         try {
@@ -74,8 +107,8 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
             const payload = {
                 examId: exam.id,
                 startTime: new Date(startTime).toISOString(),
-                endTime: new Date(endTime).toISOString(),
-                durationMinutes: durationMinutes ? Number(durationMinutes) : null,
+                endTime: endTime,
+                durationMinutes: Number(durationMinutes),
                 notifyParent,
             };
 
@@ -189,18 +222,36 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                     <div className="time-row">
                         <div className="field">
                             <label>Bắt đầu</label>
-                            <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                            <input
+                                type="datetime-local"
+                                value={startTime}
+                                onChange={e => setStartTime(e.target.value)}
+                            />
                         </div>
                         <div className="field">
-                            <label>Kết thúc</label>
-                            <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                        </div>
-                        <div className="field">
-                            <label>Thời gian làm (phút)</label>
-                            <input type="number" min="5" max="180" placeholder="Mặc định theo loại đề"
-                                value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} />
+                            <label>Thời gian làm bài (phút)</label>
+                            <input
+                                type="number"
+                                min="5"
+                                max="180"
+                                placeholder="VD: 45, 60, 90..."
+                                value={durationMinutes}
+                                onChange={e => setDurationMinutes(e.target.value)}
+                            />
                         </div>
                     </div>
+                    {/* Auto-calculated end time preview */}
+                    {startTime && durationMinutes && endTime && (
+                        <div className="time-preview">
+                            <Clock size={14} />
+                            <span>
+                                <strong>Bắt đầu:</strong> {formatVN(startTime)}
+                                &nbsp;&nbsp;→&nbsp;&nbsp;
+                                <strong>Kết thúc:</strong> {formatVN(endTime)}
+                                &nbsp;&nbsp;({durationMinutes} phút)
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Classes */}
@@ -282,8 +333,16 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                 .close-btn { background: none; border: none; cursor: pointer; color: var(--ds-text-muted); padding: 4px; }
                 .assign-section { margin-bottom: 1.5rem; }
                 .assign-section h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 0.75rem; font-size: 0.95rem; }
-                .time-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+                .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
                 @media (max-width: 600px) { .time-row { grid-template-columns: 1fr; } }
+                .time-preview {
+                    display: flex; align-items: center; gap: 8px;
+                    margin-top: 0.75rem; padding: 0.6rem 1rem;
+                    background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.06));
+                    border: 1px solid rgba(99,102,241,0.15);
+                    border-radius: 10px; font-size: 0.85rem; color: var(--ds-text-secondary);
+                }
+                .time-preview strong { color: var(--ds-text-primary); }
                 .field label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: var(--ds-text-secondary); }
                 .field input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--ds-border); border-radius: 8px; font-size: 0.9rem; }
                 .class-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 280px; overflow-y: auto; border: 1px solid var(--ds-border); border-radius: 10px; padding: 0.75rem; }

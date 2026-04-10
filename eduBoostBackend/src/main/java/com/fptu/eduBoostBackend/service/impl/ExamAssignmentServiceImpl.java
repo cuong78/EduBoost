@@ -345,6 +345,7 @@ public class ExamAssignmentServiceImpl {
                     m.put("className", c.getClassName());
                     m.put("classCode", c.getClassCode());
                     m.put("gradeLevel", c.getGradeLevel() != null ? c.getGradeLevel().getGradeName() : null);
+                    m.put("gradeLevelId", c.getGradeLevel() != null ? c.getGradeLevel().getGradeLevelId() : null);
                     return m;
                 })
                 .collect(Collectors.toList());
