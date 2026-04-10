@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, User, Bot, Loader2, Trash2 } from 'lucide-react';
-import axiosInstance from '../../utils/axiosInstance';
+import { apiClient } from '../../services/api';
 
 const STORAGE_KEY = 'eduboost_chat_history';
 
@@ -46,7 +46,7 @@ const AIChat = () => {
             .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text }));
 
         try {
-            const { data } = await axiosInstance.post('/api/ai-chat/message', {
+            const { data } = await apiClient.post('/api/ai-chat/message', {
                 message: userMsg.text,
                 history: history.slice(0, -1), // send history before current message
             });
