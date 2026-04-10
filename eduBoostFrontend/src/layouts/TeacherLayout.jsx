@@ -158,6 +158,7 @@ const TeacherLayout = () => {
           >
             <Send size={20} /> <span className="dl-nav-label">Góp ý</span>
           </Link>
+          {/* Tạm ẩn - Gói đăng ký
           <Link
             to="/teacher/subscription"
             className={`dl-nav-item ${isActive("/teacher/subscription") ? "active" : ""}`}
@@ -165,6 +166,7 @@ const TeacherLayout = () => {
           >
             <Gem size={20} /> <span className="dl-nav-label">Gói đăng ký</span>
           </Link>
+          */}
 
           {/* Divider + Guide link */}
           <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", margin: "8px 0" }} />
