@@ -80,7 +80,7 @@ const RegisterMethod = () => {
                         text: 'signin_with',
                         shape: 'rectangular',
                         logo_alignment: 'left',
-                        width: '100%',
+                        width: 360,
                     });
                     console.log('Google button rendered successfully in RegisterMethod');
                 } catch (error) {
@@ -106,14 +106,12 @@ const RegisterMethod = () => {
                 {/* Google Sign-In Button */}
                 <div 
                     style={{ 
-                        textAlign: 'center',
                         marginBottom: '1.5rem',
                         width: '100%'
                     }}
                 >
-                    {/* Always render the container, Google button will be rendered inside by useEffect */}
-                    {/* text-align: center needed for personalized button (iframe with fixed width) */}
-                    <div ref={googleButtonRef} style={{ display: 'inline-block', width: '100%', minHeight: '40px' }}></div>
+                    {/* margin: 0 auto centers the fixed-width iframe rendered by Google */}
+                    <div ref={googleButtonRef} style={{ margin: '0 auto', width: 'fit-content', minHeight: '40px' }}></div>
                 </div>
 
                 <div className="auth-separator">
