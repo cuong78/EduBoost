@@ -194,5 +194,13 @@ LƯU Ý:
             headers: getAuthHeaders()
         });
         return response.data;
+    },
+
+    // AI Duplicate Check
+    async checkDuplicate(data) {
+        const response = await axios.post(`${API.QUESTION_BANK}/check-duplicate`, data, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
     }
 };

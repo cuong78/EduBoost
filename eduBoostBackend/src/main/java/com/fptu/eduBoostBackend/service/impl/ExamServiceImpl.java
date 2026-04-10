@@ -1005,12 +1005,25 @@ public class ExamServiceImpl implements ExamService {
                 .explanation(question.getExplanation())
                 .isModified(false)
                 .build();
-        
-        // Generate wrong answers using AI
-        generateWrongAnswersForQuestion(eq);
-        
+
+        // ── Use stored wrong answers from question bank first ──────────────
+        boolean hasStoredWrongAnswers =
+                question.getWrongAnswer1() != null && !question.getWrongAnswer1().isBlank();
+
+        if (hasStoredWrongAnswers) {
+            // Copy directly — no AI call needed
+            eq.setWrongAnswer1(question.getWrongAnswer1());
+            eq.setWrongAnswer2(question.getWrongAnswer2());
+            eq.setWrongAnswer3(question.getWrongAnswer3());
+            log.debug("Using stored wrong answers from bank for question id={}", question.getId());
+        } else {
+            // Fallback: generate wrong answers using AI
+            generateWrongAnswersForQuestion(eq);
+        }
+
         return eq;
     }
+
     
     /**
      * Generate wrong answers for a question using AI

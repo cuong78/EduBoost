@@ -566,8 +566,31 @@ public class WordImportServiceImpl implements WordImportService {
         // Detect question type
         QuestionType questionType = detectQuestionType(cleaned);
 
-        // Extract correct answer
+        // Extract ALL options (A, B, C, D) before cleaning
+        Map<String, String> allOptions = extractAllOptions(cleaned);
+
+        // Extract correct answer letter first
+        String correctAnswerLetter = extractCorrectAnswerLetter(cleaned, questionType);
+
+        // Extract correct answer text
         String correctAnswer = extractCorrectAnswer(cleaned, questionType);
+
+        // Extract wrong answers from remaining options
+        String wrongAnswer1 = null;
+        String wrongAnswer2 = null;
+        String wrongAnswer3 = null;
+
+        if (questionType == QuestionType.MULTIPLE_CHOICE && correctAnswerLetter != null && !allOptions.isEmpty()) {
+            List<String> wrongAnswerTexts = new ArrayList<>();
+            for (String letter : List.of("A", "B", "C", "D")) {
+                if (!letter.equalsIgnoreCase(correctAnswerLetter) && allOptions.containsKey(letter)) {
+                    wrongAnswerTexts.add(allOptions.get(letter));
+                }
+            }
+            if (wrongAnswerTexts.size() > 0) wrongAnswer1 = wrongAnswerTexts.get(0);
+            if (wrongAnswerTexts.size() > 1) wrongAnswer2 = wrongAnswerTexts.get(1);
+            if (wrongAnswerTexts.size() > 2) wrongAnswer3 = wrongAnswerTexts.get(2);
+        }
 
         // Extract explanation
         String explanation = extractExplanation(cleaned);
@@ -593,15 +616,15 @@ public class WordImportServiceImpl implements WordImportService {
             answerImageUrl = ansImgMatcher.group(1);
         }
 
-        // Keep [IMG:objectKey] placeholders in questionText — MathRenderer will render them as <img>
-        // questionText = questionText.replaceAll("\\[IMG:[^\\]]+\\]", "").trim();
-
         if (questionText.isBlank()) return null;
 
         return QuestionBank.builder()
                 .lesson(lesson)
                 .questionText(questionText)
                 .correctAnswer(correctAnswer != null ? correctAnswer : "")
+                .wrongAnswer1(wrongAnswer1)
+                .wrongAnswer2(wrongAnswer2)
+                .wrongAnswer3(wrongAnswer3)
                 .explanation(explanation)
                 .questionType(questionType)
                 .cognitiveLevel(defaultLevel)
@@ -612,6 +635,46 @@ public class WordImportServiceImpl implements WordImportService {
                 .createdBy(user)
                 .usageCount(0)
                 .build();
+    }
+
+    /**
+     * Extract all A/B/C/D options as a map: {"A" -> "option text", "B" -> ...}
+     */
+    private Map<String, String> extractAllOptions(String text) {
+        Map<String, String> options = new LinkedHashMap<>();
+        String cleanText = text.replaceAll("\\[\\[HL\\]\\]", "");
+        // Match patterns: A. text  A) text  A text (followed by next option or answer section)
+        Pattern p = Pattern.compile(
+            "\\b([A-D])[.)\\s]\\s*(.*?)(?=\\s*\\b[A-D][.)\\s]|\\s*(?:Lời giải|Đáp án|Chọn)|$)",
+            Pattern.DOTALL);
+        Matcher m = p.matcher(cleanText);
+        while (m.find()) {
+            String letter = m.group(1).toUpperCase();
+            String optionText = m.group(2).trim();
+            if (!optionText.isEmpty()) {
+                options.put(letter, optionText);
+            }
+        }
+        return options;
+    }
+
+    /**
+     * Extract the correct answer LETTER (A, B, C, D) without resolving to option text.
+     */
+    private String extractCorrectAnswerLetter(String text, QuestionType type) {
+        if (type != QuestionType.MULTIPLE_CHOICE) return null;
+
+        // Priority 1: Highlighted answer
+        Matcher hlMatch = Pattern.compile("\\[\\[HL\\]\\]\\s*([A-D])").matcher(text);
+        if (hlMatch.find()) return hlMatch.group(1).toUpperCase();
+
+        // Priority 2: "Đáp án: X" or "Chọn X"
+        Matcher ansMatch = Pattern.compile(
+            "(?:Đáp án(?:\\s+đúng)?(?:\\s+là)?|Chọn(?:\\s+là)?)[:\\s]*([A-D])",
+            Pattern.CASE_INSENSITIVE).matcher(text);
+        if (ansMatch.find()) return ansMatch.group(1).toUpperCase();
+
+        return null;
     }
 
     private QuestionType detectQuestionType(String text) {

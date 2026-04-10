@@ -25,6 +25,10 @@ public class QuestionBankRequest {
     @NotBlank(message = "Correct answer cannot be blank")
     private String correctAnswer;
     
+    private String wrongAnswer1;
+    private String wrongAnswer2;
+    private String wrongAnswer3;
+    
     private String explanation;
     
     @NotNull(message = "Question type cannot be null")

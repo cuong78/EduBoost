@@ -407,6 +407,10 @@ public class BulkImportServiceImpl implements BulkImportService {
                     String explanation = getCellValueAsString(row.getCell(2));
                     String typeStr = getCellValueAsString(row.getCell(3));
                     String cognitiveLevelStr = getCellValueAsString(row.getCell(4));
+                    // Columns 5/6/7: wrong answers (optional)
+                    String wrongAnswer1 = getCellValueAsString(row.getCell(5));
+                    String wrongAnswer2 = getCellValueAsString(row.getCell(6));
+                    String wrongAnswer3 = getCellValueAsString(row.getCell(7));
 
                     QuestionType questionType = parseQuestionType(typeStr);
 
@@ -426,6 +430,9 @@ public class BulkImportServiceImpl implements BulkImportService {
                             .lesson(lesson)
                             .questionText(questionText.trim())
                             .correctAnswer(correctAnswer.trim())
+                            .wrongAnswer1(wrongAnswer1 != null && !wrongAnswer1.trim().isEmpty() ? wrongAnswer1.trim() : null)
+                            .wrongAnswer2(wrongAnswer2 != null && !wrongAnswer2.trim().isEmpty() ? wrongAnswer2.trim() : null)
+                            .wrongAnswer3(wrongAnswer3 != null && !wrongAnswer3.trim().isEmpty() ? wrongAnswer3.trim() : null)
                             .explanation(explanation != null ? explanation.trim() : null)
                             .questionType(questionType)
                             .cognitiveLevel(cogLevel)

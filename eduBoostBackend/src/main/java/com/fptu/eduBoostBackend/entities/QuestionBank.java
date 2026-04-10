@@ -39,6 +39,15 @@ public class QuestionBank {
     @Column(name = "correct_answer", columnDefinition = "TEXT", nullable = false)
     private String correctAnswer;
 
+    @Column(name = "wrong_answer_1", columnDefinition = "TEXT")
+    private String wrongAnswer1;
+
+    @Column(name = "wrong_answer_2", columnDefinition = "TEXT")
+    private String wrongAnswer2;
+
+    @Column(name = "wrong_answer_3", columnDefinition = "TEXT")
+    private String wrongAnswer3;
+
     @Column(name = "explanation", columnDefinition = "TEXT")
     private String explanation;
 
@@ -73,6 +82,9 @@ public class QuestionBank {
 
     @Column(name = "usage_count")
     private Integer usageCount = 0;
+
+    @Column(name = "duplicate_percentage")
+    private Double duplicatePercentage;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

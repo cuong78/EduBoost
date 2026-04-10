@@ -22,6 +22,9 @@ public class QuestionBankResponse {
     private String lessonName;
     private String questionText;
     private String correctAnswer;
+    private String wrongAnswer1;
+    private String wrongAnswer2;
+    private String wrongAnswer3;
     private String explanation;
     private QuestionType questionType;
     private Long cognitiveLevelId;
@@ -32,6 +35,7 @@ public class QuestionBankResponse {
     private Long createdById;
     private String createdByName;
     private Integer usageCount;
+    private Double duplicatePercentage;
     private String imageUrl;
     private String answerImageUrl;
     private LocalDateTime createdAt;

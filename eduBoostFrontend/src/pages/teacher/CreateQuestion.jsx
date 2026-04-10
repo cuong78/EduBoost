@@ -74,11 +74,18 @@ const CreateQuestion = () => {
   // Tab 1: Manual
   const [questionText, setQuestionText] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
+  const [wrongAnswer1, setWrongAnswer1] = useState("");
+  const [wrongAnswer2, setWrongAnswer2] = useState("");
+  const [wrongAnswer3, setWrongAnswer3] = useState("");
   const [explanation, setExplanation] = useState("");
   const [questionType, setQuestionType] = useState("MULTIPLE_CHOICE");
   const [cognitiveLevelId, setCognitiveLevelId] = useState(null);
   const [cognitiveLevels, setCognitiveLevels] = useState([]);
   const [loadingCognitiveLevels, setLoadingCognitiveLevels] = useState(false);
+
+  // Duplicate check state
+  const [duplicateCheckResult, setDuplicateCheckResult] = useState(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   // Tab 2: Import from Word file (.docx)
   const [importFile, setImportFile] = useState(null);
@@ -284,10 +291,31 @@ const CreateQuestion = () => {
 
     setSavingManual(true);
     try {
+      // 1. Check duplicate first
+      setCheckingDuplicate(true);
+      let dupResult = null;
+      try {
+        dupResult = await questionBankService.checkDuplicate({
+          questionText: questionText.trim(),
+          lessonId: Number(lessonId),
+          chapterId: chapterId ? Number(chapterId) : null,
+        });
+        setDuplicateCheckResult(dupResult);
+      } catch (e) {
+        // Don't block save if check fails
+        console.warn("Duplicate check failed:", e);
+      } finally {
+        setCheckingDuplicate(false);
+      }
+
+      // 2. Save question
       const data = {
         lessonId: Number(lessonId),
         questionText: questionText.trim(),
         correctAnswer: correctAnswer.trim(),
+        wrongAnswer1: questionType === "MULTIPLE_CHOICE" && wrongAnswer1.trim() ? wrongAnswer1.trim() : null,
+        wrongAnswer2: questionType === "MULTIPLE_CHOICE" && wrongAnswer2.trim() ? wrongAnswer2.trim() : null,
+        wrongAnswer3: questionType === "MULTIPLE_CHOICE" && wrongAnswer3.trim() ? wrongAnswer3.trim() : null,
         explanation: explanation.trim() || null,
         questionType: questionType,
         cognitiveLevelId: cognitiveLevelId,
@@ -298,7 +326,11 @@ const CreateQuestion = () => {
       // Reset form
       setQuestionText("");
       setCorrectAnswer("");
+      setWrongAnswer1("");
+      setWrongAnswer2("");
+      setWrongAnswer3("");
       setExplanation("");
+      setDuplicateCheckResult(null);
       setShowManualPreview(false);
     } catch (e) {
       showErrorToast(
@@ -478,6 +510,9 @@ const CreateQuestion = () => {
         lessonId: Number(lessonId),
         questionText: q.questionText || "",
         correctAnswer: q.correctAnswer || "",
+        wrongAnswer1: q.wrongAnswers?.[0] || null,
+        wrongAnswer2: q.wrongAnswers?.[1] || null,
+        wrongAnswer3: q.wrongAnswers?.[2] || null,
         explanation: q.explanation || null,
         questionType: q.questionType || "MULTIPLE_CHOICE",
         cognitiveLevelId:
@@ -651,6 +686,9 @@ const CreateQuestion = () => {
         lessonId: Number(lessonId),
         questionText: q.questionText || "",
         correctAnswer: q.correctAnswer || "",
+        wrongAnswer1: q.wrongAnswers?.[0] || null,
+        wrongAnswer2: q.wrongAnswers?.[1] || null,
+        wrongAnswer3: q.wrongAnswers?.[2] || null,
         explanation: q.explanation || null,
         questionType: q.questionType || "MULTIPLE_CHOICE",
         cognitiveLevelId:
@@ -903,6 +941,44 @@ const CreateQuestion = () => {
                   placeholder="Nhập đáp án đúng..."
                 />
               </div>
+              {/* Wrong answers: only for MULTIPLE_CHOICE */}
+              {questionType === "MULTIPLE_CHOICE" && (
+                <div className="field">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    Đáp án sai
+                    <span style={{
+                      fontSize: '0.75rem', fontWeight: 400,
+                      color: '#6b7280', background: '#f3f4f6',
+                      padding: '0.1rem 0.4rem', borderRadius: '4px',
+                    }}>tùy chọn, nhưng nên điền đủ 3</span>
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {[wrongAnswer1, wrongAnswer2, wrongAnswer3].map((val, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          fontWeight: 700, color: '#9ca3af',
+                          minWidth: '1.5rem', fontSize: '0.85rem',
+                        }}>{String.fromCharCode(65 + idx)}.</span>
+                        <input
+                          type="text"
+                          style={{
+                            flex: 1, border: '1px solid #e5e7eb',
+                            borderRadius: '8px', padding: '0.5rem 0.8rem',
+                            fontSize: '0.9rem', outline: 'none',
+                          }}
+                          value={val}
+                          onChange={(e) => {
+                            if (idx === 0) setWrongAnswer1(e.target.value);
+                            if (idx === 1) setWrongAnswer2(e.target.value);
+                            if (idx === 2) setWrongAnswer3(e.target.value);
+                          }}
+                          placeholder={`Đáp án sai ${idx + 1}...`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="field">
                 <label>Explanation (Giải thích)</label>
                 <RichTextEditor

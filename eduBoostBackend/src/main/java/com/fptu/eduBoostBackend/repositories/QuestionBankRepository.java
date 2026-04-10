@@ -97,4 +97,17 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
         ORDER BY c.gradeLevel, s.subjectName, c.chapterNumber, l.lessonNumber
     """)
     List<Object[]> findLessonsWithoutQuestions();
+
+    /**
+     * Fetch up to N questions within lesson or chapter scope for duplicate check.
+     */
+    @Query("SELECT q FROM QuestionBank q LEFT JOIN FETCH q.lesson l " +
+           "WHERE (:chapterId IS NOT NULL AND l.chapter.id = :chapterId) " +
+           "   OR (:chapterId IS NULL AND l.id = :lessonId) " +
+           "ORDER BY q.createdAt DESC")
+    List<QuestionBank> findForDuplicateCheck(
+            @Param("lessonId") Long lessonId,
+            @Param("chapterId") Long chapterId,
+            Pageable pageable);
 }
+

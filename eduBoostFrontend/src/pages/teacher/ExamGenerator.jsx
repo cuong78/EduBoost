@@ -159,6 +159,9 @@ const ExamGenerator = () => {
   const [variants, setVariants] = useState([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
 
+  // Per-question answer randomize state
+  const [randomizingId, setRandomizingId] = useState(null);
+
   const loadVariants = async (examId) => {
     try {
       setLoadingVariants(true);
@@ -805,8 +808,44 @@ const ExamGenerator = () => {
     }
   };
 
+  // ── Randomize: re-generate (shuffle) wrong answers for a single question ──
+  const handleRandomizeAnswers = async (q) => {
+    if (!currentExam?.id) return;
+    setRandomizingId(q.id);
+    try {
+      // Call editExamQuestion with only wrong answers shuffled randomly
+      // We ask the backend to re-generate wrong answers by clearing them
+      // and triggering AI generation (simulated by editing with empty wrong answers)
+      // Actually: just randomly shuffle current answers client-side
+      const allWrong = [q.wrongAnswer1, q.wrongAnswer2, q.wrongAnswer3].filter(Boolean);
+      if (allWrong.length < 1) {
+        showErrorToast('Câu hỏi này chưa có đáp án sai được lưu. Hãy sửa để thêm đáp án sai trước.');
+        return;
+      }
+      // Fisher-Yates shuffle (client-side, each call gives different order)
+      const shuffled = [...allWrong];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      await examService.editExamQuestion(currentExam.id, q.id, {
+        modifiedQuestionText: q.questionText,
+        modifiedCorrectAnswer: q.correctAnswer,
+        modifiedExplanation: q.explanation || '',
+        wrongAnswer1: shuffled[0] || null,
+        wrongAnswer2: shuffled[1] || null,
+        wrongAnswer3: shuffled[2] || null,
+      });
+      await refreshExam(currentExam.id);
+      showSuccessToast('Đã xáo trộn lại đáp án sai!');
+    } catch (e) {
+      showErrorToast(e?.response?.data?.message || 'Không thể xáo trộn đáp án');
+    } finally {
+      setRandomizingId(null);
+    }
+  };
 
-  // ── Open Bank Modal: load questions from bank with same filters ──
+
   const handleOpenBankModal = async (q) => {
     setQToReplace(q);
     setBankModalOpen(true);
@@ -1646,11 +1685,31 @@ const ExamGenerator = () => {
                         className="btn-action btn-action-delete"
                         onClick={() => handleDeleteQuestion(q.id)}
                         title="Xóa câu hỏi"
-                        disabled={generatingAiId === q.id || savingBankId === q.id}
+                        disabled={generatingAiId === q.id || savingBankId === q.id || randomizingId === q.id}
                       >
                         <Trash2 size={15} />
                         <span className="btn-action-label">Xóa</span>
                       </button>
+                      {/* Randomize wrong answers per-question */}
+                      {(q.wrongAnswer1 || q.wrongAnswer2 || q.wrongAnswer3) && (
+                        <button
+                          className="btn-action"
+                          style={{
+                            background: 'linear-gradient(135deg,#f59e0b,#d97706)',
+                            color: '#fff', border: 'none',
+                          }}
+                          onClick={() => handleRandomizeAnswers(q)}
+                          title="Xáo trộn lại đáp án sai"
+                          disabled={generatingAiId === q.id || savingBankId === q.id || randomizingId === q.id}
+                        >
+                          {randomizingId === q.id
+                            ? <RefreshCw className="spin" size={15} />
+                            : <Shuffle size={15} />}
+                          <span className="btn-action-label">
+                            {randomizingId === q.id ? 'Đang...' : 'Random đA'}
+                          </span>
+                        </button>
+                      )}
                     </div>
                     )}
                   </div>

@@ -17,6 +17,7 @@ import { knowledgeService } from "../../services/knowledgeService";
 import { questionBankService } from "../../services/questionBankService";
 import { showErrorToast, showSuccessToast } from "../../utils/show-toast";
 import MathRenderer from "../../components/common/MathRenderer";
+import QuestionDisplay from "../../components/common/QuestionDisplay";
 import RichTextEditor from "../../components/common/RichTextEditor";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -340,6 +341,9 @@ const QuestionBankManagement = () => {
         lessonId: editingQuestion.lessonId,
         questionText: editingQuestion.questionText,
         correctAnswer: editingQuestion.correctAnswer,
+        wrongAnswer1: editingQuestion.wrongAnswer1 || null,
+        wrongAnswer2: editingQuestion.wrongAnswer2 || null,
+        wrongAnswer3: editingQuestion.wrongAnswer3 || null,
         explanation: editingQuestion.explanation,
         questionType: editingQuestion.questionType,
         cognitiveLevelId: editingQuestion.cognitiveLevelId,
@@ -670,6 +674,17 @@ const QuestionBankManagement = () => {
                       {typeof q.cognitiveLevel === 'string' ? q.cognitiveLevel : (q.cognitiveLevel?.level || q.cognitiveLevelName)}
                     </span>
                   )}
+                  {q.duplicatePercentage != null && q.duplicatePercentage > 0 && (
+                    <span style={{
+                      fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.45rem',
+                      borderRadius: '20px', marginLeft: '4px',
+                      background: q.duplicatePercentage >= 80 ? '#fee2e2' : q.duplicatePercentage >= 50 ? '#fef3c7' : '#f0fdf4',
+                      color: q.duplicatePercentage >= 80 ? '#dc2626' : q.duplicatePercentage >= 50 ? '#d97706' : '#16a34a',
+                      border: '1px solid currentColor',
+                    }}>
+                      {Math.round(q.duplicatePercentage)}% trung
+                    </span>
+                  )}
                 </div>
                 <div className="question-text">
                   <MathRenderer
@@ -773,27 +788,19 @@ const QuestionBankManagement = () => {
             className="modal-content large"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3>Chi tiết câu hỏi #{viewingQuestion.id}</h3>
-            <div className="view-section">
-              <label>Câu hỏi</label>
-              <div className="view-content">
-                <MathRenderer content={viewingQuestion.questionText || "—"} />
-              </div>
+            <h3>Chi tiet cau hoi #{viewingQuestion.id}</h3>
+            <div style={{ padding: '0.5rem 0' }}>
+              <QuestionDisplay
+                questionText={viewingQuestion.questionText}
+                correctAnswer={viewingQuestion.correctAnswer}
+                wrongAnswer1={viewingQuestion.wrongAnswer1}
+                wrongAnswer2={viewingQuestion.wrongAnswer2}
+                wrongAnswer3={viewingQuestion.wrongAnswer3}
+                explanation={viewingQuestion.explanation}
+                showAnswers={true}
+              />
             </div>
-            <div className="view-section">
-              <label>Đáp án đúng</label>
-              <div className="view-content answer">
-                <MathRenderer content={viewingQuestion.correctAnswer || "—"} />
-              </div>
-            </div>
-            {viewingQuestion.explanation && (
-              <div className="view-section">
-                <label>Giải thích</label>
-                <div className="view-content explanation">
-                  <MathRenderer content={viewingQuestion.explanation} />
-                </div>
-              </div>
-            )}
+            {/* imageUrl handled inside QuestionDisplay for [IMG:] tokens */}
             {viewingQuestion.imageUrl && !viewingQuestion.questionText?.includes(viewingQuestion.imageUrl) && (
               <div className="view-section">
                 <label>Hình ảnh câu hỏi</label>
@@ -909,6 +916,30 @@ const QuestionBankManagement = () => {
                 }
               />
             </div>
+            {editingQuestion.questionType === 'MULTIPLE_CHOICE' && (
+              <div className="field">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  Đáp án sai
+                  <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#6b7280' }}>(tùy chọn)</span>
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {['wrongAnswer1','wrongAnswer2','wrongAnswer3'].map((field, idx) => (
+                    <div key={field} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 700, color: '#9ca3af', minWidth: '1.5rem', fontSize: '0.85rem' }}>
+                        {String.fromCharCode(65 + idx)}.
+                      </span>
+                      <input
+                        type="text"
+                        style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.45rem 0.75rem', fontSize: '0.9rem' }}
+                        value={editingQuestion[field] || ''}
+                        onChange={(e) => setEditingQuestion({ ...editingQuestion, [field]: e.target.value })}
+                        placeholder={`Đáp án sai ${idx + 1}...`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="field">
               <label>Giải thích</label>
               <RichTextEditor

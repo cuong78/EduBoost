@@ -2,8 +2,10 @@ package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.request.QuestionBankImportRequest;
 import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
+import com.fptu.eduBoostBackend.dto.request.QuestionDuplicateCheckRequest;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
+import com.fptu.eduBoostBackend.dto.response.QuestionDuplicateCheckResponse;
 import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 import com.fptu.eduBoostBackend.service.FileStorageService;
 import com.fptu.eduBoostBackend.service.QuestionBankService;
@@ -154,5 +156,15 @@ public class QuestionBankController {
         log.info("Fetching question bank statistics");
         QuestionBankStatsResponse stats = questionBankService.getStats(subjectId, gradeLevel);
         return ResponseEntity.ok(stats);
+    }
+
+    @PostMapping("/question-bank/check-duplicate")
+    @Operation(summary = "Check question duplicate using AI",
+            description = "Compares a new question text with existing questions in the same lesson/chapter scope and returns a similarity percentage (0-100).")
+    public ResponseEntity<QuestionDuplicateCheckResponse> checkDuplicate(
+            @Valid @RequestBody QuestionDuplicateCheckRequest request) {
+        log.info("Checking duplicate for question in lesson: {}", request.getLessonId());
+        QuestionDuplicateCheckResponse result = questionBankService.checkDuplicate(request);
+        return ResponseEntity.ok(result);
     }
 }

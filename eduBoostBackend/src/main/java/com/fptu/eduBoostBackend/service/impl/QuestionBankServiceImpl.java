@@ -1,17 +1,26 @@
 package com.fptu.eduBoostBackend.service.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fptu.eduBoostBackend.dto.request.QuestionDuplicateCheckRequest;
+import com.fptu.eduBoostBackend.dto.response.QuestionDuplicateCheckResponse;
 import com.fptu.eduBoostBackend.service.ActivityLogService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
@@ -44,6 +53,14 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final UserRepository userRepository;
     private final ActivityLogService activityLogService;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Value("${ai.deepseek.api-key:}")
+    private String deepseekApiKey;
+
+    private static final String DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
+    private static final int DUPLICATE_CHECK_MAX_QUESTIONS = 50;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,6 +117,9 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .lesson(lesson)
                 .questionText(request.getQuestionText())
                 .correctAnswer(request.getCorrectAnswer())
+                .wrongAnswer1(request.getWrongAnswer1())
+                .wrongAnswer2(request.getWrongAnswer2())
+                .wrongAnswer3(request.getWrongAnswer3())
                 .explanation(request.getExplanation())
                 .questionType(request.getQuestionType())
                 .cognitiveLevel(cognitiveLevel)
@@ -147,6 +167,10 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         if (request.getCorrectAnswer() != null) {
             question.setCorrectAnswer(request.getCorrectAnswer());
         }
+        // Update wrong answers (allow explicit null to clear)
+        question.setWrongAnswer1(request.getWrongAnswer1());
+        question.setWrongAnswer2(request.getWrongAnswer2());
+        question.setWrongAnswer3(request.getWrongAnswer3());
         if (request.getExplanation() != null) {
             question.setExplanation(request.getExplanation());
         }
@@ -247,6 +271,9 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                     .lesson(lesson)
                     .questionText(request.getQuestionText())
                     .correctAnswer(request.getCorrectAnswer())
+                    .wrongAnswer1(request.getWrongAnswer1())
+                    .wrongAnswer2(request.getWrongAnswer2())
+                    .wrongAnswer3(request.getWrongAnswer3())
                     .explanation(request.getExplanation())
                     .questionType(request.getQuestionType())
                     .cognitiveLevel(cognitiveLevel)
@@ -273,6 +300,9 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .lessonName("Bài " + question.getLesson().getLessonNumber() + ": " + question.getLesson().getLessonName())
                 .questionText(question.getQuestionText())
                 .correctAnswer(question.getCorrectAnswer())
+                .wrongAnswer1(question.getWrongAnswer1())
+                .wrongAnswer2(question.getWrongAnswer2())
+                .wrongAnswer3(question.getWrongAnswer3())
                 .explanation(question.getExplanation())
                 .questionType(question.getQuestionType())
                 .cognitiveLevelId(question.getCognitiveLevel().getId())
@@ -283,10 +313,111 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .createdById(question.getCreatedBy().getUserId())
                 .createdByName(question.getCreatedBy().getFullName())
                 .usageCount(question.getUsageCount())
+                .duplicatePercentage(question.getDuplicatePercentage())
                 .imageUrl(question.getImageUrl())
                 .answerImageUrl(question.getAnswerImageUrl())
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuestionDuplicateCheckResponse checkDuplicate(QuestionDuplicateCheckRequest request) {
+        log.info("Checking duplicate for question in lessonId={}, chapterId={}", request.getLessonId(), request.getChapterId());
+
+        // 1. Fetch existing questions for comparison (up to 50)
+        List<QuestionBank> existing = questionBankRepository.findForDuplicateCheck(
+                request.getLessonId(),
+                request.getChapterId(),
+                PageRequest.of(0, DUPLICATE_CHECK_MAX_QUESTIONS));
+
+        if (existing.isEmpty()) {
+            return QuestionDuplicateCheckResponse.builder()
+                    .duplicatePercentage(0.0)
+                    .comparedCount(0)
+                    .analysis("Chưa có câu hỏi nào trong phạm vi này để so sánh.")
+                    .build();
+        }
+
+        if (deepseekApiKey == null || deepseekApiKey.isBlank()) {
+            return QuestionDuplicateCheckResponse.builder()
+                    .duplicatePercentage(0.0)
+                    .comparedCount(existing.size())
+                    .analysis("AI chưa được cấu hình. Vui lòng liên hệ quản trị viên.")
+                    .build();
+        }
+
+        // 2. Build numbered list of existing questions
+        StringBuilder existingList = new StringBuilder();
+        for (int i = 0; i < existing.size(); i++) {
+            existingList.append(i).append(". [ID=").append(existing.get(i).getId()).append("] ")
+                    .append(existing.get(i).getQuestionText()).append("\n");
+        }
+
+        String systemPrompt = "Bạn là chuyên gia giáo dục. Nhiệm vụ: so sánh một câu hỏi MỚI với danh sách câu hỏi ĐÃ CÓ " +
+                "và xác định mức độ trùng lặp về nội dung/ý nghĩa.\n" +
+                "Trả về JSON (CHỈ JSON, KHÔNG TEXT KHÁC):\n" +
+                "{\"percentage\": <0-100>, \"mostSimilarIndex\": <index hoặc -1>, \"analysis\": \"<giải thích ngắn bằng tiếng Việt>\"}";
+
+        String userPrompt = "CÂU HỎI MỚI:\n" + request.getQuestionText() +
+                "\n\nDANH SÁCH CÂU HỎI ĐÃ CÓ:\n" + existingList;
+
+        try {
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "deepseek-chat");
+            requestBody.put("temperature", 0.1);
+            requestBody.put("messages", List.of(
+                    Map.of("role", "system", "content", systemPrompt),
+                    Map.of("role", "user", "content", userPrompt)
+            ));
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(deepseekApiKey);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    DEEPSEEK_API_URL, HttpMethod.POST,
+                    new HttpEntity<>(requestBody, headers), String.class);
+
+            JsonNode root = objectMapper.readTree(response.getBody());
+            String content = root.path("choices").get(0).path("message").path("content").asText();
+
+            // Clean markdown fences if any
+            content = content.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+            int jsonStart = content.indexOf('{');
+            int jsonEnd = content.lastIndexOf('}');
+            if (jsonStart != -1 && jsonEnd != -1) content = content.substring(jsonStart, jsonEnd + 1);
+
+            JsonNode result = objectMapper.readTree(content);
+            double percentage = result.path("percentage").asDouble(0.0);
+            int mostSimilarIndex = result.path("mostSimilarIndex").asInt(-1);
+            String analysis = result.path("analysis").asText("");
+
+            Long mostSimilarId = null;
+            String mostSimilarText = null;
+            if (mostSimilarIndex >= 0 && mostSimilarIndex < existing.size()) {
+                QuestionBank similar = existing.get(mostSimilarIndex);
+                mostSimilarId = similar.getId();
+                mostSimilarText = similar.getQuestionText();
+            }
+
+            log.info("Duplicate check result: {}%, mostSimilar={}", percentage, mostSimilarId);
+            return QuestionDuplicateCheckResponse.builder()
+                    .duplicatePercentage(percentage)
+                    .mostSimilarQuestionId(mostSimilarId)
+                    .mostSimilarQuestionText(mostSimilarText)
+                    .analysis(analysis)
+                    .comparedCount(existing.size())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Duplicate check AI call failed: {}", e.getMessage());
+            return QuestionDuplicateCheckResponse.builder()
+                    .duplicatePercentage(0.0)
+                    .comparedCount(existing.size())
+                    .analysis("Không thể kiểm tra trùng lặp: " + e.getMessage())
+                    .build();
+        }
     }
 }

@@ -1,8 +1,10 @@
 package com.fptu.eduBoostBackend.service;
 
 import com.fptu.eduBoostBackend.dto.request.QuestionBankRequest;
+import com.fptu.eduBoostBackend.dto.request.QuestionDuplicateCheckRequest;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankResponse;
 import com.fptu.eduBoostBackend.dto.response.QuestionBankStatsResponse;
+import com.fptu.eduBoostBackend.dto.response.QuestionDuplicateCheckResponse;
 import com.fptu.eduBoostBackend.entities.enums.QuestionSourceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,4 +20,6 @@ public interface QuestionBankService {
     void deleteQuestion(Long id);
     QuestionBankStatsResponse getStats(Long subjectId, Integer gradeLevel);
     List<QuestionBankResponse> createQuestionsBatch(List<QuestionBankRequest> requests);
+    QuestionDuplicateCheckResponse checkDuplicate(QuestionDuplicateCheckRequest request);
 }
+
