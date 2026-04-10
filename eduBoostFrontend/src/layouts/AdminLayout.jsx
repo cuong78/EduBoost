@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import {
   Award,
+  Activity,
   BookOpen,
   Crown,
   FileText,
@@ -33,6 +34,7 @@ const AdminLayout = () => {
           questionBank: "Ngân hàng câu hỏi",
           plans: "Quản lý gói",
           feedback: "Feedback",
+          activityLogs: "Nhật ký hoạt động",
           title: "Khu vực quản trị",
           stable: "Trạng thái hệ thống: ổn định",
         }
@@ -45,6 +47,7 @@ const AdminLayout = () => {
           questionBank: "Question bank",
           plans: "Plan management",
           feedback: "Feedback",
+          activityLogs: "Activity logs",
           title: "Admin area",
           stable: "System status: stable",
         };
@@ -99,6 +102,12 @@ const AdminLayout = () => {
       active: isActive("/admin/feedback"),
       icon: MessageSquare,
       label: copy.feedback,
+    },
+    {
+      to: "/admin/activity-logs",
+      active: isActive("/admin/activity-logs"),
+      icon: Activity,
+      label: copy.activityLogs,
     },
   ];
 

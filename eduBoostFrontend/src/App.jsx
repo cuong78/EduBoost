@@ -80,6 +80,7 @@ import SubscriptionAdmin from "./pages/admin/SubscriptionAdmin";
 import FeedbackPage from "./pages/teacher/FeedbackPage";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 import LessonCoverage from "./pages/admin/LessonCoverage";
+import ActivityLogs from "./pages/admin/ActivityLogs";
 
 const DashboardPlaceholder = ({ title }) => (
   <div style={{ padding: "2rem", textAlign: "center" }}>
@@ -232,6 +233,7 @@ function App() {
               <Route path="subscriptions" element={<SubscriptionAdmin />} />
               <Route path="feedback" element={<FeedbackAdmin />} />
               <Route path="lesson-coverage" element={<LessonCoverage />} />
+              <Route path="activity-logs" element={<ActivityLogs />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>
