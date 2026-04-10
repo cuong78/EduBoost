@@ -1,6 +1,8 @@
 package com.fptu.eduBoostBackend.controller;
 
 import com.fptu.eduBoostBackend.dto.request.ExamHeartbeatRequest;
+import com.fptu.eduBoostBackend.entities.ExamViolationLog;
+import com.fptu.eduBoostBackend.repositories.ExamViolationLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.*;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class ExamMonitorController {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final ExamViolationLogRepository violationLogRepository;
 
     /**
      * Receive heartbeat from student every 5-10 seconds.
@@ -79,6 +82,9 @@ public class ExamMonitorController {
             event.put("type", "VIOLATION");
             log.warn("VIOLATION detected — Assignment: {}, Student: {}, Violations: {}",
                     assignmentId, studentName, violations);
+
+            // Save violation to database
+            saveViolationLog(assignmentId, studentId, studentName, violations.toString().trim());
         }
 
         // Broadcast to teacher monitoring channel
@@ -105,9 +111,28 @@ public class ExamMonitorController {
         event.put("timestamp", now);
         event.put("hasViolation", true);
 
-        log.warn("ALERT from student {} in assignment {}: {}", studentName, assignmentId, alert.get("reason"));
+        String reason = alert.get("reason") != null ? alert.get("reason").toString() : "UNKNOWN";
+        log.warn("ALERT from student {} in assignment {}: {}", studentName, assignmentId, reason);
+
+        // Save alert to database
+        saveViolationLog(assignmentId, studentId, studentName, reason);
 
         String dest = "/topic/exam/" + assignmentId;
         messagingTemplate.convertAndSend(dest, (Object) event);
+    }
+
+    /** Persist violation to database for historical review */
+    private void saveViolationLog(Long assignmentId, String studentId, String studentName, String violationType) {
+        try {
+            violationLogRepository.save(ExamViolationLog.builder()
+                    .assignmentId(assignmentId)
+                    .studentId(studentId)
+                    .studentName(studentName)
+                    .violationType(violationType)
+                    .timestamp(LocalDateTime.now())
+                    .build());
+        } catch (Exception e) {
+            log.warn("Failed to save violation log: {}", e.getMessage());
+        }
     }
 }

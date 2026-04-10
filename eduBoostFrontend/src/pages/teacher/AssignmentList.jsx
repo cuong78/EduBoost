@@ -36,6 +36,16 @@ const STATUS_MAP = {
     ENDED: { label: 'Đã kết thúc', icon: CheckCircle, color: '#6366f1', bg: '#e0e7ff' },
 };
 
+/** Compute status from time — replaces stale DB status */
+const computeStatus = (a) => {
+    const now = new Date();
+    const start = new Date(a.startTime);
+    const end = new Date(a.endTime);
+    if (now < start) return 'SCHEDULED';
+    if (now > end) return 'ENDED';
+    return 'ACTIVE';
+};
+
 /* ═══════════════════════════════════════════════════════════════════ */
 const AssignmentList = () => {
     const navigate = useNavigate();
@@ -52,6 +62,10 @@ const AssignmentList = () => {
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [sortField, setSortField] = useState('score');
     const [sortDir, setSortDir] = useState('desc');
+
+    // Violation logs
+    const [violationLogs, setViolationLogs] = useState([]);
+    const [showViolations, setShowViolations] = useState(false);
 
     /* ── Load assignments ── */
     const loadAssignments = useCallback(async () => {
@@ -71,7 +85,7 @@ const AssignmentList = () => {
     /* ── Filter ── */
     const filtered = useMemo(() => {
         let list = assignments;
-        if (filterStatus) list = list.filter(a => a.status === filterStatus);
+        if (filterStatus) list = list.filter(a => computeStatus(a) === filterStatus);
         if (searchTerm) {
             const t = searchTerm.toLowerCase();
             list = list.filter(a =>
@@ -84,11 +98,11 @@ const AssignmentList = () => {
         return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [assignments, filterStatus, searchTerm]);
 
-    /* ── Stats ── */
+    /* ── Stats (use computed status) ── */
     const stats = useMemo(() => ({
         total: assignments.length,
-        active: assignments.filter(a => a.status === 'ACTIVE').length,
-        ended: assignments.filter(a => a.status === 'ENDED').length,
+        active: assignments.filter(a => computeStatus(a) === 'ACTIVE').length,
+        ended: assignments.filter(a => computeStatus(a) === 'ENDED').length,
         totalSubmissions: assignments.reduce((s, a) => s + (a.submittedCount || 0), 0),
     }), [assignments]);
 
@@ -103,9 +117,16 @@ const AssignmentList = () => {
         setSelectedAssignment(assignment);
         setSelectedId(assignment.assignmentId);
         setResultsLoading(true);
+        setViolationLogs([]);
+        setShowViolations(false);
         try {
             const data = await examAssignmentService.getAssignmentResults(assignment.assignmentId);
             setResults(Array.isArray(data) ? data : []);
+            // Also load violation logs
+            try {
+                const logs = await examAssignmentService.getViolationLogs(assignment.assignmentId);
+                setViolationLogs(Array.isArray(logs) ? logs : []);
+            } catch { setViolationLogs([]); }
         } catch {
             showErrorToast('Không thể tải kết quả');
             setResults([]);
@@ -235,7 +256,8 @@ const AssignmentList = () => {
                             </thead>
                             <tbody>
                                 {filtered.map(a => {
-                                    const cfg = STATUS_MAP[a.status] || STATUS_MAP.SCHEDULED;
+                                    const status = computeStatus(a);
+                                    const cfg = STATUS_MAP[status] || STATUS_MAP.SCHEDULED;
                                     const StatusIcon = cfg.icon;
                                     return (
                                         <tr key={a.assignmentId}>
@@ -420,6 +442,51 @@ const AssignmentList = () => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Violation Logs Section */}
+                                    {violationLogs.length > 0 && (
+                                        <div style={{ marginTop: '1.5rem' }}>
+                                            <button
+                                                className="al-btn al-btn-outline"
+                                                onClick={() => setShowViolations(!showViolations)}
+                                                style={{ width: '100%', justifyContent: 'center', gap: '0.5rem' }}
+                                            >
+                                                <AlertTriangle size={16} />
+                                                {showViolations ? 'Ẩn' : 'Xem'} nhật ký vi phạm ({violationLogs.length} lượt)
+                                                {showViolations ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                            </button>
+                                            {showViolations && (
+                                                <div className="al-table-wrap" style={{ marginTop: '0.75rem' }}>
+                                                    <table className="al-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>STT</th>
+                                                                <th>Học sinh</th>
+                                                                <th>Loại vi phạm</th>
+                                                                <th>Thời gian</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {violationLogs.map((log, idx) => (
+                                                                <tr key={log.id || idx}>
+                                                                    <td className="center">{idx + 1}</td>
+                                                                    <td><strong>{log.studentName || 'N/A'}</strong></td>
+                                                                    <td>
+                                                                        <span className="al-violation-badge">
+                                                                            <AlertTriangle size={13} /> {log.violationType}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="mono">
+                                                                        {log.timestamp ? new Date(log.timestamp).toLocaleString('vi-VN') : '—'}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>

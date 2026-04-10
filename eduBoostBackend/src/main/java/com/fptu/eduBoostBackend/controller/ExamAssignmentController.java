@@ -4,6 +4,8 @@ import com.fptu.eduBoostBackend.dto.request.ExamAssignmentRequest;
 import com.fptu.eduBoostBackend.dto.request.SubmitExamRequest;
 import com.fptu.eduBoostBackend.dto.response.ExamAssignmentResponse;
 import com.fptu.eduBoostBackend.dto.response.ExamResultDetailResponse;
+import com.fptu.eduBoostBackend.entities.ExamViolationLog;
+import com.fptu.eduBoostBackend.repositories.ExamViolationLogRepository;
 import com.fptu.eduBoostBackend.service.impl.ExamAssignmentServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class ExamAssignmentController {
 
     private final ExamAssignmentServiceImpl service;
+    private final ExamViolationLogRepository violationLogRepository;
 
     // ── Teacher endpoints ──────────────────────────────────────────────────
 
@@ -48,6 +51,13 @@ public class ExamAssignmentController {
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<List<ExamResultDetailResponse>> assignmentResults(@PathVariable Long id) {
         return ResponseEntity.ok(service.getAssignmentResults(id));
+    }
+
+    /** Get violation logs for an assignment (teacher view — for historical review) */
+    @GetMapping("/{id}/violations")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public ResponseEntity<List<ExamViolationLog>> getViolationLogs(@PathVariable Long id) {
+        return ResponseEntity.ok(violationLogRepository.findByAssignmentIdOrderByTimestampDesc(id));
     }
 
     // ── Student endpoints ──────────────────────────────────────────────────
@@ -98,3 +108,4 @@ public class ExamAssignmentController {
         return ResponseEntity.ok(service.getAssignmentQuestions(id));
     }
 }
+

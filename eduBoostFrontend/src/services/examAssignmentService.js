@@ -40,6 +40,10 @@ const examAssignmentService = {
     /** Anti-cheat: report tab switch */
     reportFocusLoss: (assignmentId) =>
         apiClient.post(`/exam-assignments/${assignmentId}/report-focus-loss`).then(r => r.data),
+
+    /** Teacher: get violation logs for an assignment */
+    getViolationLogs: (assignmentId) =>
+        apiClient.get(`/exam-assignments/${assignmentId}/violations`).then(r => r.data),
 };
 
 
