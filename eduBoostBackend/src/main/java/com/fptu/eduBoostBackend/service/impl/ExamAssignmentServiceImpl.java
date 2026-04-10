@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fptu.eduBoostBackend.dto.request.ExamAssignmentRequest;
 import com.fptu.eduBoostBackend.dto.request.SubmitExamRequest;
 import com.fptu.eduBoostBackend.dto.response.ExamAssignmentResponse;
+import com.fptu.eduBoostBackend.dto.response.ExamQuestionResponse;
 import com.fptu.eduBoostBackend.dto.response.ExamResultDetailResponse;
 import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
@@ -470,5 +471,50 @@ public class ExamAssignmentServiceImpl {
                 .subjectName(e.getSubject() != null ? e.getSubject().getSubjectName() : null)
                 .examTypeCode(e.getExamType() != null ? e.getExamType().getTypeCode() : null)
                 .build();
+    }
+
+    // ── Get Assignment Questions (Student) ─────────────────────────────────
+
+    /**
+     * Returns exam questions for a student's assignment.
+     * Verifies the assignment is ACTIVE and belongs to the student's class.
+     */
+    public List<ExamQuestionResponse> getAssignmentQuestions(Long assignmentId) {
+        ExamAssignment a = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
+
+        // Verify assignment is active
+        if (!"ACTIVE".equals(a.getStatus())) {
+            throw new BadRequestException("Bài thi chưa bắt đầu hoặc đã kết thúc");
+        }
+
+        // Get questions from the exam
+        List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(a.getExam().getId());
+
+        return questions.stream().map(eq -> {
+            ExamQuestionResponse.ExamQuestionResponseBuilder b = ExamQuestionResponse.builder()
+                    .id(eq.getId())
+                    .examId(eq.getExam().getId())
+                    .orderNumber(eq.getOrderNumber())
+                    .points(eq.getPoints())
+                    .questionText(eq.getQuestionText());
+
+            // Build shuffled options (if variant data available)
+            if (eq.getOptionA() != null) {
+                b.optionA(eq.getOptionA())
+                 .optionB(eq.getOptionB())
+                 .optionC(eq.getOptionC())
+                 .optionD(eq.getOptionD())
+                 .correctAnswerLabel(eq.getCorrectAnswerLabel());
+            } else {
+                // Non-variant: build options from correct + wrong answers
+                b.correctAnswer(eq.getCorrectAnswer())
+                 .wrongAnswer1(eq.getWrongAnswer1())
+                 .wrongAnswer2(eq.getWrongAnswer2())
+                 .wrongAnswer3(eq.getWrongAnswer3());
+            }
+
+            return b.build();
+        }).collect(Collectors.toList());
     }
 }

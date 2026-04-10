@@ -90,4 +90,11 @@ public class ExamAssignmentController {
     public ResponseEntity<ExamResultDetailResponse> getResult(@PathVariable Long resultId) {
         return ResponseEntity.ok(service.getResult(resultId));
     }
+
+    /** Student: get exam questions for a validated assignment */
+    @GetMapping("/{id}/questions")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> getAssignmentQuestions(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getAssignmentQuestions(id));
+    }
 }

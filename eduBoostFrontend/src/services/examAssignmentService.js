@@ -17,6 +17,10 @@ const examAssignmentService = {
     getAssignmentResults: (assignmentId) =>
         apiClient.get(`/exam-assignments/${assignmentId}/results`).then(r => r.data),
 
+    /** Student: get exam questions for a validated assignment */
+    getAssignmentQuestions: (assignmentId) =>
+        apiClient.get(`/exam-assignments/${assignmentId}/questions`).then(r => r.data),
+
     /** Student: get all assignments */
     getStudentAssignments: () =>
         apiClient.get('/exam-assignments/student').then(r => r.data),
