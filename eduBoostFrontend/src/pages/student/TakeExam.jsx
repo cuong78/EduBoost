@@ -49,7 +49,7 @@ const TakeExam = () => {
         assignmentId: assignment?.assignmentId,
         studentId: user?.userId,
         studentName: user?.fullName,
-        enabled: phase === 'exam',
+        enabled: phase === 'exam' && !isSubmitting,
         onAutoSubmit: handleAutoSubmit,
     });
 
@@ -96,6 +96,18 @@ const TakeExam = () => {
         try {
             const data = await examAssignmentService.validateCode(assignmentId, codeInput.toUpperCase());
             setAssignment(data);
+
+            // Check if student already submitted this exam
+            if (data.alreadySubmittedResultId) {
+                try {
+                    const existingResult = await examAssignmentService.getResult(data.alreadySubmittedResultId);
+                    setResult(existingResult);
+                } catch (e) { /* ignore */ }
+                setPhase('submitted');
+                setValidatingCode(false);
+                return;
+            }
+
             // Calculate duration
             const endTime = new Date(data.endTime);
             const now = new Date();
@@ -152,8 +164,16 @@ const TakeExam = () => {
             setResult(data);
             setPhase('submitted');
         } catch (err) {
-            // If already submitted, go to result
+            // If already submitted, fetch existing result and show it
             if (err?.response?.status === 400 && err?.response?.data?.message?.includes('đã nộp')) {
+                try {
+                    // Try to get existing result from the error response or by re-fetching
+                    const existingResultId = err?.response?.data?.resultId;
+                    if (existingResultId) {
+                        const existingResult = await examAssignmentService.getResult(existingResultId);
+                        setResult(existingResult);
+                    }
+                } catch (e) { /* ignore */ }
                 setPhase('submitted');
             } else {
                 alert('Lỗi khi nộp bài: ' + (err?.response?.data?.message || 'Hãy thử lại'));
@@ -273,7 +293,12 @@ const TakeExam = () => {
                             {result.resultId && (
                                 <button
                                     className="btn btn-outline full-width"
-                                    onClick={() => navigate(`/student/exam-result/${result.resultId}`)}
+                                    onClick={() => {
+                                        if (document.fullscreenElement) {
+                                            document.exitFullscreen().catch(() => {});
+                                        }
+                                        navigate(`/student/exam-result/${result.resultId}`);
+                                    }}
                                     style={{ marginBottom: '0.75rem' }}
                                 >
                                     Xem chi tiết kết quả
@@ -282,7 +307,13 @@ const TakeExam = () => {
                         </>
                     )}
 
-                    <button className="btn btn-primary full-width" onClick={() => navigate('/student/exams')}>
+                    <button className="btn btn-primary full-width" onClick={() => {
+                        // Exit fullscreen before navigating away
+                        if (document.fullscreenElement) {
+                            document.exitFullscreen().catch(() => {});
+                        }
+                        navigate('/student/exams');
+                    }}>
                         Về danh sách bài thi
                     </button>
                 </div>

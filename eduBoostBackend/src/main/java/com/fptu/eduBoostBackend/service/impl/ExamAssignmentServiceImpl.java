@@ -151,7 +151,18 @@ public class ExamAssignmentServiceImpl {
         if (now.isAfter(a.getEndTime())) {
             throw new BadRequestException("Bài thi đã kết thúc");
         }
-        return toResponse(a, 0);
+
+        ExamAssignmentResponse response = toResponse(a, 0);
+
+        // Check if student already submitted this assignment
+        User user = getCurrentUser();
+        Student student = studentRepository.findByUser(user).orElse(null);
+        if (student != null) {
+            resultRepository.findByStudentAndAssignment(student.getStudentId(), assignmentId)
+                    .ifPresent(r -> response.setAlreadySubmittedResultId(r.getResultId()));
+        }
+
+        return response;
     }
 
     // ── Submit exam ────────────────────────────────────────────────────────

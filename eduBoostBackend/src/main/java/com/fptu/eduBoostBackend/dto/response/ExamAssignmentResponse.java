@@ -29,4 +29,5 @@ public class ExamAssignmentResponse {
     private Integer gradeLevel;
     private String subjectName;
     private String examTypeCode;
+    private Long alreadySubmittedResultId;
 }
