@@ -180,9 +180,11 @@ const ViDateTimePicker = ({ value, onChange, label }) => {
                             </div>
                         </div>
                     </div>
+                    {selectedDate && (
                     <div className="vi-dt-footer">
                         <button className="vi-dt-done" onClick={() => setShowPicker(false)}>✓ Xong</button>
                     </div>
+                    )}
                 </div>
             )}
         </div>
