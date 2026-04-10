@@ -4,6 +4,7 @@ import com.fptu.eduBoostBackend.dto.DocumentExtractionResult;
 import com.fptu.eduBoostBackend.entities.*;
 import com.fptu.eduBoostBackend.entities.enums.LessonResourceType;
 import com.fptu.eduBoostBackend.repositories.*;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.DocumentProcessingService;
 import com.fptu.eduBoostBackend.service.FileStorageService;
 import com.fptu.eduBoostBackend.service.ResourceBulkImportService;
@@ -41,6 +42,7 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
     private final SubjectRepository subjectRepository;
     private final FileStorageService fileStorageService;
     private final DocumentProcessingService documentProcessingService;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional
@@ -138,7 +140,7 @@ public class ResourceBulkImportServiceImpl implements ResourceBulkImportService 
             log.error("Error reading ZIP: {}", e.getMessage(), e);
             errors.add("Không thể đọc file ZIP: " + e.getMessage());
         }
-
+        activityLogService.log("Đã import từ zip thành công");
         log.info("Bulk resource import done: {} files, {} created, {} skipped", totalFiles, totalCreated, skipped);
 
         return new BulkResourceResult(totalFiles, totalCreated, skipped, errors, byGrade);

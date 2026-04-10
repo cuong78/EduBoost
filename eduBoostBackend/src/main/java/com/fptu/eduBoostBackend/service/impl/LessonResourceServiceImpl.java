@@ -11,6 +11,7 @@ import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.LessonRepository;
 import com.fptu.eduBoostBackend.repositories.LessonResourceRepository;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.DocumentProcessingService;
 import com.fptu.eduBoostBackend.service.FileStorageService;
 import com.fptu.eduBoostBackend.service.LessonResourceService;
@@ -37,6 +38,7 @@ public class LessonResourceServiceImpl implements LessonResourceService {
     private final LessonRepository lessonRepository;
     private final FileStorageService fileStorageService;
     private final DocumentProcessingService documentProcessingService;
+    private final ActivityLogService activityLogService;
 
     private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
 
@@ -126,7 +128,7 @@ public class LessonResourceServiceImpl implements LessonResourceService {
         LessonResource saved = lessonResourceRepository.save(resource);
 
         log.info("DOCX uploaded successfully - id: {}", saved.getId());
-
+        activityLogService.log("Đăng resource tên: "+ saved.getResourceName());
         return mapToResponse(saved);
     }
 
@@ -154,8 +156,9 @@ public class LessonResourceServiceImpl implements LessonResourceService {
         if (resource.getFilePath() != null) {
             fileStorageService.deleteFile(resource.getFilePath());
         }
-
+        activityLogService.log("Đã xoá resource: "+resource.getResourceName());
         lessonResourceRepository.delete(resource);
+
     }
 
     private LessonResourceResponse mapToResponse(LessonResource resource) {

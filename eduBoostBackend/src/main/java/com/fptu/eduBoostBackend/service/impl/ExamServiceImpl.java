@@ -1,4 +1,5 @@
 package com.fptu.eduBoostBackend.service.impl;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.itextpdf.io.font.FontProgram;
 import com.itextpdf.io.font.FontProgramFactory;
 import com.fptu.eduBoostBackend.dto.request.*;
@@ -70,7 +71,7 @@ public class ExamServiceImpl implements ExamService {
     private final LessonResourceRepository resourceRepository;
     private final AIQuestionGeneratorService aiQuestionGeneratorService;
     private final ObjectMapper objectMapper;
-    
+    private final ActivityLogService activityLogService;
     @Value("${ai.deepseek.api-key:}")
     private String deepseekApiKey;
     
@@ -177,7 +178,7 @@ public class ExamServiceImpl implements ExamService {
                 .build();
         
         exam = examRepository.save(exam);
-        
+        activityLogService.log("Tạo đề thi " + exam.getExamCode() + " (" + exam.getExamTitle() + ")");
         log.info("Created exam: {} by user: {}", exam.getExamCode(), currentUser.getUsername());
         
         return mapToExamResponse(exam);
@@ -203,7 +204,7 @@ public class ExamServiceImpl implements ExamService {
         }
         
         exam = examRepository.save(exam);
-        
+        activityLogService.log("Cập nhật đề thi " + exam.getExamCode() + " (" + exam.getExamTitle() + ")");
         return mapToExamResponse(exam);
     }
 
@@ -224,7 +225,7 @@ public class ExamServiceImpl implements ExamService {
         
         // Delete the exam — cascade will remove variant exams
         examRepository.delete(exam);
-        
+        activityLogService.log("Xóa đề thi " + exam.getExamCode() + " cùng " + variants.size() + " variant(s)");
         log.info("Deleted exam {} with {} variants", exam.getExamCode(), variants.size());
     }
 
@@ -422,7 +423,9 @@ public class ExamServiceImpl implements ExamService {
         }
 
         List<ExamQuestion> allQuestions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
-
+        activityLogService.log("Tự động chọn câu hỏi cho đề " + exam.getExamCode() +
+                ": tổng " + (fromBank + aiGenerated) +
+                " (ngân hàng " + fromBank + ", AI " + aiGenerated + ")");
         return AutoSelectQuestionsResponse.builder()
                 .totalQuestionsAdded(fromBank + aiGenerated)
                 .fromExistingBank(fromBank)
@@ -553,7 +556,9 @@ public class ExamServiceImpl implements ExamService {
         examRepository.save(exam);
         
         List<ExamQuestion> allQuestions = examQuestionRepository.findByExamIdWithDetailsOrdered(examId);
-        
+        activityLogService.log("Tự động chọn câu hỏi (config) cho đề " + exam.getExamCode() +
+                ": tổng " + (fromBank + aiGenerated) +
+                " (ngân hàng " + fromBank + ", AI " + aiGenerated + ")");
         return AutoSelectQuestionsResponse.builder()
                 .totalQuestionsAdded(fromBank + aiGenerated)
                 .fromExistingBank(fromBank)
@@ -683,7 +688,7 @@ public class ExamServiceImpl implements ExamService {
             
             log.info("Generated {} AI questions for exam {} lesson {} cognitive level {}", 
                     generated.size(), exam.getId(), lesson.getLessonName(), cognitiveLevel.getLevel());
-            
+            activityLogService.log("Hoàn tất tạo " + generated.size() + " câu hỏi AI cho đề " + exam.getExamCode());
         } catch (Exception e) {
             log.error("Failed to generate AI questions: {}", e.getMessage(), e);
         }
@@ -716,7 +721,7 @@ public class ExamServiceImpl implements ExamService {
         // Update total questions count
         exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
         examRepository.save(exam);
-        
+
         return mapToExamQuestionResponse(eq);
     }
 
@@ -749,7 +754,8 @@ public class ExamServiceImpl implements ExamService {
         // Update question count
         exam.setTotalQuestions(examQuestionRepository.countByExamId(examId));
         examRepository.save(exam);
-        
+        activityLogService.log("Đã AI tạo " + generatedQuestions.size() + " câu hỏi cho đề " + exam.getExamCode() +
+                " từ bài học " + lesson.getLessonName());
         return generatedQuestions.stream()
                 .map(this::mapToExamQuestionResponse)
                 .collect(Collectors.toList());
@@ -789,7 +795,6 @@ public class ExamServiceImpl implements ExamService {
         eq.setSourceFlag(ExamQuestionSourceFlag.TEACHER_EDITED);
         
         eq = examQuestionRepository.save(eq);
-        
         return mapToExamQuestionResponse(eq);
     }
 
@@ -1204,6 +1209,7 @@ public class ExamServiceImpl implements ExamService {
             if (exam.getStatus() == ExamStatus.DRAFT) {
                 exam.setStatus(ExamStatus.USED);
                 examRepository.save(exam);
+                activityLogService.log("Export đề: "+ exam.getExamTitle());
                 log.info("Exam {} status changed to USED after export signaling from frontend", exam.getExamCode());
             }
 
@@ -1347,6 +1353,8 @@ public class ExamServiceImpl implements ExamService {
             }
             
             variants.add(mapToExamResponse(variant));
+            activityLogService.log("Tạo variant " + variant.getExamCode() + " từ đề " + original.getExamCode());
+
         }
         
         log.info("Created {} variants for exam {}", numberOfVariants, original.getExamCode());
@@ -1369,6 +1377,7 @@ public class ExamServiceImpl implements ExamService {
         for (Exam variant : variants) {
             examQuestionRepository.deleteByExamId(variant.getId());
             examRepository.delete(variant);
+            activityLogService.log("Xóa variant " + variant.getExamCode() + " của đề " + examId);
         }
         log.info("Deleted {} variants for exam {}", variants.size(), examId);
     }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -42,6 +43,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final LessonRepository lessonRepository;
     private final CognitiveLevelRepository cognitiveLevelRepository;
     private final UserRepository userRepository;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -110,6 +112,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .build();
 
         question = questionBankRepository.save(question);
+        activityLogService.log("Đã tạo câu hỏi thủ công");
         return mapToResponse(question);
     }
 
@@ -169,6 +172,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         }
 
         question = questionBankRepository.save(question);
+        activityLogService.log("Đã chỉnh sửa câu hỏi");
         return mapToResponse(question);
     }
 
@@ -189,7 +193,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
             !currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             throw new BadRequestException("You can only delete questions you created");
         }
-
+        activityLogService.log("Đã xoá câu hỏi");
         questionBankRepository.delete(question);
     }
 
@@ -254,8 +258,9 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                     .usageCount(0)
                     .build();
         }).collect(Collectors.toList());
-
         questions = questionBankRepository.saveAll(questions);
+        activityLogService.log("Đã import "+questions.size()+" câu hỏi");
+
         return questions.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

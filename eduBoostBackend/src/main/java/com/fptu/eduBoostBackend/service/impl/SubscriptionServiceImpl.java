@@ -10,6 +10,7 @@ import com.fptu.eduBoostBackend.entities.enums.PaymentStatus;
 import com.fptu.eduBoostBackend.entities.enums.SubscriptionStatus;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.*;
+import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final PaymentTransactionRepository transactionRepository;
     private final TeacherRepository teacherRepository;
     private final RestTemplate restTemplate;
+    private final ActivityLogService activityLogService;
 
     // ─── Tài khoản ngân hàng nhận tiền ───
     @Value("${payment.vietqr.bank-code:MB}")
@@ -135,6 +137,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         log.info("Initiated payment {} for teacher {} plan {}",
                 orderId, teacher.getTeacherId(), plan.getPlanCode());
+        activityLogService.log("Tạo yêu cầu đăng ký gói");
         return mapTransaction(tx);
     }
 
@@ -290,6 +293,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
                     log.info("✅ VietQR auto-confirmed: orderId={} teacher={} plan={}",
                             orderId, tx.getTeacher().getTeacherId(), tx.getPlan().getPlanCode());
+                    activityLogService.log("Đã thanh toán gói thành công");
                     return true;
                 })
                 .orElseGet(() -> {
