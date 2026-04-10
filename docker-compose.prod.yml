@@ -4,7 +4,6 @@ version: '3.8'
 # Usage: docker-compose -f docker-compose.prod.yml up -d
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: eduboost-db-prod
@@ -152,6 +151,7 @@ services:
       - backend
     networks:
       - eduboost-network
+      - livestream_livestream-network
     restart: always
     # Increase file descriptor limits for high traffic
     ulimits:
@@ -168,3 +168,5 @@ volumes:
 networks:
   eduboost-network:
     driver: bridge
+  livestream_livestream-network:
+    external: true

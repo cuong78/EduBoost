@@ -106,14 +106,14 @@ const RegisterMethod = () => {
                 {/* Google Sign-In Button */}
                 <div 
                     style={{ 
-                        display: 'flex', 
-                        justifyContent: 'center',
+                        textAlign: 'center',
                         marginBottom: '1.5rem',
                         width: '100%'
                     }}
                 >
                     {/* Always render the container, Google button will be rendered inside by useEffect */}
-                    <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '40px' }}></div>
+                    {/* text-align: center needed for personalized button (iframe with fixed width) */}
+                    <div ref={googleButtonRef} style={{ display: 'inline-block', width: '100%', minHeight: '40px' }}></div>
                 </div>
 
                 <div className="auth-separator">

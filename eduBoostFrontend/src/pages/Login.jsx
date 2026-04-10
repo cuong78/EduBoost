@@ -311,12 +311,12 @@ const Login = () => {
 
       <div
         className="social-login"
-        style={{ display: "flex", justifyContent: "center" }}
+        style={{ textAlign: "center" }}
       >
         {googleClientId && window.google ? (
           <div
             ref={googleButtonRef}
-            style={{ display: "flex", justifyContent: "center", width: "100%", maxWidth: "400px" }}
+            style={{ display: "inline-block", width: "100%", maxWidth: "400px" }}
           ></div>
         ) : (
           <button
