@@ -354,17 +354,37 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="assign-footer">
-                        <button className="btn btn-outline" onClick={printCodes}><Printer size={16} /> In bảng mã</button>
-                        {results.length === 1 && (
-                            <button className="btn btn-outline" style={{ borderColor: '#6366f1', color: '#6366f1' }}
-                                onClick={() => { window.location.href = `/teacher/exam-monitor/${results[0].assignmentId}`; }}>
-                                <Activity size={16} /> Giám sát realtime
+                    <div className="assign-footer" style={{ flexDirection: 'column', gap: '0.75rem' }}>
+                        {/* Prominent CTA */}
+                        <a
+                            href={`/teacher/assignments?highlight=${results.map(r => r.assignmentId).join(',')}`}
+                            className="btn btn-primary"
+                            style={{
+                                width: '100%', textAlign: 'center', justifyContent: 'center',
+                                padding: '14px 24px', fontSize: '1.05rem', fontWeight: 700,
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                borderRadius: '12px', textDecoration: 'none',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                animation: 'pulseBtn 2s ease-in-out infinite',
+                                boxShadow: '0 4px 15px rgba(99,102,241,0.4)',
+                            }}
+                        >
+                            <CheckCircle size={20} /> 👉 Kích vào đây để xem bài đã giao
+                        </a>
+                        <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                            <button className="btn btn-outline" onClick={printCodes} style={{ flex: 1 }}>
+                                <Printer size={16} /> In bảng mã
                             </button>
-                        )}
-                        <button className="btn btn-primary" onClick={() => { window.location.href = '/teacher/assignments'; }}>
-                            <CheckCircle size={16} /> Xem bài đã giao
-                        </button>
+                            {results.length === 1 && (
+                                <a
+                                    href={`/teacher/exam-monitor/${results[0].assignmentId}`}
+                                    className="btn btn-outline"
+                                    style={{ flex: 1, borderColor: '#6366f1', color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                >
+                                    <Activity size={16} /> Giám sát realtime
+                                </a>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -666,6 +686,7 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                 .access-code { font-family: monospace; font-size: 1.2rem; font-weight: 800; letter-spacing: 3px; color: #1a1a2e; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; }
                 .btn-copy { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px; cursor: pointer; color: #94a3b8; transition: 0.15s; }
                 .btn-copy:hover { background: #f1f5f9; color: #6366f1; }
+                @keyframes pulseBtn { 0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(99,102,241,0.4); } 50% { transform: scale(1.02); box-shadow: 0 6px 25px rgba(99,102,241,0.6); } }
                 @media print {
                     .assign-header, .assign-footer, .btn-copy, .close-btn { display: none !important; }
                     .assign-overlay { position: static; background: none; backdrop-filter: none; }

@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     Search, RefreshCw, Calendar, Clock, Users, Copy, Eye, X,
     CheckCircle, AlertTriangle, ClipboardCheck, Trophy, BarChart2,
     ChevronDown, ChevronUp, ExternalLink, Activity, Timer,
     TrendingUp, TrendingDown, Award, Minus, ArrowUpDown
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import examAssignmentService from '../../services/examAssignmentService';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
 import './AssignmentList.css';
@@ -80,6 +80,16 @@ const AssignmentList = () => {
     const [violationLogs, setViolationLogs] = useState([]);
     const [showViolations, setShowViolations] = useState(false);
 
+    // Highlight newly assigned exams from URL param
+    const location = useLocation();
+    const highlightIds = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        const h = params.get('highlight');
+        if (!h) return new Set();
+        return new Set(h.split(',').map(id => Number(id)));
+    }, [location.search]);
+    const highlightRef = React.useRef(null);
+
     /* ── Load assignments ── */
     const loadAssignments = useCallback(async () => {
         setLoading(true);
@@ -94,6 +104,15 @@ const AssignmentList = () => {
     }, []);
 
     useEffect(() => { loadAssignments(); }, [loadAssignments]);
+
+    // Auto-scroll to highlighted assignment after loading
+    useEffect(() => {
+        if (!loading && highlightIds.size > 0 && highlightRef.current) {
+            setTimeout(() => {
+                highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    }, [loading, highlightIds]);
 
     /* ── Filter ── */
     const filtered = useMemo(() => {
@@ -316,8 +335,13 @@ const AssignmentList = () => {
                                     const status = computeStatus(a);
                                     const cfg = STATUS_MAP[status] || STATUS_MAP.SCHEDULED;
                                     const StatusIcon = cfg.icon;
-                                    return (
-                                        <tr key={a.assignmentId}>
+                                        const isHighlighted = highlightIds.has(a.assignmentId);
+                                        return (
+                                        <tr
+                                            key={a.assignmentId}
+                                            className={isHighlighted ? 'al-highlight' : ''}
+                                            ref={isHighlighted && !highlightRef.current ? (el) => { highlightRef.current = el; } : undefined}
+                                        >
                                             <td>
                                                 <div className="al-exam-name">
                                                     <strong>{a.examTitle}</strong>
