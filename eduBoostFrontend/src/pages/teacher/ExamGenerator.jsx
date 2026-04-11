@@ -1741,6 +1741,7 @@ const ExamGenerator = () => {
                       >
                         <Trash2 size={15} />
                         <span className="btn-action-label">Xóa</span>
+                      </button>
                     </div>
                     )}
                   </div>
