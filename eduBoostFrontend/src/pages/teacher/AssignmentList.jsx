@@ -10,6 +10,19 @@ import examAssignmentService from '../../services/examAssignmentService';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
 import './AssignmentList.css';
 
+// Vietnamese labels for violation codes
+const VIOLATION_LABELS = {
+    TAB_SWITCH: 'Chuyển tab',
+    FULLSCREEN_EXIT: 'Thoát toàn màn hình',
+    WINDOW_BLUR: 'Rời cửa sổ thi',
+    COPY_PASTE: 'Copy/Paste',
+    NETWORK_OFFLINE: 'Mất mạng',
+    BACK_BUTTON: 'Nhấn nút quay lại',
+    SCREEN_OFF: 'Tắt màn hình',
+    IDLE: 'Không hoạt động',
+};
+const translateViolation = (code) => VIOLATION_LABELS[code] || code;
+
 const fmtDateVN = (dateStr) => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
@@ -517,7 +530,7 @@ const AssignmentList = () => {
                                                                     <td><strong>{log.studentName || 'N/A'}</strong></td>
                                                                     <td>
                                                                         <span className="al-violation-badge">
-                                                                            <AlertTriangle size={13} /> {log.violationType}
+                                                                            <AlertTriangle size={13} /> {translateViolation(log.violationType)}
                                                                         </span>
                                                                     </td>
                                                                     <td className="mono">

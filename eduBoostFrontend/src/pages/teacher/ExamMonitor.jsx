@@ -9,6 +9,19 @@ import { Client } from '@stomp/stompjs';
 import { API } from '../../constants/api';
 import examAssignmentService from '../../services/examAssignmentService';
 
+// Vietnamese labels for violation codes
+const VIOLATION_LABELS = {
+    TAB_SWITCH: 'Chuyển tab',
+    FULLSCREEN_EXIT: 'Thoát toàn màn hình',
+    WINDOW_BLUR: 'Rời cửa sổ thi',
+    COPY_PASTE: 'Copy/Paste',
+    NETWORK_OFFLINE: 'Mất mạng',
+    BACK_BUTTON: 'Nhấn nút quay lại',
+    SCREEN_OFF: 'Tắt màn hình',
+    IDLE: 'Không hoạt động',
+};
+const translateViolation = (code) => VIOLATION_LABELS[code] || code;
+
 const ExamMonitor = () => {
     const { assignmentId } = useParams();
     const navigate = useNavigate();
@@ -265,7 +278,7 @@ const ExamMonitor = () => {
                                     {s.violations && s.violations.length > 0 && (
                                         <div className="violation-list">
                                             {[...new Set(s.violations)].map((v, i) => (
-                                                <span key={i} className="violation-tag">{v}</span>
+                                                <span key={i} className="violation-tag">{translateViolation(v)}</span>
                                             ))}
                                         </div>
                                     )}
@@ -289,7 +302,7 @@ const ExamMonitor = () => {
                             alerts.map(a => (
                                 <div key={a.id} className={`alert-item ${a.severity}`}>
                                     <div className="alert-student">{a.studentName}</div>
-                                    <div className="alert-violation">{a.violations}</div>
+                                    <div className="alert-violation">{translateViolation(a.violations)}</div>
                                     <div className="alert-time">{a.timestamp}</div>
                                 </div>
                             ))

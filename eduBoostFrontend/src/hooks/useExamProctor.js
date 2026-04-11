@@ -142,7 +142,7 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
                     if (document.hidden) {
                         sendAlert('TAB_SWITCH');
                     }
-                }, 3000); // 3 seconds grace period
+                }, 1500); // 1.5 seconds grace period
             } else {
                 sendAlert('TAB_SWITCH');
             }
@@ -157,6 +157,21 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
     const blurHandler = useCallback(() => {
         if (isMobile()) return; // Skip on mobile
         if (enabled) sendAlert('WINDOW_BLUR');
+    }, [enabled, sendAlert]);
+
+    // ── Browser back button (popstate) ─────────────────────────────────────
+    const popstateHandler = useCallback((e) => {
+        if (!enabled) return;
+        // Prevent navigation and log violation
+        e.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+        sendAlert('BACK_BUTTON');
+    }, [enabled, sendAlert]);
+
+    // ── Screen lock / page hide (mobile) ───────────────────────────────────
+    const pagehideHandler = useCallback(() => {
+        if (!enabled) return;
+        sendAlert('SCREEN_OFF');
     }, [enabled, sendAlert]);
 
     // ── Copy/Paste ─────────────────────────────────────────────────────────
@@ -225,6 +240,14 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
         window.addEventListener('online', networkHandler);
         window.addEventListener('offline', networkHandler);
 
+        // 4. Back button trap: push a dummy state so popstate fires
+        window.history.pushState(null, '', window.location.href);
+        window.addEventListener('popstate', popstateHandler);
+
+        // 5. Screen off / page hide (mobile)
+        window.addEventListener('pagehide', pagehideHandler);
+        document.addEventListener('freeze', pagehideHandler); // Page Lifecycle API
+
         return () => {
             // Cleanup
             clearInterval(heartbeatTimerRef.current);
@@ -242,6 +265,9 @@ export const useExamProctor = ({ assignmentId, studentId, studentName, enabled =
             document.removeEventListener('keydown', activityHandler);
             window.removeEventListener('online', networkHandler);
             window.removeEventListener('offline', networkHandler);
+            window.removeEventListener('popstate', popstateHandler);
+            window.removeEventListener('pagehide', pagehideHandler);
+            document.removeEventListener('freeze', pagehideHandler);
 
             // Exit fullscreen on unmount (desktop only)
             if (!isMobile() && document.fullscreenElement) document.exitFullscreen?.();

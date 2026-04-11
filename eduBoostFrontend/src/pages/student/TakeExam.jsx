@@ -63,6 +63,8 @@ const TakeExam = () => {
             WINDOW_BLUR: '⚠️ Bạn rời khỏi cửa sổ thi!',
             COPY_PASTE: '⚠️ Phát hiện copy/paste!',
             NETWORK_OFFLINE: '❌ Mất kết nối mạng!',
+            BACK_BUTTON: '⚠️ Bạn đã nhấn nút quay lại! Giáo viên đã được thông báo.',
+            SCREEN_OFF: '⚠️ Màn hình bị tắt! Giáo viên đã ghi nhận.',
         };
         setViolationBanner(labels[latest.reason] || `⚠️ Vi phạm: ${latest.reason}`);
         const t = setTimeout(() => setViolationBanner(null), 4000);
@@ -225,6 +227,16 @@ const TakeExam = () => {
                                 <span>Bài thi sẽ chạy toàn màn hình. Thoát khỏi bài thi sẽ bị giáo viên ghi nhận.</span>
                             </div>
                         </div>
+                        <div className="warning-info" style={{ background: '#fef2f2', borderColor: '#fca5a5' }}>
+                            <AlertTriangle size={16} color="#dc2626" />
+                            <div>
+                                <span style={{ color: '#991b1b' }}>
+                                    <strong>Lưu ý:</strong> Vui lòng giữ màn hình luôn sáng, không tắt màn hình trong lúc thi.
+                                    Không nhấn nút quay lại hoặc chuyển sang ứng dụng khác.
+                                    Mọi hành động sẽ bị hệ thống ghi lại và báo cáo cho giáo viên.
+                                </span>
+                            </div>
+                        </div>
                         <button type="submit" className="btn btn-primary full-width" disabled={validatingCode || codeInput.length < 6}>
                             {validatingCode ? 'Đang kiểm tra...' : '🔓 Vào thi'}
                         </button>
@@ -374,15 +386,15 @@ const TakeExam = () => {
             <div className="proctor-bar">
                 <span className={`indicator ${proctor.tabActive ? 'ok' : 'bad'}`}>
                     {proctor.tabActive ? <Eye size={14}/> : <EyeOff size={14}/>}
-                    {proctor.tabActive ? 'Tab active' : 'Out of tab'}
+                    {proctor.tabActive ? 'Đang thi' : 'Rời tab'}
                 </span>
                 <span className={`indicator ${proctor.isFullscreen ? 'ok' : 'warn'}`}>
                     <Maximize size={14}/>
-                    {proctor.isFullscreen ? 'Fullscreen' : 'Chưa fullscreen'}
+                    {proctor.isFullscreen ? 'Toàn màn hình' : 'Chưa toàn màn hình'}
                 </span>
                 <span className={`indicator ${proctor.networkOnline ? 'ok' : 'bad'}`}>
                     {proctor.networkOnline ? <Wifi size={14}/> : <WifiOff size={14}/>}
-                    {proctor.networkOnline ? 'Online' : 'Offline'}
+                    {proctor.networkOnline ? 'Có mạng' : 'Mất mạng'}
                 </span>
                 {proctor.violations.length > 0 && (
                     <span className="indicator bad">
@@ -390,8 +402,8 @@ const TakeExam = () => {
                     </span>
                 )}
                 {!proctor.isFullscreen && (
-                    <button className="btn-fullscreen" onClick={proctor.requestFullscreen}>
-                        <Maximize size={14}/> Toàn màn hình
+                    <button className="btn-fullscreen-alert" onClick={proctor.requestFullscreen}>
+                        <Maximize size={18}/> Nhấn để vào lại toàn màn hình
                     </button>
                 )}
             </div>
@@ -509,8 +521,9 @@ const TakeExam = () => {
                 .indicator.ok { background: rgba(34,197,94,0.15); color: #22c55e; }
                 .indicator.warn { background: rgba(234,179,8,0.15); color: #eab308; }
                 .indicator.bad { background: rgba(239,68,68,0.15); color: #ef4444; }
-                .btn-fullscreen { margin-left: auto; display: flex; align-items: center; gap: 4px; background: rgba(99,102,241,0.2); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 99px; padding: 4px 12px; font-size: 0.78rem; cursor: pointer; font-weight: 600; }
-                .btn-fullscreen:hover { background: rgba(99,102,241,0.35); }
+                .btn-fullscreen-alert { margin-left: auto; display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #ef4444, #f59e0b); color: white; border: none; border-radius: 99px; padding: 8px 20px; font-size: 0.9rem; cursor: pointer; font-weight: 700; animation: pulseFullscreen 1.2s ease-in-out infinite; box-shadow: 0 0 20px rgba(239,68,68,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
+                .btn-fullscreen-alert:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(239,68,68,0.7); }
+                @keyframes pulseFullscreen { 0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(239,68,68,0.5); } 50% { transform: scale(1.08); box-shadow: 0 0 35px rgba(239,68,68,0.8); } }
 
                 /* Warning popup */
                 .warning-overlay { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 999; }

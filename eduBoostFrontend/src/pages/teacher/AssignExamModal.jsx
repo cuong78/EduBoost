@@ -374,7 +374,9 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                                 <Activity size={16} /> Giám sát realtime
                             </button>
                         )}
-                        <button className="btn btn-primary" onClick={onClose}><CheckCircle size={16} /> Xong</button>
+                        <button className="btn btn-primary" onClick={() => { navigate('/teacher/assignments'); onClose(); }}>
+                            <CheckCircle size={16} /> Xem bài đã giao
+                        </button>
                     </div>
                 </div>
             </div>

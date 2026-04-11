@@ -151,6 +151,7 @@ const ExamGenerator = () => {
   const autoScrollY = useRef(null);
   const autoScrollFrame = useRef(null);
   const pdfContainerRef = useRef(null);
+  const variantsRef = useRef(null);
 
   // Shuffle (Variant) State
   const [showShuffleModal, setShowShuffleModal] = useState(false);
@@ -191,6 +192,10 @@ const ExamGenerator = () => {
       setVariants(Array.isArray(result) ? result : []);
       setShowShuffleModal(false);
       showSuccessToast(`Đã tạo ${shuffleCount} đề trộn thành công!`);
+      // Auto scroll to variants section
+      setTimeout(() => {
+        variantsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
     } catch (err) {
       showErrorToast("Lỗi khi trộn đề: " + (err?.response?.data?.message || err.message || ""));
     } finally {
@@ -1026,17 +1031,15 @@ const ExamGenerator = () => {
           <h2>
             <Layers size={20} /> Tạo đề thi
           </h2>
-          <div style={{
-            background: 'linear-gradient(135deg, #eef2ff, #f0f9ff)', borderRadius: 12,
-            padding: '1rem 1.25rem', marginBottom: '1rem', border: '1px solid #e0e7ff',
+          <p style={{
+            margin: '0 0 1rem', padding: '0.75rem 1rem', borderRadius: 10,
+            background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)',
+            color: '#475569', fontSize: '0.88rem', lineHeight: 1.6,
           }}>
-            <p style={{ margin: 0, color: '#4338ca', fontWeight: 600, fontSize: '0.92rem' }}>
-              📋 Hướng dẫn: Thầy/cô vui lòng chọn <strong>Khối</strong> → <strong>Loại đề</strong> → <strong>Môn học</strong> → nhập <strong>Tên bài kiểm tra</strong> để bắt đầu.
-            </p>
-            <p style={{ margin: '0.4rem 0 0', color: '#6366f1', fontSize: '0.84rem' }}>
-              💡 Với đề <em>kiểm tra 1 tiết</em>, <em>giữa kỳ</em> và <em>cuối kỳ</em>: cần chọn ma trận đề thi. Nếu cộng đồng chưa có ma trận phù hợp, thầy/cô vui lòng tạo ma trận riêng tại mục <strong>Quản lý ma trận</strong>.
-            </p>
-          </div>
+            <span style={{ color: '#6366f1', fontWeight: 600 }}>💡 Hướng dẫn:</span>{' '}
+            Chọn <strong>Khối</strong> → <strong>Loại đề</strong> → <strong>Môn học</strong> → nhập <strong>Tên bài kiểm tra</strong>.
+            {' '}Với đề <em>1 tiết / giữa kỳ / cuối kỳ</em>, cần chọn ma trận đề thi (nếu chưa có, tạo tại <strong>Quản lý ma trận</strong>).
+          </p>
 
           <div className="row3">
             <div className="field">
@@ -1742,7 +1745,7 @@ const ExamGenerator = () => {
                       {/* Randomize wrong answers per-question */}
                       {(q.wrongAnswer1 || q.wrongAnswer2 || q.wrongAnswer3) && (
                         <button
-                          className="btn-action"
+                          className="btn-action btn-randomize"
                           style={{
                             background: 'linear-gradient(135deg,#f59e0b,#d97706)',
                             color: '#fff', border: 'none',
@@ -1982,7 +1985,7 @@ const ExamGenerator = () => {
 
       {/* ─── Variants Panel ─── */}
       {step === 3 && !currentExam?.parentExamId && variants.length > 0 && (
-        <div className="panel glass" style={{ marginTop: "1rem" }}>
+        <div ref={variantsRef} className="panel glass" style={{ marginTop: "1rem" }}>
           <div className="header">
             <div>
               <h2><Shuffle size={20} /> Đề trộn ({variants.length} đề)</h2>
@@ -2383,6 +2386,7 @@ const ExamGenerator = () => {
         @media (max-width: 768px) {
           .btn-action { padding: 6px 10px; font-size: 0.78rem; }
           .btn-action-label { display: none; }
+          .btn-randomize { display: none !important; }
         }
 
         .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; }
