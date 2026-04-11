@@ -588,6 +588,11 @@ const GradeManagementTab = () => {
     const [grades, setGrades] = useState(null);
     const [loadingGrades, setLoadingGrades] = useState(false);
 
+    // Result detail modal
+    const [detailResult, setDetailResult] = useState(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailStudent, setDetailStudent] = useState('');
+
     useEffect(() => {
         examAssignmentService.getTeacherClasses?.()
             .then(data => {
@@ -606,6 +611,25 @@ const GradeManagementTab = () => {
             .catch(() => setGrades(null))
             .finally(() => setLoadingGrades(false));
     }, [selectedClass]);
+
+    const openResultDetail = async (resultId, studentName) => {
+        setDetailLoading(true);
+        setDetailStudent(studentName);
+        setDetailResult(null);
+        try {
+            const data = await examAssignmentService.getResult(resultId);
+            setDetailResult(data);
+        } catch {
+            showErrorToast('Không thể tải chi tiết bài thi');
+            setDetailLoading(false);
+        }
+    };
+
+    const closeDetail = () => {
+        setDetailResult(null);
+        setDetailLoading(false);
+        setDetailStudent('');
+    };
 
     return (
         <div>
@@ -665,13 +689,29 @@ const GradeManagementTab = () => {
                                     <td style={{ ...tdStyle, fontWeight: 600 }}>{student.fullName}</td>
                                     {(grades.exams || []).map((exam, i) => {
                                         const score = student.scores?.[exam.assignmentId];
+                                        const resultId = student.resultIds?.[exam.assignmentId];
+                                        const hasResult = score != null && resultId;
                                         return (
                                             <td key={i} style={{
                                                 ...tdStyle,
                                                 color: score == null ? '#cbd5e1' : score >= 5 ? '#16a34a' : '#ef4444',
                                                 fontWeight: score != null ? 600 : 400,
-                                            }}>
-                                                {score != null ? Number(score).toFixed(1) : '—'}
+                                                cursor: hasResult ? 'pointer' : 'default',
+                                                position: 'relative',
+                                            }}
+                                            onClick={hasResult ? () => openResultDetail(resultId, student.fullName) : undefined}
+                                            title={hasResult ? 'Kích để xem chi tiết bài thi' : ''}
+                                            >
+                                                {score != null ? (
+                                                    <span style={{
+                                                        ...(hasResult ? {
+                                                            borderBottom: '2px dashed currentColor',
+                                                            paddingBottom: '1px',
+                                                        } : {}),
+                                                    }}>
+                                                        {Number(score).toFixed(1)}
+                                                    </span>
+                                                ) : '—'}
                                             </td>
                                         );
                                     })}
@@ -687,10 +727,222 @@ const GradeManagementTab = () => {
                     </table>
                 </div>
             )}
+
+            {/* ── Result Detail Modal ── */}
+            {(detailResult || detailLoading) && (
+                <ResultDetailModal
+                    result={detailResult}
+                    loading={detailLoading}
+                    studentName={detailStudent}
+                    onClose={closeDetail}
+                />
+            )}
+
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   Result Detail Modal — shows full exam result with math rendering
+   ═══════════════════════════════════════════════════════════════ */
+
+// Lazy import MathRenderer to avoid issues if not available
+let MathRendererComp = null;
+try {
+    MathRendererComp = require('../../components/common/MathRenderer').default;
+} catch { /* will fall back to plain text */ }
+
+const RenderContent = ({ content }) => {
+    if (MathRendererComp) return <MathRendererComp content={content} />;
+    return <span>{content}</span>;
+};
+
+const ResultDetailModal = ({ result, loading, studentName, onClose }) => {
+    if (loading && !result) return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: '3rem', textAlign: 'center' }}>
+                <RefreshCw size={32} style={{ animation: 'spin 1s linear infinite', color: '#6366f1' }} />
+                <p style={{ marginTop: '1rem', color: '#64748b' }}>Đang tải chi tiết bài thi...</p>
+            </div>
+        </div>
+    );
+
+    if (!result) return null;
+
+    const isPass = result.status === 'PASSED' || Number(result.percentage) >= 50;
+    const pct = Number(result.percentage || 0);
+    const correct = result.questionResults?.filter(q => q.correct || q.isCorrect).length || 0;
+    const total = result.questionResults?.length || 0;
+
+    const fmtDuration = (s) => {
+        if (!s) return '—';
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m}p${sec > 0 ? ` ${sec}s` : ''}`;
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem',
+        }} onClick={onClose}>
+            <div style={{
+                background: 'white', borderRadius: '20px', width: '100%', maxWidth: '750px',
+                maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
+            }} onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div style={{
+                    background: isPass
+                        ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                        : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    padding: '1.5rem 2rem', color: 'white', position: 'relative', flexShrink: 0,
+                }}>
+                    <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.3rem', fontWeight: 800 }}>
+                        {isPass ? '✅' : '❌'} {result.examTitle || 'Kết quả bài thi'}
+                    </h2>
+                    <p style={{ margin: 0, opacity: 0.85, fontSize: '0.9rem' }}>
+                        Học sinh: <strong>{studentName}</strong>
+                    </p>
+                    <button onClick={onClose} style={{
+                        position: 'absolute', top: '1rem', right: '1rem',
+                        background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%',
+                        width: '32px', height: '32px', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', cursor: 'pointer', color: 'white',
+                    }}><X size={18} /></button>
+                </div>
+
+                {/* Body — scrollable */}
+                <div style={{ overflowY: 'auto', padding: '1.5rem 2rem', flex: 1 }}>
+                    {/* Score summary */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                        <div style={summaryCard}>
+                            <div style={summaryLabel}>Điểm</div>
+                            <div style={{ ...summaryValue, color: isPass ? '#16a34a' : '#ef4444' }}>
+                                {Number(result.score || 0).toFixed(1)}/{Number(result.maxScore || 0).toFixed(1)}
+                            </div>
+                        </div>
+                        <div style={summaryCard}>
+                            <div style={summaryLabel}>Phần trăm</div>
+                            <div style={{ ...summaryValue, color: isPass ? '#16a34a' : '#ef4444' }}>
+                                {pct.toFixed(0)}%
+                            </div>
+                        </div>
+                        <div style={summaryCard}>
+                            <div style={summaryLabel}>Câu đúng</div>
+                            <div style={summaryValue}>{correct}/{total}</div>
+                        </div>
+                        <div style={summaryCard}>
+                            <div style={summaryLabel}>Thời gian</div>
+                            <div style={{ ...summaryValue, fontSize: '1rem' }}>{fmtDuration(result.timeTakenSeconds)}</div>
+                        </div>
+                    </div>
+
+                    {/* Violations */}
+                    {result.tabSwitchCount > 0 && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 10,
+                            padding: '0.6rem 1rem', marginBottom: '1rem', fontSize: '0.85rem',
+                        }}>
+                            <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                            Vi phạm: <strong>{result.tabSwitchCount}</strong> lần thoát tab
+                        </div>
+                    )}
+
+                    {/* AI Analysis for teacher */}
+                    {result.aiAnalysisTeacher && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
+                            borderRadius: 12, padding: '1rem', marginBottom: '1rem',
+                        }}>
+                            <div style={{ fontWeight: 600, color: '#4338ca', marginBottom: '0.4rem', fontSize: '0.88rem' }}>🤖 Phân tích AI cho giáo viên</div>
+                            <p style={{ color: '#475569', lineHeight: 1.5, margin: 0, fontSize: '0.85rem' }}>{result.aiAnalysisTeacher}</p>
+                        </div>
+                    )}
+
+                    {/* Question details */}
+                    {result.questionResults && result.questionResults.length > 0 && (
+                        <div>
+                            <h4 style={{ margin: '0 0 0.75rem', color: '#334155', fontSize: '0.95rem' }}>
+                                📝 Chi tiết từng câu ({total} câu)
+                            </h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                {result.questionResults.map((q, idx) => {
+                                    const qCorrect = q.correct || q.isCorrect;
+                                    return (
+                                        <div key={idx} style={{
+                                            background: '#f8fafc', borderRadius: 10, padding: '0.85rem',
+                                            borderLeft: `4px solid ${qCorrect ? '#16a34a' : '#ef4444'}`,
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
+                                                    Câu {q.orderNumber || idx + 1}
+                                                </span>
+                                                <span style={{
+                                                    padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600,
+                                                    background: qCorrect ? '#dcfce7' : '#fee2e2',
+                                                    color: qCorrect ? '#16a34a' : '#dc2626',
+                                                }}>
+                                                    {qCorrect ? '✓ Đúng' : '✗ Sai'}
+                                                    {q.points != null && ` · ${Number(q.points).toFixed(1)} đ`}
+                                                </span>
+                                            </div>
+                                            <div style={{ color: '#334155', margin: '0.4rem 0', lineHeight: 1.5, fontSize: '0.88rem' }}>
+                                                <RenderContent content={q.questionText} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '2px' }}>Đáp án HS</div>
+                                                    <div style={{
+                                                        fontWeight: 600, fontSize: '0.85rem',
+                                                        color: qCorrect ? '#16a34a' : '#ef4444',
+                                                    }}>
+                                                        <RenderContent content={q.selectedAnswer || '(Không trả lời)'} />
+                                                    </div>
+                                                </div>
+                                                {!qCorrect && (
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '2px' }}>Đáp án đúng</div>
+                                                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#16a34a' }}>
+                                                            <RenderContent content={q.correctAnswer} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {q.explanation && (
+                                                <div style={{
+                                                    marginTop: '0.4rem', padding: '0.5rem', background: '#fffbeb',
+                                                    borderRadius: 6, fontSize: '0.8rem', color: '#92400e', lineHeight: 1.4,
+                                                }}>
+                                                    💡 <RenderContent content={q.explanation} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const summaryCard = {
+    background: '#f8fafc', borderRadius: 10, padding: '0.75rem',
+    textAlign: 'center', border: '1px solid #f1f5f9',
+};
+const summaryLabel = { fontSize: '0.72rem', color: '#64748b', fontWeight: 500, marginBottom: '2px' };
+const summaryValue = { fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' };
 
 const thStyle = { padding: '0.75rem 0.6rem', textAlign: 'left', fontWeight: 600, color: '#475569', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' };
 const tdStyle = { padding: '0.65rem 0.6rem', color: '#334155' };

@@ -649,6 +649,20 @@ public class ExamAssignmentServiceImpl {
             return exam;
         }).collect(Collectors.toList());
 
+        // Batch load all results for all students in this class
+        // Build a lookup: studentId -> (assignmentId -> result)
+        Map<String, Map<Long, StudentExamResult>> allResultsMap = new HashMap<>();
+        for (Student student : students) {
+            List<StudentExamResult> studentResults = resultRepository.findByStudentStudentId(student.getStudentId());
+            Map<Long, StudentExamResult> byAssignment = new HashMap<>();
+            for (StudentExamResult r : studentResults) {
+                if (r.getAssignment() != null) {
+                    byAssignment.put(r.getAssignment().getAssignmentId(), r);
+                }
+            }
+            allResultsMap.put(student.getStudentId(), byAssignment);
+        }
+
         // Build student grades
         List<Map<String, Object>> studentGrades = new ArrayList<>();
         for (Student student : students) {
@@ -657,17 +671,19 @@ public class ExamAssignmentServiceImpl {
             row.put("studentCode", student.getStudentCode());
             row.put("fullName", student.getUser().getFullName());
 
-            Map<Long, Double> scores = new LinkedHashMap<>();
+            Map<Long, Object> scores = new LinkedHashMap<>();
+            Map<Long, Long> resultIds = new LinkedHashMap<>();
             double total = 0;
             int count = 0;
 
+            Map<Long, StudentExamResult> studentResultMap = allResultsMap.getOrDefault(student.getStudentId(), Map.of());
+
             for (ExamAssignment assignment : assignments) {
-                Optional<StudentExamResult> resultOpt = resultRepository
-                        .findByStudentAndAssignment(student.getStudentId(), assignment.getAssignmentId());
-                if (resultOpt.isPresent()) {
-                    StudentExamResult result = resultOpt.get();
+                StudentExamResult result = studentResultMap.get(assignment.getAssignmentId());
+                if (result != null) {
                     double score = result.getScore() != null ? result.getScore().doubleValue() : 0;
                     scores.put(assignment.getAssignmentId(), score);
+                    resultIds.put(assignment.getAssignmentId(), result.getResultId());
                     total += score;
                     count++;
                 } else {
@@ -676,6 +692,7 @@ public class ExamAssignmentServiceImpl {
             }
 
             row.put("scores", scores);
+            row.put("resultIds", resultIds);
             row.put("average", count > 0 ? total / count : null);
             studentGrades.add(row);
         }
