@@ -572,7 +572,7 @@ public class ExamAssignmentServiceImpl {
         List<Map<String, Object>> exams = assignments.stream().map(a -> {
             Map<String, Object> exam = new LinkedHashMap<>();
             exam.put("assignmentId", a.getAssignmentId());
-            exam.put("examTitle", a.getExam() != null ? a.getExam().getTitle() : "Bài thi #" + a.getAssignmentId());
+            exam.put("examTitle", a.getExam() != null ? a.getExam().getExamTitle() : "Bài thi #" + a.getAssignmentId());
             return exam;
         }).collect(Collectors.toList());
 
