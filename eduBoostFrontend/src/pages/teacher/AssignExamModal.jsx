@@ -322,71 +322,131 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
     const copyCode = (code) => navigator.clipboard.writeText(code);
     const printCodes = () => window.print();
 
-    // ── Results view ──
+    // ── Results view — fixed overlay, beautiful design ──
     if (results) {
+        const highlightParam = results.map(r => r.assignmentId).join(',');
         return (
-            <div className="assign-overlay" onClick={onClose}>
-                <div className="assign-modal" onClick={e => e.stopPropagation()}>
-                    <div className="assign-header">
-                        <div>
-                            <h2>✅ Giao đề thành công!</h2>
-                            <p className="muted">Đây là mã vào thi cho từng lớp. Đọc cho học sinh trong phòng thi.</p>
-                        </div>
-                        <button className="close-btn" onClick={onClose}><X size={20} /></button>
+            <div style={{
+                position: 'fixed', inset: 0, zIndex: 9999,
+                background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '1rem', animation: 'fadeInOverlay 0.3s ease',
+            }}>
+                <div style={{
+                    background: 'white', borderRadius: '20px', width: '100%', maxWidth: '580px',
+                    boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+                    animation: 'slideUpModal 0.35s ease',
+                }} onClick={e => e.stopPropagation()}>
+                    {/* Success header */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        padding: '1.75rem 2rem', color: 'white', position: 'relative',
+                    }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎉</div>
+                        <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.4rem', fontWeight: 800 }}>
+                            Giao đề thành công!
+                        </h2>
+                        <p style={{ margin: 0, opacity: 0.85, fontSize: '0.9rem' }}>
+                            Đây là mã vào thi — đọc cho học sinh trong phòng thi.
+                        </p>
+                        <button onClick={onClose} style={{
+                            position: 'absolute', top: '1rem', right: '1rem',
+                            background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%',
+                            width: '32px', height: '32px', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', cursor: 'pointer', color: 'white',
+                        }}><X size={18} /></button>
                     </div>
-                    <div className="codes-table" id="printable-codes">
-                        <table>
-                            <thead><tr><th>Lớp</th><th>Mã Đề</th><th>Mã Vào Thi</th><th>Giờ Thi</th><th></th></tr></thead>
-                            <tbody>
-                                {results.map(r => (
-                                    <tr key={r.assignmentId}>
-                                        <td><strong>{r.className}</strong></td>
-                                        <td><span className="exam-code-badge">{r.examCode}</span></td>
-                                        <td><span className="access-code">{r.accessCode}</span></td>
-                                        <td style={{ fontSize: '0.82rem', color: 'var(--ds-text-secondary)' }}>
-                                            {formatVN(r.startTime)} →{' '}{formatVN(r.endTime)}
-                                        </td>
-                                        <td>
-                                            <button className="btn-copy" onClick={() => copyCode(r.accessCode)} title="Copy mã"><Copy size={14} /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+
+                    {/* Codes cards */}
+                    <div style={{ padding: '1.25rem 1.5rem', maxHeight: '40vh', overflowY: 'auto' }}>
+                        {results.map(r => (
+                            <div key={r.assignmentId} style={{
+                                background: '#f8fafc', borderRadius: '14px', padding: '1rem 1.25rem',
+                                marginBottom: '0.75rem', border: '1px solid #e2e8f0',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>
+                                        {r.className}
+                                    </span>
+                                    <span style={{
+                                        background: 'rgba(99,102,241,0.1)', color: '#6366f1',
+                                        padding: '2px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700,
+                                    }}>{r.examCode}</span>
+                                </div>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    background: 'white', borderRadius: '10px', padding: '0.6rem 1rem',
+                                    border: '1.5px dashed #c7d2fe',
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            Mã vào thi
+                                        </div>
+                                        <div style={{
+                                            fontFamily: 'monospace', fontSize: '1.5rem', fontWeight: 900,
+                                            letterSpacing: '4px', color: '#1e293b',
+                                        }}>{r.accessCode}</div>
+                                    </div>
+                                    <button onClick={() => copyCode(r.accessCode)} title="Copy" style={{
+                                        background: '#e0e7ff', border: 'none', borderRadius: '8px',
+                                        padding: '8px 12px', cursor: 'pointer', color: '#6366f1',
+                                        fontWeight: 600, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '4px',
+                                    }}>
+                                        <Copy size={14} /> Copy
+                                    </button>
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.5rem' }}>
+                                    ⏰ {formatVN(r.startTime)} → {formatVN(r.endTime)}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <div className="assign-footer" style={{ flexDirection: 'column', gap: '0.75rem' }}>
-                        {/* Prominent CTA */}
+
+                    {/* Action buttons */}
+                    <div style={{
+                        padding: '0 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
+                    }}>
                         <a
-                            href={`/teacher/assignments?highlight=${results.map(r => r.assignmentId).join(',')}`}
-                            className="btn btn-primary"
+                            href={`/teacher/assignments?highlight=${highlightParam}`}
                             style={{
-                                width: '100%', textAlign: 'center', justifyContent: 'center',
-                                padding: '14px 24px', fontSize: '1.05rem', fontWeight: 700,
-                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                borderRadius: '12px', textDecoration: 'none',
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                animation: 'pulseBtn 2s ease-in-out infinite',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                width: '100%', padding: '14px 24px', fontSize: '1rem', fontWeight: 700,
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white',
+                                borderRadius: '12px', textDecoration: 'none', border: 'none', cursor: 'pointer',
                                 boxShadow: '0 4px 15px rgba(99,102,241,0.4)',
+                                animation: 'pulseBtn 2s ease-in-out infinite',
                             }}
                         >
-                            <CheckCircle size={20} /> 👉 Kích vào đây để xem bài đã giao
+                            <CheckCircle size={18} /> 👉 Xem bài đã giao
                         </a>
-                        <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
-                            <button className="btn btn-outline" onClick={printCodes} style={{ flex: 1 }}>
-                                <Printer size={16} /> In bảng mã
+                        <div style={{ display: 'flex', gap: '0.6rem' }}>
+                            <button onClick={printCodes} style={{
+                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                padding: '10px', background: 'white', border: '1.5px solid #e2e8f0',
+                                borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                                color: '#64748b', fontFamily: 'inherit',
+                            }}>
+                                <Printer size={15} /> In bảng mã
                             </button>
                             {results.length === 1 && (
-                                <a
-                                    href={`/teacher/exam-monitor/${results[0].assignmentId}`}
-                                    className="btn btn-outline"
-                                    style={{ flex: 1, borderColor: '#6366f1', color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                >
-                                    <Activity size={16} /> Giám sát realtime
+                                <a href={`/teacher/exam-monitor/${results[0].assignmentId}`} style={{
+                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                    padding: '10px', background: 'white', border: '1.5px solid #6366f1',
+                                    borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '0.85rem',
+                                    color: '#6366f1', fontFamily: 'inherit',
+                                }}>
+                                    <Activity size={15} /> Giám sát live
                                 </a>
                             )}
                         </div>
                     </div>
                 </div>
+
+                <style>{`
+                    @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideUpModal { from { opacity: 0; transform: translateY(30px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                    @keyframes pulseBtn { 0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(99,102,241,0.4); } 50% { transform: scale(1.02); box-shadow: 0 6px 25px rgba(99,102,241,0.6); } }
+                `}</style>
             </div>
         );
     }
