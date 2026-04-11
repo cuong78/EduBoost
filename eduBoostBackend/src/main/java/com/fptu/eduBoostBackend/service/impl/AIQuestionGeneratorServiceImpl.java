@@ -319,13 +319,24 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         if (content.startsWith("```json")) content = content.substring(7);
         else if (content.startsWith("```")) content = content.substring(3);
         if (content.endsWith("```")) content = content.substring(0, content.length() - 3);
-        
-        int start = content.indexOf('[');
-        int end = content.lastIndexOf(']');
-        if (start != -1 && end != -1 && end > start) {
-            content = content.substring(start, end + 1);
+        content = content.trim();
+
+        // Try array format first: [...]
+        int arrStart = content.indexOf('[');
+        int arrEnd = content.lastIndexOf(']');
+        // Try object format: {...}
+        int objStart = content.indexOf('{');
+        int objEnd = content.lastIndexOf('}');
+
+        // If object appears before array (or no array), extract object
+        if (objStart != -1 && objEnd > objStart && (arrStart == -1 || objStart < arrStart)) {
+            return content.substring(objStart, objEnd + 1);
         }
-        return content.trim();
+        // Otherwise extract array
+        if (arrStart != -1 && arrEnd > arrStart) {
+            return content.substring(arrStart, arrEnd + 1);
+        }
+        return content;
     }
 
     private static class AIResponse {
@@ -338,7 +349,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AIGenerateVariationsResponse generateVariations(AIGenerateVariationsRequest request) {
         long startTime = System.currentTimeMillis();
         log.info("Starting AI variation generation for {} base questions, {} variations each", 

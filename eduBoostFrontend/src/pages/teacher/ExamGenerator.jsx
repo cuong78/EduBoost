@@ -1741,27 +1741,6 @@ const ExamGenerator = () => {
                       >
                         <Trash2 size={15} />
                         <span className="btn-action-label">Xóa</span>
-                      </button>
-                      {/* Randomize wrong answers per-question */}
-                      {(q.wrongAnswer1 || q.wrongAnswer2 || q.wrongAnswer3) && (
-                        <button
-                          className="btn-action btn-randomize"
-                          style={{
-                            background: 'linear-gradient(135deg,#f59e0b,#d97706)',
-                            color: '#fff', border: 'none',
-                          }}
-                          onClick={() => handleRandomizeAnswers(q)}
-                          title="Xáo trộn lại đáp án sai"
-                          disabled={generatingAiId === q.id || savingBankId === q.id || randomizingId === q.id}
-                        >
-                          {randomizingId === q.id
-                            ? <RefreshCw className="spin" size={15} />
-                            : <Shuffle size={15} />}
-                          <span className="btn-action-label">
-                            {randomizingId === q.id ? 'Đang...' : 'Random đA'}
-                          </span>
-                        </button>
-                      )}
                     </div>
                     )}
                   </div>
