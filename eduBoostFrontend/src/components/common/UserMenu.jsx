@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { User, Settings, FileText, Bookmark, LogOut, ChevronUp } from 'lucide-react';
+import { User, Settings, FileText, LogOut, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -29,7 +29,6 @@ const UserMenu = ({ userType }) => {
                 return [
                     { icon: User, label: 'Thông tin cá nhân', link: '/student/profile?tab=account' },
                     { icon: Settings, label: 'Cài đặt', link: '/student/profile?tab=settings' },
-                    { icon: Bookmark, label: 'Lịch sử học tập', link: '/student/profile?tab=history' },
                 ];
             case 'teacher':
                 return [

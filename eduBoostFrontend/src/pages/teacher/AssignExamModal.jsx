@@ -300,8 +300,6 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
             const classIds = Array.from(selectedClasses);
             const examIds = Array.from(selectedExamIds);
 
-            // Build classVariantMap: randomly assign each class an exam from selected exams
-            // If multiple exams selected, the backend will randomly distribute students
             const payload = {
                 examId: exam.id,
                 startTime: startTime,   // local datetime string — no UTC conversion
@@ -309,18 +307,8 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                 durationMinutes: Number(durationMinutes),
                 notifyParent,
                 classIds,
-                selectedExamIds: examIds, // backend will randomly distribute
+                selectedExamIds: examIds, // backend will randomly distribute per student
             };
-
-            // If only variants selected (no random distribution needed per-class)
-            if (variants.length > 0 && examIds.length > 1) {
-                // Map: each class gets an examId picked round-robin 
-                const classVariantMap = {};
-                classIds.forEach((cid, i) => {
-                    classVariantMap[cid] = examIds[i % examIds.length];
-                });
-                payload.classVariantMap = classVariantMap;
-            }
 
             const data = await examAssignmentService.createAssignment(payload);
             setResults(data);
@@ -370,11 +358,11 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                         <button className="btn btn-outline" onClick={printCodes}><Printer size={16} /> In bảng mã</button>
                         {results.length === 1 && (
                             <button className="btn btn-outline" style={{ borderColor: '#6366f1', color: '#6366f1' }}
-                                onClick={() => { navigate(`/teacher/exam-monitor/${results[0].assignmentId}`); onClose(); }}>
+                                onClick={() => { onClose(); setTimeout(() => navigate(`/teacher/exam-monitor/${results[0].assignmentId}`), 100); }}>
                                 <Activity size={16} /> Giám sát realtime
                             </button>
                         )}
-                        <button className="btn btn-primary" onClick={() => { navigate('/teacher/assignments'); onClose(); }}>
+                        <button className="btn btn-primary" onClick={() => { onClose(); setTimeout(() => navigate('/teacher/assignments'), 100); }}>
                             <CheckCircle size={16} /> Xem bài đã giao
                         </button>
                     </div>

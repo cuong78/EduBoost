@@ -10,6 +10,8 @@ import { useExamProctor } from '../../hooks/useExamProctor';
 import { useAuth } from '../../hooks/useAuth';
 import MathRenderer from '../../components/common/MathRenderer';
 
+const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 const TakeExam = () => {
     const { assignmentId: assignmentIdParam, id: legacyId } = useParams();
     const assignmentId = assignmentIdParam || legacyId;
@@ -388,10 +390,12 @@ const TakeExam = () => {
                     {proctor.tabActive ? <Eye size={14}/> : <EyeOff size={14}/>}
                     {proctor.tabActive ? 'Đang thi' : 'Rời tab'}
                 </span>
+                {!isMobile() && (
                 <span className={`indicator ${proctor.isFullscreen ? 'ok' : 'warn'}`}>
                     <Maximize size={14}/>
                     {proctor.isFullscreen ? 'Toàn màn hình' : 'Chưa toàn màn hình'}
                 </span>
+                )}
                 <span className={`indicator ${proctor.networkOnline ? 'ok' : 'bad'}`}>
                     {proctor.networkOnline ? <Wifi size={14}/> : <WifiOff size={14}/>}
                     {proctor.networkOnline ? 'Có mạng' : 'Mất mạng'}
@@ -401,7 +405,7 @@ const TakeExam = () => {
                         <AlertTriangle size={14}/> {proctor.violations.length} vi phạm
                     </span>
                 )}
-                {!proctor.isFullscreen && (
+                {!isMobile() && !proctor.isFullscreen && (
                     <button className="btn-fullscreen-alert" onClick={proctor.requestFullscreen}>
                         <Maximize size={18}/> Nhấn để vào lại toàn màn hình
                     </button>

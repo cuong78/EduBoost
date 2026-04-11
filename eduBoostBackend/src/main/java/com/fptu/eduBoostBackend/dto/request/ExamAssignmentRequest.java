@@ -29,4 +29,7 @@ public class ExamAssignmentRequest {
 
     private Boolean notifyParent;
     private Integer allowedAttempts;
+
+    /** List of exam IDs (original + variants) for random per-student distribution */
+    private List<Long> selectedExamIds;
 }

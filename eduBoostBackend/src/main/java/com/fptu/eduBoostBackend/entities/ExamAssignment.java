@@ -65,6 +65,11 @@ public class ExamAssignment {
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
 
+    /** Comma-separated list of exam IDs for random per-student distribution.
+     *  When set, each student gets a random variant from this list. */
+    @Column(name = "selected_exam_ids", length = 500)
+    private String selectedExamIds;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

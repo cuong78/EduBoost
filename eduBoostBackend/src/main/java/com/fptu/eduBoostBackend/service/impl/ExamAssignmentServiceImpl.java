@@ -72,7 +72,7 @@ public class ExamAssignmentServiceImpl {
                 created.add(toResponse(a, 0));
             }
         } else {
-            // Case 2: same exam to all classes
+            // Case 2: same exam to all classes (with optional per-student random variants)
             for (String classId : request.getClassIds()) {
                 SchoolClass cls = classRepository.findById(classId)
                         .orElseThrow(() -> new ResourceNotFoundException("Class not found: " + classId));
@@ -88,6 +88,13 @@ public class ExamAssignmentServiceImpl {
 
     private ExamAssignment buildAssignment(Exam exam, SchoolClass cls, User teacher, ExamAssignmentRequest req) {
         String code = generateAccessCode();
+        // Build comma-separated selectedExamIds string
+        String selectedIds = null;
+        if (req.getSelectedExamIds() != null && req.getSelectedExamIds().size() > 1) {
+            selectedIds = req.getSelectedExamIds().stream()
+                    .map(String::valueOf)
+                    .collect(java.util.stream.Collectors.joining(","));
+        }
         return ExamAssignment.builder()
                 .exam(exam)
                 .schoolClass(cls)
@@ -98,6 +105,7 @@ public class ExamAssignmentServiceImpl {
                 .durationMinutes(req.getDurationMinutes())
                 .allowedAttempts(req.getAllowedAttempts() != null ? req.getAllowedAttempts() : 1)
                 .notifyParent(req.getNotifyParent() != null ? req.getNotifyParent() : true)
+                .selectedExamIds(selectedIds)
                 .status("SCHEDULED")
                 .build();
     }
@@ -193,9 +201,29 @@ public class ExamAssignmentServiceImpl {
         resultRepository.findByStudentAndAssignment(student.getStudentId(), assignment.getAssignmentId())
                 .ifPresent(r -> { throw new BadRequestException("Bạn đã nộp bài làm này rồi"); });
 
-        // Load exam questions
+        // Determine which exam variant this student took
+        Long examIdToGrade = assignment.getExam().getId();
+        Exam examToGrade = assignment.getExam();
+        if (assignment.getSelectedExamIds() != null && !assignment.getSelectedExamIds().isEmpty()) {
+            try {
+                String[] idParts = assignment.getSelectedExamIds().split(",");
+                List<Long> variantIds = new java.util.ArrayList<>();
+                for (String part : idParts) {
+                    variantIds.add(Long.parseLong(part.trim()));
+                }
+                if (variantIds.size() > 1) {
+                    int index = Math.abs(user.getUserId().hashCode()) % variantIds.size();
+                    examIdToGrade = variantIds.get(index);
+                    examToGrade = examRepository.findById(examIdToGrade).orElse(assignment.getExam());
+                }
+            } catch (Exception e) {
+                // Fallback to default exam
+            }
+        }
+
+        // Load exam questions from the student's variant
         List<ExamQuestion> questions = examQuestionRepository
-                .findByExamIdWithDetailsOrdered(assignment.getExam().getId());
+                .findByExamIdWithDetailsOrdered(examIdToGrade);
 
         // Grade answers
         Map<Long, String> selectedMap = new HashMap<>();
@@ -239,10 +267,10 @@ public class ExamAssignmentServiceImpl {
         String answersJson = "[]";
         try { answersJson = objectMapper.writeValueAsString(questionResults); } catch (Exception ignored) {}
 
-        // Student entity already resolved above
+        // Save result with the actual variant exam the student took
         StudentExamResult result = StudentExamResult.builder()
                 .student(student)
-                .exam(assignment.getExam())
+                .exam(examToGrade)
                 .assignment(assignment)
                 .score(totalScore.setScale(2, RoundingMode.HALF_UP))
                 .maxScore(maxScore.setScale(2, RoundingMode.HALF_UP))
@@ -514,6 +542,7 @@ public class ExamAssignmentServiceImpl {
     /**
      * Returns exam questions for a student's assignment.
      * Verifies the assignment is ACTIVE and belongs to the student's class.
+     * If selectedExamIds is set, randomly assigns a variant per student.
      */
     public List<ExamQuestionResponse> getAssignmentQuestions(Long assignmentId) {
         ExamAssignment a = assignmentRepository.findById(assignmentId)
@@ -525,8 +554,31 @@ public class ExamAssignmentServiceImpl {
             throw new BadRequestException("Bài thi chưa bắt đầu hoặc đã kết thúc");
         }
 
-        // Get questions from the exam
-        List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(a.getExam().getId());
+        // Determine which exam to serve
+        Long examIdToServe = a.getExam().getId();
+
+        // If multiple variants are available, pick one based on student ID
+        if (a.getSelectedExamIds() != null && !a.getSelectedExamIds().isEmpty()) {
+            try {
+                User currentUser = getCurrentUser();
+                String[] idParts = a.getSelectedExamIds().split(",");
+                List<Long> variantIds = new java.util.ArrayList<>();
+                for (String part : idParts) {
+                    variantIds.add(Long.parseLong(part.trim()));
+                }
+                if (variantIds.size() > 1) {
+                    // Use student's userId hash to deterministically pick a variant
+                    // Same student always gets the same variant
+                    int index = Math.abs(currentUser.getUserId().hashCode()) % variantIds.size();
+                    examIdToServe = variantIds.get(index);
+                }
+            } catch (Exception e) {
+                // Fallback to default exam if parsing fails
+            }
+        }
+
+        // Get questions from the selected exam
+        List<ExamQuestion> questions = examQuestionRepository.findByExamIdWithDetailsOrdered(examIdToServe);
 
         return questions.stream().map(eq -> {
             ExamQuestionResponse.ExamQuestionResponseBuilder b = ExamQuestionResponse.builder()

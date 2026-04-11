@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Lock, Camera, BookOpen, FileCheck, Save, Bell, Moon, Volume2, X, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Camera, Save, Bell, Moon, Volume2, X, Eye, EyeOff } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
 import { authService } from '../../services/authService';
@@ -64,11 +64,7 @@ const UserProfile = () => {
         setIsDarkMode(savedTheme === 'dark');
     }, []);
 
-    useEffect(() => {
-        if (isTeacherRole && activeTab === 'history') {
-            setActiveTab('account');
-        }
-    }, [isTeacherRole, activeTab]);
+
 
     const handleSave = () => {
         // Mock API call
@@ -124,14 +120,6 @@ const UserProfile = () => {
                     >
                         <User size={20} /> Tài khoản
                     </button>
-                    {!isTeacherRole && (
-                        <button
-                            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('history')}
-                        >
-                            <FileCheck size={20} /> Lịch sử học tập
-                        </button>
-                    )}
                     <button
                         className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
                         onClick={() => setActiveTab('settings')}
@@ -205,37 +193,6 @@ const UserProfile = () => {
                                     <span>Mật khẩu</span>
                                 </div>
                                 <button className="btn-text" onClick={() => setShowPasswordModal(true)}>Đổi mật khẩu</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {!isTeacherRole && activeTab === 'history' && (
-                        <div className="tab-pane fade-in">
-                            <h3 className="section-title">Hoạt động gần đây</h3>
-                            <div className="history-list">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="history-item">
-                                        <div className="history-icon bg-indigo">
-                                            <FileCheck size={20} color="white" />
-                                        </div>
-                                        <div className="history-info">
-                                            <h4>Bài kiểm tra: Đại số tuyến tính</h4>
-                                            <p>Hoàn thành ngày 20/01/2024 • Điểm: 9.5/10</p>
-                                        </div>
-                                        <button className="btn-sm btn-outline">Xem lại</button>
-                                    </div>
-                                ))}
-                                {[1, 2].map((i) => (
-                                    <div key={`lec-${i}`} className="history-item">
-                                        <div className="history-icon bg-orange">
-                                            <BookOpen size={20} color="white" />
-                                        </div>
-                                        <div className="history-info">
-                                            <h4>Đã học: Định luật Newton</h4>
-                                            <p>Đã xem 24/01/2024 • Tiến độ: 100%</p>
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
                         </div>
                     )}
@@ -531,48 +488,6 @@ const UserProfile = () => {
                 }
                 .btn-text { background: none; border: none; color: var(--color-accent-1); font-weight: 600; cursor: pointer; }
 
-                /* History List */
-                .history-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-                .history-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    padding: 1rem;
-                    border-radius: 12px;
-                    border: 1px solid #f1f5f9;
-                    transition: background 0.2s;
-                    flex-wrap: wrap; /* Allow wrapping on small screens */
-                }
-                
-                @media (min-width: 640px) {
-                    .history-item {
-                        flex-wrap: nowrap;
-                    }
-                }
-                
-                .history-item:hover { background: #f8fafc; }
-                
-                .history-icon {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .bg-indigo { background: var(--ds-primary); }
-                .bg-orange { background: #f97316; }
-
-                .history-info { 
-                    flex: 1; 
-                    min-width: 200px;
-                }
-                .history-info h4 { margin: 0 0 0.25rem 0; font-size: 1rem; color: var(--color-text-primary); }
-                .history-info p { margin: 0; font-size: 0.85rem; color: #94a3b8; }
 
                 /* Settings Toggle */
                 .setting-item {
