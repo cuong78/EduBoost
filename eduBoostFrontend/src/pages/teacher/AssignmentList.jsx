@@ -3,11 +3,12 @@ import {
     Search, RefreshCw, Calendar, Clock, Users, Copy, Eye, X,
     CheckCircle, AlertTriangle, ClipboardCheck, Trophy, BarChart2,
     ChevronDown, ChevronUp, ExternalLink, Activity, Timer,
-    TrendingUp, TrendingDown, Award, Minus, ArrowUpDown
+    TrendingUp, TrendingDown, Award, Minus, ArrowUpDown, Sparkles
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import examAssignmentService from '../../services/examAssignmentService';
 import { showSuccessToast, showErrorToast } from '../../utils/show-toast';
+import MathRenderer from '../../components/common/MathRenderer';
 import './AssignmentList.css';
 
 // Vietnamese labels for violation codes
@@ -747,15 +748,32 @@ const GradeManagementTab = () => {
    Result Detail Modal — shows full exam result with math rendering
    ═══════════════════════════════════════════════════════════════ */
 
-// Lazy import MathRenderer to avoid issues if not available
-let MathRendererComp = null;
-try {
-    MathRendererComp = require('../../components/common/MathRenderer').default;
-} catch { /* will fall back to plain text */ }
+const RenderContent = ({ content }) => <MathRenderer content={content} />;
 
-const RenderContent = ({ content }) => {
-    if (MathRendererComp) return <MathRendererComp content={content} />;
-    return <span>{content}</span>;
+/** Render AI text with **bold** and line breaks */
+const FormatAIText = ({ text }) => {
+    if (!text) return null;
+    // Split by newlines, then render **bold** within each line
+    const lines = text.split(/\n/);
+    return (
+        <div style={{ lineHeight: 1.7, fontSize: '0.88rem', color: '#475569' }}>
+            {lines.map((line, i) => {
+                if (!line.trim()) return <br key={i} />;
+                // Convert **text** to <strong>text</strong>
+                const parts = line.split(/(\*\*[^*]+\*\*)/);
+                return (
+                    <p key={i} style={{ margin: '0.3rem 0' }}>
+                        {parts.map((part, j) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                                return <strong key={j} style={{ color: '#1e293b' }}>{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={j}>{part}</span>;
+                        })}
+                    </p>
+                );
+            })}
+        </div>
+    );
 };
 
 const ResultDetailModal = ({ result, loading, studentName, onClose }) => {
@@ -861,10 +879,17 @@ const ResultDetailModal = ({ result, loading, studentName, onClose }) => {
                     {result.aiAnalysisTeacher && (
                         <div style={{
                             background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
-                            borderRadius: 12, padding: '1rem', marginBottom: '1rem',
+                            borderRadius: 14, padding: '1.25rem', marginBottom: '1rem',
+                            border: '1px solid rgba(99,102,241,0.12)',
                         }}>
-                            <div style={{ fontWeight: 600, color: '#4338ca', marginBottom: '0.4rem', fontSize: '0.88rem' }}>🤖 Phân tích AI cho giáo viên</div>
-                            <p style={{ color: '#475569', lineHeight: 1.5, margin: 0, fontSize: '0.85rem' }}>{result.aiAnalysisTeacher}</p>
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                fontWeight: 700, color: '#4338ca', marginBottom: '0.6rem', fontSize: '0.92rem',
+                            }}>
+                                <Sparkles size={18} style={{ color: '#6366f1' }} />
+                                Phân tích AI cho giáo viên
+                            </div>
+                            <FormatAIText text={result.aiAnalysisTeacher} />
                         </div>
                     )}
 

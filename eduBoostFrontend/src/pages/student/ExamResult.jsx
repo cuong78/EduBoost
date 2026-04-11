@@ -2,10 +2,34 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     CheckCircle, XCircle, ArrowLeft, Clock, AlertTriangle,
-    Award, BookOpen, RefreshCw, ChevronDown, ChevronUp
+    Award, BookOpen, RefreshCw, ChevronDown, ChevronUp, Sparkles
 } from 'lucide-react';
 import examAssignmentService from '../../services/examAssignmentService';
 import MathRenderer from '../../components/common/MathRenderer';
+
+/** Render AI text with **bold** and line breaks */
+const FormatAIText = ({ text }) => {
+    if (!text) return null;
+    const lines = text.split(/\n/);
+    return (
+        <div style={{ lineHeight: 1.7, fontSize: '0.92rem', color: '#475569' }}>
+            {lines.map((line, i) => {
+                if (!line.trim()) return <br key={i} />;
+                const parts = line.split(/(\*\*[^*]+\*\*)/);
+                return (
+                    <p key={i} style={{ margin: '0.35rem 0' }}>
+                        {parts.map((part, j) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                                return <strong key={j} style={{ color: '#1e293b' }}>{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={j}>{part}</span>;
+                        })}
+                    </p>
+                );
+            })}
+        </div>
+    );
+};
 
 const ExamResult = () => {
     const { resultId } = useParams();
@@ -135,8 +159,11 @@ const ExamResult = () => {
                 {/* AI Advice */}
                 {result.aiAnalysisStudent && (
                     <div style={styles.aiCard}>
-                        <div style={styles.aiTitle}>🤖 Lời khuyên từ AI</div>
-                        <p style={styles.aiText}>{result.aiAnalysisStudent}</p>
+                        <div style={styles.aiTitle}>
+                            <Sparkles size={18} style={{ color: '#6366f1' }} />
+                            Lời khuyên từ AI
+                        </div>
+                        <FormatAIText text={result.aiAnalysisStudent} />
                     </div>
                 )}
 
@@ -280,12 +307,11 @@ const styles = {
     aiCard: {
         background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
         borderRadius: '14px', padding: '1.25rem', marginBottom: '1rem',
+        border: '1px solid rgba(99,102,241,0.12)',
     },
     aiTitle: {
-        fontWeight: 600, marginBottom: '0.5rem', color: '#4338ca',
-    },
-    aiText: {
-        color: '#475569', lineHeight: 1.6, margin: 0, fontSize: '0.92rem',
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
+        fontWeight: 700, marginBottom: '0.6rem', color: '#4338ca', fontSize: '0.95rem',
     },
     toggleBtn: {
         display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%',
