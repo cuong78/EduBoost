@@ -5,6 +5,7 @@ import {
     Award, BookOpen, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
 import examAssignmentService from '../../services/examAssignmentService';
+import MathRenderer from '../../components/common/MathRenderer';
 
 const ExamResult = () => {
     const { resultId } = useParams();
@@ -171,7 +172,7 @@ const ExamResult = () => {
                                                     {q.points != null && ` · ${Number(q.points).toFixed(1)} đ`}
                                                 </span>
                                             </div>
-                                            <p style={styles.qText}>{q.questionText}</p>
+                                            <MathRenderer content={q.questionText} />
                                             <div style={styles.answerRow}>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={styles.ansLabel}>Đáp án của bạn</div>
@@ -179,21 +180,21 @@ const ExamResult = () => {
                                                         ...styles.ansValue,
                                                         color: qCorrect ? '#16a34a' : '#ef4444',
                                                     }}>
-                                                        {q.selectedAnswer || '(Không trả lời)'}
+                                                        <MathRenderer content={q.selectedAnswer || '(Không trả lời)'} />
                                                     </div>
                                                 </div>
                                                 {!qCorrect && (
                                                     <div style={{ flex: 1 }}>
                                                         <div style={styles.ansLabel}>Đáp án đúng</div>
                                                         <div style={{ ...styles.ansValue, color: '#16a34a' }}>
-                                                            {q.correctAnswer}
+                                                            <MathRenderer content={q.correctAnswer} />
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
                                             {q.explanation && (
                                                 <div style={styles.explanation}>
-                                                    💡 {q.explanation}
+                                                    💡 <MathRenderer content={q.explanation} />
                                                 </div>
                                             )}
                                         </div>

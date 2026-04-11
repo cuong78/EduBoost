@@ -43,6 +43,11 @@ public interface StudentExamResultRepository extends JpaRepository<StudentExamRe
     @Query("SELECT COUNT(r) FROM StudentExamResult r WHERE r.assignment.assignmentId = :assignmentId")
     int countByAssignmentId(@Param("assignmentId") Long assignmentId);
 
+    /** Batch count submissions grouped by assignmentId — avoids N+1 */
+    @Query("SELECT r.assignment.assignmentId, COUNT(r) FROM StudentExamResult r " +
+           "WHERE r.assignment.assignmentId IN :assignmentIds GROUP BY r.assignment.assignmentId")
+    List<Object[]> countByAssignmentIds(@Param("assignmentIds") List<Long> assignmentIds);
+
     @Query("SELECT r FROM StudentExamResult r " +
            "LEFT JOIN FETCH r.student s " +
            "LEFT JOIN FETCH s.user " +

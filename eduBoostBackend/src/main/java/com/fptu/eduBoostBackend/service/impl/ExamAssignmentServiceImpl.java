@@ -124,9 +124,19 @@ public class ExamAssignmentServiceImpl {
     @Transactional(readOnly = true)
     public List<ExamAssignmentResponse> getTeacherAssignments() {
         User teacher = getCurrentUser();
-        return assignmentRepository.findByTeacherId(teacher.getUserId())
-                .stream()
-                .map(a -> toResponse(a, resultRepository.countByAssignmentId(a.getAssignmentId())))
+        List<ExamAssignment> assignments = assignmentRepository.findByTeacherId(teacher.getUserId());
+        if (assignments.isEmpty()) return List.of();
+
+        // Batch count submissions in ONE query instead of N+1
+        List<Long> assignmentIds = assignments.stream()
+                .map(ExamAssignment::getAssignmentId)
+                .collect(Collectors.toList());
+        Map<Long, Long> countMap = new java.util.HashMap<>();
+        resultRepository.countByAssignmentIds(assignmentIds)
+                .forEach(row -> countMap.put((Long) row[0], (Long) row[1]));
+
+        return assignments.stream()
+                .map(a -> toResponse(a, countMap.getOrDefault(a.getAssignmentId(), 0L).intValue()))
                 .collect(Collectors.toList());
     }
 
@@ -139,22 +149,33 @@ public class ExamAssignmentServiceImpl {
         List<Student> students = studentRepository.findByUser(user);
         if (students.isEmpty()) return List.of();
 
-        // Collect assignments from all classes the student belongs to
+        // Collect all assignments first, then batch-query results
         List<ExamAssignmentResponse> allAssignments = new java.util.ArrayList<>();
         for (Student student : students) {
             if (student.getSchoolClass() == null) continue;
             String classId = student.getSchoolClass().getClassId();
             String studentId = student.getStudentId();
-            List<ExamAssignmentResponse> classAssignments = assignmentRepository.findBySchoolClassClassId(classId)
-                    .stream()
-                    .map(a -> {
-                        ExamAssignmentResponse resp = toResponse(a, 0);
-                        resultRepository.findByStudentAndAssignment(studentId, a.getAssignmentId())
-                                .ifPresent(r -> resp.setAlreadySubmittedResultId(r.getResultId()));
-                        return resp;
-                    })
-                    .collect(Collectors.toList());
-            allAssignments.addAll(classAssignments);
+
+            List<ExamAssignment> classAssignments = assignmentRepository.findBySchoolClassClassId(classId);
+            if (classAssignments.isEmpty()) continue;
+
+            // Batch lookup: get all results for this student in one query
+            List<StudentExamResult> studentResults = resultRepository.findByStudentStudentId(studentId);
+            Map<Long, Long> resultMap = new java.util.HashMap<>();
+            for (StudentExamResult r : studentResults) {
+                if (r.getAssignment() != null) {
+                    resultMap.put(r.getAssignment().getAssignmentId(), r.getResultId());
+                }
+            }
+
+            for (ExamAssignment a : classAssignments) {
+                ExamAssignmentResponse resp = toResponse(a, 0);
+                Long resultId = resultMap.get(a.getAssignmentId());
+                if (resultId != null) {
+                    resp.setAlreadySubmittedResultId(resultId);
+                }
+                allAssignments.add(resp);
+            }
         }
         return allAssignments;
     }
