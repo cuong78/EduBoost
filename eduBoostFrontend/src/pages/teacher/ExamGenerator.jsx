@@ -90,8 +90,8 @@ const ExamGenerator = () => {
 
   const [subjects, setSubjects] = useState([]);
   const [subjectId, setSubjectId] = useState("");
-  const [gradeLevel, setGradeLevel] = useState(6);
-  const [examType, setExamType] = useState("15MIN");
+  const [gradeLevel, setGradeLevel] = useState(null);
+  const [examType, setExamType] = useState("");
   const [examTypes, setExamTypes] = useState([]);
   const [examTitle, setExamTitle] = useState("");
 
@@ -243,11 +243,13 @@ const ExamGenerator = () => {
     const data = await knowledgeService.getSubjects();
     const list = Array.isArray(data) ? data : (data?.data ?? []);
     setSubjects(list);
-    const filtered = filterSubjectsByGrade(list, gradeLevel);
-    if (!subjectId && filtered.length) setSubjectId(String(filtered[0].id));
+    if (gradeLevel) {
+      const filtered = filterSubjectsByGrade(list, gradeLevel);
+      if (!subjectId && filtered.length) setSubjectId(String(filtered[0].id));
+    }
   };
 
-  const filteredSubjects = filterSubjectsByGrade(subjects, gradeLevel);
+  const filteredSubjects = gradeLevel ? filterSubjectsByGrade(subjects, gradeLevel) : [];
 
   const loadExamTypes = async () => {
     try {
@@ -261,6 +263,7 @@ const ExamGenerator = () => {
 
   // Detect if current exam type requires matrix (memoized to avoid race condition)
   const isMatrixType = useMemo(() => {
+    if (!examType) return false;
     const found = examTypes.find((t) => String(t.typeCode) === String(examType));
     // If examTypes not loaded yet, use typeCode fallback
     return found ? !!found.requiresMatrix : (examType !== "15MIN" && examType !== "");
@@ -362,6 +365,7 @@ const ExamGenerator = () => {
   }, []);
 
   useEffect(() => {
+    if (!gradeLevel) { setSubjectId(""); return; }
     const filtered = filterSubjectsByGrade(subjects, gradeLevel);
     if (filtered.length > 0) {
       setSubjectId(String(filtered[0].id));
@@ -372,7 +376,11 @@ const ExamGenerator = () => {
   }, [gradeLevel]);
 
   useEffect(() => {
-    loadChapters().catch(() => setChapters([]));
+    if (subjectId && gradeLevel) {
+      loadChapters().catch(() => setChapters([]));
+    } else {
+      setChapters([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId, gradeLevel]);
 
@@ -488,8 +496,10 @@ const ExamGenerator = () => {
   };
 
   const goStep2 = () => {
-    if (!examTitle.trim()) return showErrorToast("Vui lòng nhập tên đề thi");
+    if (!gradeLevel) return showErrorToast("Vui lòng chọn khối học");
+    if (!examType) return showErrorToast("Vui lòng chọn loại đề");
     if (!subjectId) return showErrorToast("Vui lòng chọn môn học");
+    if (!examTitle.trim()) return showErrorToast("Vui lòng nhập tên đề thi");
     // For matrix-based types, require a matrix template selection
     if (isMatrixType) {
       if (!matrixTemplateId)
@@ -1016,6 +1026,17 @@ const ExamGenerator = () => {
           <h2>
             <Layers size={20} /> Tạo đề thi
           </h2>
+          <div style={{
+            background: 'linear-gradient(135deg, #eef2ff, #f0f9ff)', borderRadius: 12,
+            padding: '1rem 1.25rem', marginBottom: '1rem', border: '1px solid #e0e7ff',
+          }}>
+            <p style={{ margin: 0, color: '#4338ca', fontWeight: 600, fontSize: '0.92rem' }}>
+              📋 Hướng dẫn: Thầy/cô vui lòng chọn <strong>Khối</strong> → <strong>Loại đề</strong> → <strong>Môn học</strong> → nhập <strong>Tên bài kiểm tra</strong> để bắt đầu.
+            </p>
+            <p style={{ margin: '0.4rem 0 0', color: '#6366f1', fontSize: '0.84rem' }}>
+              💡 Với đề <em>kiểm tra 1 tiết</em>, <em>giữa kỳ</em> và <em>cuối kỳ</em>: cần chọn ma trận đề thi. Nếu cộng đồng chưa có ma trận phù hợp, thầy/cô vui lòng tạo ma trận riêng tại mục <strong>Quản lý ma trận</strong>.
+            </p>
+          </div>
 
           <div className="row3">
             <div className="field">
@@ -1083,8 +1104,18 @@ const ExamGenerator = () => {
             </div>
           </div>
 
-          {/* ── Matrix-based exam type ── */}
-          {isMatrixType ? (
+          {/* ── Show content only when all required fields selected ── */}
+          {!gradeLevel || !examType || !subjectId ? (
+            <div style={{
+              textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8',
+              border: '2px dashed #e2e8f0', borderRadius: 16, marginTop: '1rem',
+            }}>
+              <Layers size={40} style={{ opacity: 0.25, marginBottom: '0.75rem' }} />
+              <p style={{ fontSize: '1rem', fontWeight: 500 }}>
+                {!gradeLevel ? '👆 Vui lòng chọn khối học' : !examType ? '👆 Vui lòng chọn loại đề' : '👆 Vui lòng chọn môn học'}
+              </p>
+            </div>
+          ) : isMatrixType ? (
             <div style={{ marginTop: "1.25rem" }}>
               <div className="divider" />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
