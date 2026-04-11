@@ -537,14 +537,13 @@ const AssignmentList = () => {
                     </div>
                 </div>
             )}
-        </div>
             </>
             )}
         </div>
     );
 };
 
-/* ═══════════ GRADE MANAGEMENT TAB ═══════════ */
+/* ═══════════ GRADE MANAGEMENT TAB  ═══════════ */
 
 const GradeManagementTab = () => {
     const [classes, setClasses] = useState([]);
