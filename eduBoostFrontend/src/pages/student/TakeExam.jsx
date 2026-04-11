@@ -391,7 +391,7 @@ const TakeExam = () => {
                     {proctor.tabActive ? 'Đang thi' : 'Rời tab'}
                 </span>
                 {!isMobile() && (
-                <span className={`indicator ${proctor.isFullscreen ? 'ok' : 'warn'}`}>
+                <span className={`indicator desktop-only ${proctor.isFullscreen ? 'ok' : 'warn'}`}>
                     <Maximize size={14}/>
                     {proctor.isFullscreen ? 'Toàn màn hình' : 'Chưa toàn màn hình'}
                 </span>
@@ -406,7 +406,7 @@ const TakeExam = () => {
                     </span>
                 )}
                 {!isMobile() && !proctor.isFullscreen && (
-                    <button className="btn-fullscreen-alert" onClick={proctor.requestFullscreen}>
+                    <button className="btn-fullscreen-alert desktop-only" onClick={proctor.requestFullscreen}>
                         <Maximize size={18}/> Nhấn để vào lại toàn màn hình
                     </button>
                 )}
@@ -528,6 +528,11 @@ const TakeExam = () => {
                 .btn-fullscreen-alert { margin-left: auto; display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #ef4444, #f59e0b); color: white; border: none; border-radius: 99px; padding: 8px 20px; font-size: 0.9rem; cursor: pointer; font-weight: 700; animation: pulseFullscreen 1.2s ease-in-out infinite; box-shadow: 0 0 20px rgba(239,68,68,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
                 .btn-fullscreen-alert:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(239,68,68,0.7); }
                 @keyframes pulseFullscreen { 0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(239,68,68,0.5); } 50% { transform: scale(1.08); box-shadow: 0 0 35px rgba(239,68,68,0.8); } }
+
+                /* Force hide fullscreen elements on mobile/tablet via CSS — backup for JS detection */
+                @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+                    .desktop-only { display: none !important; }
+                }
 
                 /* Warning popup */
                 .warning-overlay { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 999; }

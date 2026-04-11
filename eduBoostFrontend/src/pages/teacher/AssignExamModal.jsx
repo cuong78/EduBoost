@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
     X, Calendar, Clock, Users, Key, CheckCircle, Copy, Printer, Activity, BookOpen, Shuffle
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
 import examAssignmentService from '../../services/examAssignmentService';
 
 /* ── Vietnamese month names for calendar header ── */
@@ -194,7 +194,7 @@ const ViDateTimePicker = ({ value, onChange, label }) => {
 /* ════════════════════════════════════════════════════════════════════════ */
 
 const AssignExamModal = ({ exam, variants = [], onClose }) => {
-    const navigate = useNavigate();
+
     const [allClasses, setAllClasses] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -358,11 +358,11 @@ const AssignExamModal = ({ exam, variants = [], onClose }) => {
                         <button className="btn btn-outline" onClick={printCodes}><Printer size={16} /> In bảng mã</button>
                         {results.length === 1 && (
                             <button className="btn btn-outline" style={{ borderColor: '#6366f1', color: '#6366f1' }}
-                                onClick={() => { onClose(); setTimeout(() => navigate(`/teacher/exam-monitor/${results[0].assignmentId}`), 100); }}>
+                                onClick={() => { window.location.href = `/teacher/exam-monitor/${results[0].assignmentId}`; }}>
                                 <Activity size={16} /> Giám sát realtime
                             </button>
                         )}
-                        <button className="btn btn-primary" onClick={() => { onClose(); setTimeout(() => navigate('/teacher/assignments'), 100); }}>
+                        <button className="btn btn-primary" onClick={() => { window.location.href = '/teacher/assignments'; }}>
                             <CheckCircle size={16} /> Xem bài đã giao
                         </button>
                     </div>
