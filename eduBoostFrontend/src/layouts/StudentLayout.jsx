@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
-import { FileQuestion, Menu, MessageSquare, Users } from "lucide-react";
+import { FileQuestion, Menu } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 import LanguageSwitch from "../components/common/LanguageSwitch";
 import { useLanguage } from "../contexts/language-context";
@@ -15,15 +15,11 @@ const StudentLayout = () => {
   const copy =
     language === "vi"
       ? {
-          chat: "Chat AI",
           exams: "Bài kiểm tra",
-          forum: "Diễn đàn",
           title: "Dashboard học viên",
         }
       : {
-          chat: "AI chat",
           exams: "Exams",
-          forum: "Forum",
           title: "Student dashboard",
         };
 
@@ -48,25 +44,11 @@ const StudentLayout = () => {
 
         <nav className="dl-nav">
           <Link
-            to="/student/chat"
-            className={`dl-nav-item ${isActive("/student/chat") ? "active" : ""}`}
-            onClick={closeSidebar}
-          >
-            <MessageSquare size={20} /> {copy.chat}
-          </Link>
-          <Link
             to="/student/exams"
             className={`dl-nav-item ${isActive("/student/exams") ? "active" : ""}`}
             onClick={closeSidebar}
           >
             <FileQuestion size={20} /> {copy.exams}
-          </Link>
-          <Link
-            to="/student/forum"
-            className={`dl-nav-item ${isActive("/student/forum") ? "active" : ""}`}
-            onClick={closeSidebar}
-          >
-            <Users size={20} /> {copy.forum}
           </Link>
         </nav>
 
