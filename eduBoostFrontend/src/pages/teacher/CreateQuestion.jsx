@@ -952,28 +952,25 @@ const CreateQuestion = () => {
                       padding: '0.1rem 0.4rem', borderRadius: '4px',
                     }}>tùy chọn, nhưng nên điền đủ 3</span>
                   </label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {[wrongAnswer1, wrongAnswer2, wrongAnswer3].map((val, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {[
+                      { val: wrongAnswer1, set: setWrongAnswer1 },
+                      { val: wrongAnswer2, set: setWrongAnswer2 },
+                      { val: wrongAnswer3, set: setWrongAnswer3 },
+                    ].map(({ val, set }, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                         <span style={{
                           fontWeight: 700, color: '#9ca3af',
                           minWidth: '1.5rem', fontSize: '0.85rem',
+                          paddingTop: '0.65rem',
                         }}>{String.fromCharCode(65 + idx)}.</span>
-                        <input
-                          type="text"
-                          style={{
-                            flex: 1, border: '1px solid #e5e7eb',
-                            borderRadius: '8px', padding: '0.5rem 0.8rem',
-                            fontSize: '0.9rem', outline: 'none',
-                          }}
-                          value={val}
-                          onChange={(e) => {
-                            if (idx === 0) setWrongAnswer1(e.target.value);
-                            if (idx === 1) setWrongAnswer2(e.target.value);
-                            if (idx === 2) setWrongAnswer3(e.target.value);
-                          }}
-                          placeholder={`Đáp án sai ${idx + 1}...`}
-                        />
+                        <div style={{ flex: 1 }}>
+                          <RichTextEditor
+                            value={val}
+                            onChange={set}
+                            placeholder={`Đáp án sai ${idx + 1}...`}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
