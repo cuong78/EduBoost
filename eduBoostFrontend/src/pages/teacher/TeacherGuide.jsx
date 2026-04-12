@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  BarChart3,
   BookOpen,
   CheckCircle,
   ChevronDown,
@@ -51,6 +52,12 @@ const GUIDE_COPY = {
         title: "Hỗ trợ",
         desc: "Gửi phản hồi và nhận hỗ trợ trong quá trình sử dụng.",
         items: ["Góp ý"],
+      },
+      {
+        icon: BarChart3,
+        title: "Thống kê & Giám sát",
+        desc: "Theo dõi bài thi, giám sát thi realtime và xem bảng điểm.",
+        items: ["Thống kê"],
       },
     ],
     sections: [
@@ -117,6 +124,20 @@ const GUIDE_COPY = {
           "Nhập tên đề, chọn môn, khối và loại đề thi phù hợp.",
           "Phân bổ câu hỏi hoặc chọn ma trận nếu bạn đang tạo đề có cấu trúc cụ thể.",
           "Xem trước đề thi, chỉnh sửa câu hỏi cần thiết rồi mới xuất bản hoặc xuất PDF.",
+        ],
+      },
+      {
+        id: "assignments",
+        icon: BarChart3,
+        title: "Thống kê",
+        path: "/teacher/assignments",
+        color: "#0ea5e9",
+        summary: "Xem bài thi đã giao, giám sát realtime và quản lý bảng điểm toàn lớp.",
+        steps: [
+          "Vào tab Bài đã giao để thấy toàn bộ bài thi đã giao và trạng thái hiện tại.",
+          "Nhấn Xem kết quả để mở bảng điểm của từng bài thi cho tất cả học sinh.",
+          "Nhấn Giám sát để vào trang xem realtime: ai đang làm bài, ai nộp rồi, vi phạm nào xảy ra.",
+          "Vào tab Quản lý điểm, chọn lớp để xem bảng điểm ngang — cuộn phải nếu có nhiều cột đề thi.",
         ],
       },
     ],
@@ -263,7 +284,19 @@ const GUIDE_COPY = {
 const TeacherGuide = () => {
   const [expandedId, setExpandedId] = useState(null);
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const content = GUIDE_COPY[language];
+
+  /** Navigate to the target page and clear its tour key so the tour auto-starts */
+  const goWithTour = (path) => {
+    // The GuidedTour component stores "seen" under eduboost_tour_<key>
+    // Key is constructed from the pathname in each page component.
+    // We clear any known variant:
+    const slug = path.replace(/^\/teacher\//, "").replace(/\//g, "-");
+    localStorage.removeItem(`eduboost_tour_${slug}`);
+    localStorage.removeItem(`eduboost_tour_teacher_${slug}`);
+    navigate(path);
+  };
 
   return (
     <div className="guide-page">
@@ -355,10 +388,14 @@ const TeacherGuide = () => {
                     ))}
                   </ul>
                   <div className="guide-section-cta">
-                    <Link to={section.path} className="guide-link">
+                    <button
+                      type="button"
+                      className="guide-link"
+                      onClick={() => goWithTour(section.path)}
+                    >
                       <ArrowRight size={16} />
-                      {content.goTo} {section.title}
-                    </Link>
+                      Đi tới {section.title} &amp; xem hướng dẫn
+                    </button>
                   </div>
                 </div>
               )}

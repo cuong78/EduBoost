@@ -4,6 +4,7 @@
  */
 
 import {
+  BarChart3,
   BookOpen,
   ClipboardList,
   FilePlus,
@@ -117,11 +118,11 @@ export const TEACHER_SIDEBAR_STEPS = [
     FilePlus
   ),
   s(
-    '[data-tour="nav-feedback"]',
-    "Góp ý",
-    "Gửi phản hồi, báo lỗi hoặc đề xuất tính năng mới cho hệ thống.",
+    '[data-tour="nav-assignments"]',
+    "Thống kê",
+    "Theo dõi bài thi đã giao, giám sát realtime và quản lý bảng điểm toàn lớp.",
     "right",
-    Send
+    BarChart3
   ),
   s(
     '[data-tour="nav-guide"]',
@@ -281,6 +282,43 @@ export const RESOURCE_STEPS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// THỐNG KÊ (AssignmentList)
+// ═══════════════════════════════════════════════════════════════════════════════
+export const ASSIGNMENT_LIST_STEPS = [
+  s(
+    "body",
+    "Thống kê bài thi",
+    "Trang này giúp bạn theo dõi toàn bộ bài thi đã giao và quản lý điểm số học sinh.",
+    "center",
+    BarChart3
+  ),
+  s(
+    ".al-subtabs",
+    "Hai tab chính",
+    "① Bài đã giao: danh sách bài thi + giám sát realtime.\n② Quản lý điểm: bảng điểm toàn lớp theo từng đề thi.",
+    "bottom"
+  ),
+  s(
+    ".al-stats",
+    "Thống kê nhanh",
+    "Xem tổng bài giao, số đang diễn ra, tổng bài nộp và số đã kết thúc theo thời gian thực.",
+    "top"
+  ),
+  s(
+    ".al-filters",
+    "Tìm kiếm & Lọc",
+    "Gõ tên đề, mã đề hoặc tên lớp vào ô tìm kiếm. Dùng chip lọc nhanh theo trạng thái: Chưa bắt đầu / Đang diễn ra / Đã kết thúc.",
+    "bottom"
+  ),
+  s(
+    ".al-table",
+    "Bảng bài thi",
+    "Mỗi dòng là 1 bài thi đã giao. Cột Thao tác có 2 nút:\n• Xem kết quả: mở bảng điểm chi tiết từng học sinh.\n• Giám sát: xem realtime ai đang làm bài.",
+    "top"
+  ),
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Map pathname → steps
 // ═══════════════════════════════════════════════════════════════════════════════
 export const TOUR_STEPS_MAP = {
@@ -291,4 +329,5 @@ export const TOUR_STEPS_MAP = {
   "/teacher/matrix-templates": MATRIX_MANAGEMENT_STEPS,
   "/teacher/exams": EXAM_MANAGEMENT_STEPS,
   "/teacher/create-exam": CREATE_EXAM_STEPS,
+  "/teacher/assignments": ASSIGNMENT_LIST_STEPS,
 };
