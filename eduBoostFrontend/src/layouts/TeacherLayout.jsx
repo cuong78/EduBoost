@@ -160,14 +160,7 @@ const TeacherLayout = () => {
           >
             <BarChart3 size={20} /> <span className="dl-nav-label">Thống kê</span>
           </Link>
-          <Link
-            to="/teacher/feedback"
-            className={`dl-nav-item ${isActive("/teacher/feedback") ? "active" : ""}`}
-            onClick={closeSidebar}
-            data-tour="nav-feedback"
-          >
-            <Send size={20} /> <span className="dl-nav-label">Góp ý</span>
-          </Link>
+
           {/* Tạm ẩn - Gói đăng ký
           <Link
             to="/teacher/subscription"
@@ -230,6 +223,45 @@ const TeacherLayout = () => {
         <div className="dl-page">
           <Outlet />
         </div>
+
+        {/* Floating Feedback Button */}
+        <a
+          href="/teacher/feedback"
+          className="dl-fab-feedback"
+          title="Góp ý"
+        >
+          <Send size={18} />
+          <span>Góp ý</span>
+        </a>
+
+        <style>{`
+          .dl-fab-feedback {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.65rem 1.2rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border-radius: 99px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.88rem;
+            box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+            transition: all 0.25s ease;
+            letter-spacing: 0.02em;
+          }
+          .dl-fab-feedback:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 28px rgba(99,102,241,0.5);
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+          }
+          .dl-fab-feedback:active { transform: translateY(-1px); }
+        `}</style>
       </main>
     </div>
   );

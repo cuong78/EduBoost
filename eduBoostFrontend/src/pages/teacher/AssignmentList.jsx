@@ -227,35 +227,19 @@ const AssignmentList = () => {
             </div>
 
             {/* Sub-tabs */}
-            <div className="al-tabs" style={{
-                display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0',
-            }}>
+            <div className="al-subtabs">
                 <button
-                    className={`al-tab-btn ${activeTab === 'assignments' ? 'active' : ''}`}
+                    className={`al-subtab ${activeTab === 'assignments' ? 'active' : ''}`}
                     onClick={() => setActiveTab('assignments')}
-                    style={{
-                        padding: '0.75rem 1.5rem', background: 'none', border: 'none',
-                        borderBottom: activeTab === 'assignments' ? '2px solid #6366f1' : '2px solid transparent',
-                        marginBottom: '-2px', cursor: 'pointer', fontWeight: 600,
-                        color: activeTab === 'assignments' ? '#6366f1' : '#64748b',
-                        fontSize: '0.95rem', transition: 'all 0.2s',
-                    }}
                 >
-                    <ClipboardCheck size={16} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} />
+                    <ClipboardCheck size={16} />
                     Bài đã giao
                 </button>
                 <button
-                    className={`al-tab-btn ${activeTab === 'grades' ? 'active' : ''}`}
+                    className={`al-subtab ${activeTab === 'grades' ? 'active' : ''}`}
                     onClick={() => setActiveTab('grades')}
-                    style={{
-                        padding: '0.75rem 1.5rem', background: 'none', border: 'none',
-                        borderBottom: activeTab === 'grades' ? '2px solid #6366f1' : '2px solid transparent',
-                        marginBottom: '-2px', cursor: 'pointer', fontWeight: 600,
-                        color: activeTab === 'grades' ? '#6366f1' : '#64748b',
-                        fontSize: '0.95rem', transition: 'all 0.2s',
-                    }}
                 >
-                    <Trophy size={16} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} />
+                    <Trophy size={16} />
                     Quản lý điểm
                 </button>
             </div>
@@ -377,12 +361,19 @@ const AssignmentList = () => {
                                             </td>
                                             <td className="center">
                                                 <div className="al-actions">
-                                                    <button className="al-icon-btn" title="Xem kết quả" onClick={() => openResults(a)}>
-                                                        <BarChart2 size={15} />
+                                                    <button
+                                                        className="al-action-text-btn al-action-results"
+                                                        onClick={() => openResults(a)}
+                                                    >
+                                                        <BarChart2 size={14} />
+                                                        Xem kết quả
                                                     </button>
-                                                    <button className="al-icon-btn" title="Giám sát realtime"
-                                                        onClick={() => navigate(`/teacher/exam-monitor/${a.assignmentId}`)}>
-                                                        <Eye size={15} />
+                                                    <button
+                                                        className="al-action-text-btn al-action-monitor"
+                                                        onClick={() => navigate(`/teacher/exam-monitor/${a.assignmentId}`)}
+                                                    >
+                                                        <Eye size={14} />
+                                                        Giám sát
                                                     </button>
                                                 </div>
                                             </td>
@@ -665,7 +656,8 @@ const GradeManagementTab = () => {
                     <p>Chưa có dữ liệu điểm cho lớp này</p>
                 </div>
             ) : (
-                <div style={{ overflowX: 'auto', background: 'white', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div style={{ overflowX: 'auto', background: 'white', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', WebkitOverflowScrolling: 'touch' }}>
+                    <div style={{ minWidth: 'max-content' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                         <thead>
                             <tr style={{ background: '#f8fafc' }}>
@@ -726,6 +718,7 @@ const GradeManagementTab = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
 
