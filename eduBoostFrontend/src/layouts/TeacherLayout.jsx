@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import {
   House,
@@ -17,6 +17,7 @@ import {
   Send,
   Sparkles,
   BarChart3,
+  X,
 } from "lucide-react";
 import UserMenu from "../components/common/UserMenu";
 import GuidedTour from "../components/common/GuidedTour";
@@ -224,47 +225,117 @@ const TeacherLayout = () => {
           <Outlet />
         </div>
 
-        {/* Floating Feedback Button */}
-        <a
-          href="/teacher/feedback"
-          className="dl-fab-feedback"
-          title="Góp ý"
-        >
-          <Send size={18} />
-          <span>Góp ý</span>
-        </a>
-
-        <style>{`
-          .dl-fab-feedback {
-            position: fixed;
-            bottom: 28px;
-            right: 28px;
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0.65rem 1.2rem;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border-radius: 99px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 0.88rem;
-            box-shadow: 0 6px 20px rgba(99,102,241,0.4);
-            transition: all 0.25s ease;
-            letter-spacing: 0.02em;
-          }
-          .dl-fab-feedback:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 28px rgba(99,102,241,0.5);
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
-          }
-          .dl-fab-feedback:active { transform: translateY(-1px); }
-        `}</style>
+        {/* Floating Feedback FAB — dismissible */}
+        <FeedbackFAB />
       </main>
     </div>
   );
 };
 
 export default TeacherLayout;
+
+/* ─── Dismissible Feedback FAB ─── */
+const FAB_KEY = 'eduboost_fab_dismissed';
+
+const FeedbackFAB = () => {
+  const navigate = useNavigate();
+  const [visible, setVisible] = useState(() => {
+    try { return localStorage.getItem(FAB_KEY) !== '1'; }
+    catch { return true; }
+  });
+
+  const dismiss = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    localStorage.setItem(FAB_KEY, '1');
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <>
+      <div className="fab-feedback-wrap">
+        <button
+          className="fab-feedback-btn"
+          onClick={() => navigate('/teacher/feedback')}
+          title="Gửi góp ý"
+        >
+          <Send size={16} />
+          <span>Góp ý</span>
+        </button>
+        <button className="fab-feedback-close" onClick={dismiss} title="Đóng" aria-label="Đóng">
+          <X size={13} />
+        </button>
+      </div>
+
+      <style>{`
+        .fab-feedback-wrap {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 200;
+          display: flex;
+          align-items: center;
+          gap: 0;
+          border-radius: 99px;
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(99, 102, 241, 0.22);
+          box-shadow:
+            0 4px 20px rgba(99, 102, 241, 0.12),
+            0 1px 4px rgba(0, 0, 0, 0.06);
+          transition: box-shadow 0.25s ease, transform 0.25s ease;
+          overflow: hidden;
+        }
+
+        .fab-feedback-wrap:hover {
+          box-shadow:
+            0 8px 28px rgba(99, 102, 241, 0.2),
+            0 2px 8px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
+        }
+
+        .fab-feedback-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 0.55rem 1rem 0.55rem 1.1rem;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 0.86rem;
+          font-weight: 700;
+          color: #6366f1;
+          transition: color 0.2s;
+          white-space: nowrap;
+        }
+
+        .fab-feedback-btn:hover { color: #4f46e5; }
+
+        .fab-feedback-close {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          margin-right: 6px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(100, 116, 139, 0.1);
+          color: #94a3b8;
+          cursor: pointer;
+          transition: background 0.18s, color 0.18s;
+          flex-shrink: 0;
+        }
+
+        .fab-feedback-close:hover {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+        }
+      `}</style>
+    </>
+  );
+};
