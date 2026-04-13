@@ -639,20 +639,43 @@ public class WordImportServiceImpl implements WordImportService {
 
     /**
      * Extract all A/B/C/D options as a map: {"A" -> "option text", "B" -> ...}
+     * Supports:
+     *   Format 1: "A. text"  "A) text"  (standard)
+     *   Format 2: "A.text"  (no space) or bullet "• A.text" / "- A.text"
+     *   Also handles [[HL]] highlight markers (correct answer marker)
      */
     private Map<String, String> extractAllOptions(String text) {
         Map<String, String> options = new LinkedHashMap<>();
         String cleanText = text.replaceAll("\\[\\[HL\\]\\]", "");
-        // Match patterns: A. text  A) text  A text (followed by next option or answer section)
+
+        // Format 1 + 2 combined:
+        // Matches: optional bullet/dash, optional space, A/B/C/D, then . or ) or space, then text
+        // Stop at next option, answer, or explanation marker
         Pattern p = Pattern.compile(
-            "\\b([A-D])[.)\\s]\\s*(.*?)(?=\\s*\\b[A-D][.)\\s]|\\s*(?:Lời giải|Đáp án|Chọn)|$)",
+            "(?:^|\\n)\\s*[•\\-]?\\s*([A-D])[.)\\s]\\s*(.*?)(?=\\n\\s*[•\\-]?\\s*[A-D][.)\\s]|\\n\\s*(?:L\u1eddi gi\u1ea3i|\u0110\u00e1p \u00e1n|Ch\u1ecdn|Tr\u1ea3 l\u1eddi)|$)",
             Pattern.DOTALL);
         Matcher m = p.matcher(cleanText);
         while (m.find()) {
             String letter = m.group(1).toUpperCase();
             String optionText = m.group(2).trim();
+            // Remove any trailing newlines / bullet from option text
+            optionText = optionText.replaceAll("\\n.*", "").trim();
             if (!optionText.isEmpty()) {
                 options.put(letter, optionText);
+            }
+        }
+
+        // Fallback: no-space bullet format "•A.text" or "A.text" at start of line
+        if (options.isEmpty()) {
+            Pattern p2 = Pattern.compile(
+                "(?:^|\\n)\\s*[•\\-]?\\s*([A-D])\\.([^\\n]+)");
+            Matcher m2 = p2.matcher(cleanText);
+            while (m2.find()) {
+                String letter = m2.group(1).toUpperCase();
+                String optionText = m2.group(2).trim();
+                if (!optionText.isEmpty()) {
+                    options.put(letter, optionText);
+                }
             }
         }
         return options;
@@ -660,6 +683,7 @@ public class WordImportServiceImpl implements WordImportService {
 
     /**
      * Extract the correct answer LETTER (A, B, C, D) without resolving to option text.
+     * Supports both Format 1 ("Đáp án: X") and Format 2 ("Đáp án cần chọn là: X").
      */
     private String extractCorrectAnswerLetter(String text, QuestionType type) {
         if (type != QuestionType.MULTIPLE_CHOICE) return null;
@@ -668,9 +692,15 @@ public class WordImportServiceImpl implements WordImportService {
         Matcher hlMatch = Pattern.compile("\\[\\[HL\\]\\]\\s*([A-D])").matcher(text);
         if (hlMatch.find()) return hlMatch.group(1).toUpperCase();
 
-        // Priority 2: "Đáp án: X" or "Chọn X"
+        // Priority 2: "Đáp án cần chọn là: X" (Format 2)
+        Matcher f2Match = Pattern.compile(
+            "(?:\u0110\u00e1p \u00e1n c\u1ea7n ch\u1ecdn l\u00e0|c\u1ea7n ch\u1ecdn l\u00e0)[:\\s]*([A-D])\\b",
+            Pattern.CASE_INSENSITIVE).matcher(text);
+        if (f2Match.find()) return f2Match.group(1).toUpperCase();
+
+        // Priority 3: "Đáp án: X", "Đáp án đúng: X", "Chọn X" (Format 1)
         Matcher ansMatch = Pattern.compile(
-            "(?:Đáp án(?:\\s+đúng)?(?:\\s+là)?|Chọn(?:\\s+là)?)[:\\s]*([A-D])",
+            "(?:\u0110\u00e1p \u00e1n(?:\\s+\u0111\u00fang)?(?:\\s+l\u00e0)?|Ch\u1ecdn(?:\\s+l\u00e0)?)[:\\s]*([A-D])\\b",
             Pattern.CASE_INSENSITIVE).matcher(text);
         if (ansMatch.find()) return ansMatch.group(1).toUpperCase();
 
@@ -707,24 +737,32 @@ public class WordImportServiceImpl implements WordImportService {
                 return extractOptionText(cleanText.replaceAll("\\[\\[HL\\]\\]", ""), letter);
             }
 
-            // Priority 2: "Đáp án: X" or "Chọn X"
+            // Priority 2: Format 2 — "Đáp án cần chọn là: X"
+            Matcher f2Match = Pattern.compile(
+                "(?:\u0110\u00e1p \u00e1n c\u1ea7n ch\u1ecdn l\u00e0|c\u1ea7n ch\u1ecdn l\u00e0)[:\\s]*([A-D])\\b",
+                Pattern.CASE_INSENSITIVE).matcher(cleanText);
+            if (f2Match.find()) {
+                String letter = f2Match.group(1).toUpperCase();
+                return extractOptionText(cleanText.replaceAll("\\[\\[HL\\]\\]", ""), letter);
+            }
+
+            // Priority 3: Format 1 — "Đáp án: X" or "Chọn X"
             Matcher ansMatch = Pattern.compile(
-                    "(?:Đáp án(?:\\s+đúng)?(?:\\s+là)?|Chọn(?:\\s+là)?)[:\\s]*([A-D])",
+                    "(?:\u0110\u00e1p \u00e1n(?:\\s+\u0111\u00fang)?(?:\\s+l\u00e0)?|Ch\u1ecdn(?:\\s+l\u00e0)?)[:\\s]*([A-D])\\b",
                     Pattern.CASE_INSENSITIVE).matcher(cleanText);
             if (ansMatch.find()) {
                 String letter = ansMatch.group(1).toUpperCase();
                 return extractOptionText(cleanText.replaceAll("\\[\\[HL\\]\\]", ""), letter);
             }
         } else if (type == QuestionType.TRUE_FALSE) {
-            Matcher m = Pattern.compile("(?:Đáp án|Chọn)[:\\s]*(Đúng|Sai)", Pattern.CASE_INSENSITIVE).matcher(text);
+            Matcher m = Pattern.compile("(?:\u0110\u00e1p \u00e1n|Ch\u1ecdn)[:\\s]*([\u0110\u0111]\u00fang|Sai)", Pattern.CASE_INSENSITIVE).matcher(text);
             if (m.find()) return m.group(1);
 
-            // Check in explanation
-            if (Pattern.compile("\\bĐúng\\b").matcher(text).find()) return "Đúng";
+            if (Pattern.compile("\\b\u0110\u00fang\\b").matcher(text).find()) return "\u0110\u00fang";
             if (Pattern.compile("\\bSai\\b").matcher(text).find()) return "Sai";
         } else {
             // FILL_BLANK
-            Matcher m = Pattern.compile("(?:Đáp án|Chọn)[:\\s]*([^.\\n]+)", Pattern.CASE_INSENSITIVE).matcher(text);
+            Matcher m = Pattern.compile("(?:\u0110\u00e1p \u00e1n|Ch\u1ecdn)[:\\s]*([^.\\n]+)", Pattern.CASE_INSENSITIVE).matcher(text);
             if (m.find()) return m.group(1).trim();
         }
 
@@ -742,9 +780,23 @@ public class WordImportServiceImpl implements WordImportService {
         return letter;
     }
 
+    /**
+     * Extract explanation text.
+     * Format 1: "Lời giải: ..."
+     * Format 2: "Lời giải:\nTrả lời:\n...<body>\nĐáp án cần chọn là: X"
+     *           → captures body, strips the trailing answer line
+     */
     private String extractExplanation(String text) {
-        Matcher m = Pattern.compile("Lời giải[:\\s]*(.*)", Pattern.DOTALL).matcher(text);
-        if (m.find()) return m.group(1).trim();
+        // Try "Lời giải:" (both formats)
+        Matcher loiGiaiM = Pattern.compile("L\u1eddi gi\u1ea3i[:\\s]*(.*)", Pattern.DOTALL).matcher(text);
+        if (loiGiaiM.find()) {
+            String body = loiGiaiM.group(1).trim();
+            // Remove leading "Trả lời:" line (Format 2)
+            body = body.replaceFirst("^Tr\u1ea3 l\u1eddi[:\\s]*\\n?", "").trim();
+            // Strip trailing "Đáp án cần chọn là: X" line
+            body = body.replaceAll("(?m)\\n?\\s*\u0110\u00e1p \u00e1n c\u1ea7n ch\u1ecdn l\u00e0.*$", "").trim();
+            return body.isEmpty() ? "" : body;
+        }
         return "";
     }
 
@@ -753,19 +805,22 @@ public class WordImportServiceImpl implements WordImportService {
         text = text.replaceAll("\\[\\[HL\\]\\]", "");
 
         if (type == QuestionType.MULTIPLE_CHOICE) {
-            // Step 1: Remove everything from "Lời giải:", "Đáp án đúng", "Chọn X" onwards
-            Matcher m = Pattern.compile("(Lời giải:|Đáp án đúng|Chọn [A-D])", Pattern.CASE_INSENSITIVE).matcher(text);
+            // Stop at explanation / answer keywords (both formats)
+            Matcher m = Pattern.compile(
+                "(L\u1eddi gi\u1ea3i:|\u0110\u00e1p \u00e1n \u0111\u00fang|\u0110\u00e1p \u00e1n c\u1ea7n ch\u1ecdn|Ch\u1ecdn [A-D])",
+                Pattern.CASE_INSENSITIVE).matcher(text);
             if (m.find()) {
                 text = text.substring(0, m.start());
             }
-            // Step 2: Remove the A./B./C./D. option lines — keep only lines BEFORE the first option
-            // Find the position of the first option line (A. or A))
-            Matcher optionStart = Pattern.compile("^\\s*[A-D][.)\\s]", Pattern.MULTILINE).matcher(text);
+            // Remove A./B./C./D. option lines — keep only lines BEFORE the first option
+            Matcher optionStart = Pattern.compile(
+                "(?:^|\\n)\\s*[•\\-]?\\s*[A-D][.)]",
+                Pattern.MULTILINE).matcher(text);
             if (optionStart.find()) {
                 text = text.substring(0, optionStart.start());
             }
         } else {
-            Matcher m = Pattern.compile("(Lời giải:|Đáp án:)", Pattern.CASE_INSENSITIVE).matcher(text);
+            Matcher m = Pattern.compile("(L\u1eddi gi\u1ea3i:|\u0110\u00e1p \u00e1n:)", Pattern.CASE_INSENSITIVE).matcher(text);
             if (m.find()) {
                 text = text.substring(0, m.start());
             }

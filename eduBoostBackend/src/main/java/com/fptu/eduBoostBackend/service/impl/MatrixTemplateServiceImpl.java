@@ -212,7 +212,7 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
     @Override
     @Transactional
     public void deleteMatrixTemplate(Long id) {
-        log.info("Deleting matrix template with id: {}", id);
+        log.info("Soft-deleting matrix template with id: {}", id);
 
         ExamMatrixTemplate template = templateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Matrix template not found with id: " + id));
@@ -226,17 +226,13 @@ public class MatrixTemplateServiceImpl implements MatrixTemplateService {
             throw new BadRequestException("You can only delete templates you created");
         }
 
-        // Check if any exam is using this matrix template
-        if (examRepository.existsByMatrixTemplateId(id)) {
-            throw new BadRequestException(
-                "Ma trận này đang được sử dụng bởi đề thi. Vui lòng xóa các đề thi liên quan trước khi xóa ma trận.");
-        }
-        String templateName = template.getTemplateName();
+        // Soft delete — exams still referencing this template are unaffected
+        template.setIsDeleted(true);
+        template.setDeletedAt(java.time.LocalDateTime.now());
+        templateRepository.save(template);
 
-        lessonDetailRepository.deleteByTemplateId(id);
-        detailRepository.deleteByTemplateId(id);
-        templateRepository.delete(template);
-        activityLogService.log("Đã xoá ma trận đề:"+templateName);
+        activityLogService.log("Đã xóa (mềm) ma trận đề: " + template.getTemplateName());
+        log.info("Soft-deleted matrix template {}", id);
     }
 
     // ====================== Private helpers ======================

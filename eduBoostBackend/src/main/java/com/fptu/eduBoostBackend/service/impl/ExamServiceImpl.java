@@ -212,21 +212,25 @@ public class ExamServiceImpl implements ExamService {
     public void deleteExam(Long id) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
-        
-        // Delete exam_questions for all variant (child) exams first
+
         List<Exam> variants = examRepository.findByParentExamIdOrderByVariantNumber(id);
+
+        // Soft-delete all child variant exams
+        LocalDateTime now = LocalDateTime.now();
         for (Exam variant : variants) {
-            examQuestionRepository.deleteByExamId(variant.getId());
-            log.info("Deleted exam questions for variant: {}", variant.getExamCode());
+            variant.setIsDeleted(true);
+            variant.setDeletedAt(now);
+            examRepository.save(variant);
+            log.info("Soft-deleted variant exam: {}", variant.getExamCode());
         }
-        
-        // Delete exam_questions for the parent exam
-        examQuestionRepository.deleteByExamId(id);
-        
-        // Delete the exam — cascade will remove variant exams
-        examRepository.delete(exam);
-        activityLogService.log("Xóa đề thi " + exam.getExamCode() + " cùng " + variants.size() + " variant(s)");
-        log.info("Deleted exam {} with {} variants", exam.getExamCode(), variants.size());
+
+        // Soft-delete the parent exam
+        exam.setIsDeleted(true);
+        exam.setDeletedAt(now);
+        examRepository.save(exam);
+
+        activityLogService.log("Đã xóa (mềm) đề thi " + exam.getExamCode() + " cùng " + variants.size() + " variant(s)");
+        log.info("Soft-deleted exam {} with {} variants", exam.getExamCode(), variants.size());
     }
 
     @Override

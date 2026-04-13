@@ -203,7 +203,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     @Override
     @Transactional
     public void deleteQuestion(Long id) {
-        log.info("Deleting question with id: {}", id);
+        log.info("Soft-deleting question with id: {}", id);
 
         QuestionBank question = questionBankRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found with id: " + id));
@@ -213,12 +213,16 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         User currentUser = (User) authentication.getPrincipal();
 
         // Check if user can delete (created by user or admin)
-        if (!question.getCreatedBy().getUserId().equals(currentUser.getUserId()) && 
+        if (!question.getCreatedBy().getUserId().equals(currentUser.getUserId()) &&
             !currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             throw new BadRequestException("You can only delete questions you created");
         }
-        activityLogService.log("Đã xoá câu hỏi");
-        questionBankRepository.delete(question);
+
+        question.setIsDeleted(true);
+        question.setDeletedAt(java.time.LocalDateTime.now());
+        questionBankRepository.save(question);
+        activityLogService.log("Đã xóa (mềm) câu hỏi #" + id);
+        log.info("Soft-deleted question {}", id);
     }
 
     @Override

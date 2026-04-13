@@ -4,6 +4,7 @@ import com.fptu.eduBoostBackend.entities.enums.LessonResourceType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_lr_lesson", columnList = "lesson_id"),
     @Index(name = "idx_lr_resource_type", columnList = "resource_type")
 })
+@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,5 +57,13 @@ public class LessonResource {
     @CreationTimestamp
     @Column(name = "uploaded_at", updatable = false)
     private LocalDateTime uploadedAt;
+
+    // ─── Soft delete ───
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }
 

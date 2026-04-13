@@ -153,12 +153,13 @@ public class LessonResourceServiceImpl implements LessonResourceService {
         LessonResource resource = lessonResourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
 
-        if (resource.getFilePath() != null) {
-            fileStorageService.deleteFile(resource.getFilePath());
-        }
-        activityLogService.log("Đã xoá resource: "+resource.getResourceName());
-        lessonResourceRepository.delete(resource);
+        // Soft delete — keep the file in storage for audit/recovery
+        resource.setIsDeleted(true);
+        resource.setDeletedAt(java.time.LocalDateTime.now());
+        lessonResourceRepository.save(resource);
 
+        activityLogService.log("Đã xóa (mềm) resource: " + resource.getResourceName());
+        log.info("Soft-deleted resource {}", id);
     }
 
     private LessonResourceResponse mapToResponse(LessonResource resource) {
