@@ -91,7 +91,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI generation completed in {}ms, generated {} questions", generationTime, questions.size());
         activityLogService.log(
-                "Tạo " + questions.size() + " câu hỏi AI từ tài liệu: " + resource.getResourceName()
+                "Tạo câu hỏi AI từ tài liệu: " + resource.getResourceName()
         );
 
         return AIGenerateFromResourceResponse.builder()
@@ -132,7 +132,7 @@ public class AIQuestionGeneratorServiceImpl implements AIQuestionGeneratorServic
         long generationTime = System.currentTimeMillis() - startTime;
         log.info("AI generation from merged content completed in {}ms, generated {} questions", generationTime, questions.size());
         activityLogService.log(
-                "Tạo " + questions.size() + " câu hỏi AI từ nhiều tài liệu gộp cho bài: " + lesson.getLessonName());
+                "Tạo câu hỏi AI từ nhiều tài liệu gộp cho bài: " + lesson.getLessonName());
         return AIGenerateFromResourceResponse.builder()
                 .resourceId(request.getResourceId())
                 .lessonId(lesson.getId())

@@ -254,8 +254,11 @@ public class WordImportServiceImpl implements WordImportService {
             } else if ("t".equals(localName)) {
                 String t = getNodeText(child);
                 if (t != null) {
-                    if (isSuperscript) t = "^{" + t + "}";
-                    else if (isSubscript) t = "_{" + t + "}";
+                    if (isSuperscript) {
+                        t = toSuperscript(t);
+                    } else if (isSubscript) {
+                        t = toSubscript(t);
+                    }
                     if (isHighlight) t = "[[HL]]" + t + "[[HL]]";
                     text.append(t);
                 }
@@ -784,6 +787,7 @@ public class WordImportServiceImpl implements WordImportService {
 
             // FIX: Xoá dòng "Chọn đáp án X" hoặc "Chọn X" - đây là answer indicator, không phải explanation
             body = body.replaceAll("(?mi)^\\s*Chọn\\s+(?:đáp án\\s+)?[A-D]\\.?\\s*$", "").trim();
+            body = body.replaceAll("(?mi)^\\s*Đáp án\\s+đúng\\s+là[:\\s]*[A-D]?\\.?\\s*$", "").trim();
 
             return body.isEmpty() ? "" : body;
         }
@@ -1047,5 +1051,73 @@ public class WordImportServiceImpl implements WordImportService {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+    private String toSuperscript(String input) {
+        Map<Character, Character> map = Map.ofEntries(
+                Map.entry('0','⁰'), Map.entry('1','¹'), Map.entry('2','²'),
+                Map.entry('3','³'), Map.entry('4','⁴'), Map.entry('5','⁵'),
+                Map.entry('6','⁶'), Map.entry('7','⁷'), Map.entry('8','⁸'),
+                Map.entry('9','⁹'),
+
+                Map.entry('+','⁺'), Map.entry('-','⁻'), Map.entry('=','⁼'),
+                Map.entry('(','⁽'), Map.entry(')','⁾'),
+
+                Map.entry('n','ⁿ'), Map.entry('i','ⁱ'),
+                Map.entry('a','ᵃ'), Map.entry('b','ᵇ'), Map.entry('c','ᶜ'),
+                Map.entry('d','ᵈ'), Map.entry('e','ᵉ'), Map.entry('f','ᶠ'),
+                Map.entry('g','ᵍ'), Map.entry('h','ʰ'), Map.entry('j','ʲ'),
+                Map.entry('k','ᵏ'), Map.entry('l','ˡ'), Map.entry('m','ᵐ'),
+                Map.entry('o','ᵒ'), Map.entry('p','ᵖ'), Map.entry('r','ʳ'),
+                Map.entry('s','ˢ'), Map.entry('t','ᵗ'), Map.entry('u','ᵘ'),
+                Map.entry('v','ᵛ'), Map.entry('w','ʷ'), Map.entry('x','ˣ'),
+                Map.entry('y','ʸ'), Map.entry('z','ᶻ')
+        );
+
+        StringBuilder unicode = new StringBuilder();
+        boolean fullSupport = true;
+
+        for (char c : input.toCharArray()) {
+            Character mapped = map.get(c);
+            if (mapped == null) {
+                fullSupport = false;
+                break;
+            }
+            unicode.append(mapped);
+        }
+
+        // fallback nếu có ký tự không hỗ trợ
+        return fullSupport ? unicode.toString() : "^{" + input + "}";
+    }
+    private String toSubscript(String input) {
+        Map<Character, Character> map = Map.ofEntries(
+                Map.entry('0','₀'), Map.entry('1','₁'), Map.entry('2','₂'),
+                Map.entry('3','₃'), Map.entry('4','₄'), Map.entry('5','₅'),
+                Map.entry('6','₆'), Map.entry('7','₇'), Map.entry('8','₈'),
+                Map.entry('9','₉'),
+
+                Map.entry('+','₊'), Map.entry('-','₋'), Map.entry('=','₌'),
+                Map.entry('(','₍'), Map.entry(')','₎'),
+
+                Map.entry('a','ₐ'), Map.entry('e','ₑ'), Map.entry('h','ₕ'),
+                Map.entry('i','ᵢ'), Map.entry('j','ⱼ'), Map.entry('k','ₖ'),
+                Map.entry('l','ₗ'), Map.entry('m','ₘ'), Map.entry('n','ₙ'),
+                Map.entry('o','ₒ'), Map.entry('p','ₚ'), Map.entry('r','ᵣ'),
+                Map.entry('s','ₛ'), Map.entry('t','ₜ'), Map.entry('u','ᵤ'),
+                Map.entry('v','ᵥ'), Map.entry('x','ₓ')
+        );
+
+        StringBuilder unicode = new StringBuilder();
+        boolean fullSupport = true;
+
+        for (char c : input.toCharArray()) {
+            Character mapped = map.get(c);
+            if (mapped == null) {
+                fullSupport = false;
+                break;
+            }
+            unicode.append(mapped);
+        }
+
+        return fullSupport ? unicode.toString() : "_{" + input + "}";
     }
 }

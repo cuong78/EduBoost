@@ -3,14 +3,14 @@ DANH SÁCH FILE CÓ CÂU HỎI KHÔNG ĐÚNG FORMAT
 Tổng: 323 file | 2876 câu không chuẩn
 ======================================================================
 
-FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 1_ Cấu tạo nguyên tử\Bài 2_ Nguyên tố hóa học\40-bai-tap-ve-dong-vi-tinh-nguyen-tu-khoi-trung-binh-co-loi-giai_2026_03_21.docx
+Done FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 1_ Cấu tạo nguyên tử\Bài 2_ Nguyên tố hóa học\40-bai-tap-ve-dong-vi-tinh-nguyen-tu-khoi-trung-binh-co-loi-giai_2026_03_21.docx
   Lớp: 10  |  Môn: Hóa  |  Chương: Chương 1_ Cấu tạo nguyên tử  |  Bài: Bài 2_ Nguyên tố hóa học
   Tổng câu: 13  |  OK: 12  |  BAD: 1
   Chi tiết lỗi: Format2=1  NoAns=0  NoOpt=0
   Câu không chuẩn:
     Câu  34 [FORMAT2]: Câu 34: Cho 5,85 gam muối NaX tác dụng với dung dịch AgNO3 dư ta thu được 14,35 gam kết tủa trắng. N
 
-FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn\Bài 5_ Cấu tạo của bảng tuần hoàn các nguyên tố hóa học\21-bai-tap-xac-dinh-vi-tri-tinh-chat-cua-cac-nguyen-to-trong-bang-tuan-hoan-co-loi-giai_2026_03_21.docx
+NOT DONE FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn\Bài 5_ Cấu tạo của bảng tuần hoàn các nguyên tố hóa học\21-bai-tap-xac-dinh-vi-tri-tinh-chat-cua-cac-nguyen-to-trong-bang-tuan-hoan-co-loi-giai_2026_03_21.docx
   Lớp: 10  |  Môn: Hóa  |  Chương: Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn  |  Bài: Bài 5_ Cấu tạo của bảng tuần hoàn các nguyên tố hóa học
   Tổng câu: 3  |  OK: 0  |  BAD: 3
   Chi tiết lỗi: Format2=0  NoAns=3  NoOpt=0
@@ -19,14 +19,14 @@ FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các
     Câu  20 [NO_ANS]: Câu 20: Hai nguyên tố X và Y cùng một chu kì trong bảng tuần hoàn các nguyên tố hoá học, X thuộc nhó
     Câu  21 [NO_ANS]: Câu 21: X và Y là hai nguyên tố thuộc cùng một chu kì, hai nhóm A liên tiếp. Số proton của nguyên tử
 
-FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn\Bài 6_ Xu hướng biến đổi một số tính chất của nguyên tử các nguyên tố trong một chu kì và trong một nhóm\21-bai-tap-xac-dinh-kim-loai-kiem-kim-loai-kiem-tho-co-loi-giai_2026_03_21.docx
+DONE FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn\Bài 6_ Xu hướng biến đổi một số tính chất của nguyên tử các nguyên tố trong một chu kì và trong một nhóm\21-bai-tap-xac-dinh-kim-loai-kiem-kim-loai-kiem-tho-co-loi-giai_2026_03_21.docx
   Lớp: 10  |  Môn: Hóa  |  Chương: Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn  |  Bài: Bài 6_ Xu hướng biến đổi một số tính chất của nguyên tử các nguyên tố trong một chu kì và trong một nhóm
   Tổng câu: 10  |  OK: 9  |  BAD: 1
   Chi tiết lỗi: Format2=0  NoAns=1  NoOpt=0
   Câu không chuẩn:
     Câu  13 [NO_ANS]: Câu 13: Cho 1,67 gam hỗn hợp gồm hai kim loại ở 2 chu kỳ liên tiếp thuộc nhóm IIA tác dụng hết với d
 
-FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn\Bài 9_ Ôn tập chương 2\28-cau-trac-nghiem-hoa-10-ket-noi-tri-thuc-bai-9-on-tap-chuong-2-dung-sai-tra-loi-ngan-co-dap-an-phan-1_2026_03_21.docx
+DONE FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn\Bài 9_ Ôn tập chương 2\28-cau-trac-nghiem-hoa-10-ket-noi-tri-thuc-bai-9-on-tap-chuong-2-dung-sai-tra-loi-ngan-co-dap-an-phan-1_2026_03_21.docx
   Lớp: 10  |  Môn: Hóa  |  Chương: Chương 2_ Bảng tuần hoàn các nguyên tố hóa học và định luật bảo toàn  |  Bài: Bài 9_ Ôn tập chương 2
   Tổng câu: 17  |  OK: 13  |  BAD: 4
   Chi tiết lỗi: Format2=4  NoAns=0  NoOpt=0
@@ -36,14 +36,14 @@ FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 2_ Bảng tuần hoàn các
     Câu  12 [FORMAT2]: Câu 12: Nguyên tử của nguyên tố X có phân lớp electron ngoài cùng là 3p4. Công thức oxide ứng với hó
     Câu  13 [FORMAT2]: Câu 13: Magnesium là nguyên tố có khối lượng riêng nhỏ hơn một phần ba so với nhôm. Magnesium giúp c
 
-FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 3_ Liên kết hóa học\Bài 11_ Liên kết ion\15-bai-tap-giai-thich-su-tao-thanh-lien-ket-ion-co-loi-giai_2026_03_21.docx
+DONE FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 3_ Liên kết hóa học\Bài 11_ Liên kết ion\15-bai-tap-giai-thich-su-tao-thanh-lien-ket-ion-co-loi-giai_2026_03_21.docx
   Lớp: 10  |  Môn: Hóa  |  Chương: Chương 3_ Liên kết hóa học  |  Bài: Bài 11_ Liên kết ion
   Tổng câu: 15  |  OK: 14  |  BAD: 1
   Chi tiết lỗi: Format2=1  NoAns=0  NoOpt=0
   Câu không chuẩn:
     Câu   1 [FORMAT2]: Câu 1: Liên kết ion được hình thành bởi  A. lực hút tĩnh điện giữa các ion mang điện tích trái dấu. 
 
-FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 6_ Tốc độ phản ứng\Bài 20_ Ôn tập chương 6\24-cau-trac-nghiem-hoa-10-ket-noi-tri-thuc-bai-20-on-tap-chuong-6-dung-sai-tra-loi-ngan-co-dap-an_2026_03_21.docx
+Done FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 6_ Tốc độ phản ứng\Bài 20_ Ôn tập chương 6\24-cau-trac-nghiem-hoa-10-ket-noi-tri-thuc-bai-20-on-tap-chuong-6-dung-sai-tra-loi-ngan-co-dap-an_2026_03_21.docx
   Lớp: 10  |  Môn: Hóa  |  Chương: Chương 6_ Tốc độ phản ứng  |  Bài: Bài 20_ Ôn tập chương 6
   Tổng câu: 17  |  OK: 0  |  BAD: 17
   Chi tiết lỗi: Format2=0  NoAns=17  NoOpt=0
@@ -66,7 +66,7 @@ FILE: D:\EXE201\resource\word\Lớp 10\Hóa\Chương 6_ Tốc độ phản ứng
     Câu  16 [NO_ANS]: Câu 16: Cho phương trình hóa học của phản ứng: X + 2Y  Z + T. Ở thời điểm ban đầu, nồng độ của chất 
     Câu  17 [NO_ANS]: Câu 17: Cho phản ứng đơn giản: H2 + I2  2HI Người ta thực hiện ba thí nghiệm với nồng độ các chất đầ
 
-FILE: D:\EXE201\resource\word\Lớp 10\Lý\Chương 3_ Động lực học\Bài 15_ Định luật 2 Newton\bt-b15-dinh-luat-2-newton.docx
+nonot done FILE: D:\EXE201\resource\word\Lớp 10\Lý\Chương 3_ Động lực học\Bài 15_ Định luật 2 Newton\bt-b15-dinh-luat-2-newton.docx
   Lớp: 10  |  Môn: Lý  |  Chương: Chương 3_ Động lực học  |  Bài: Bài 15_ Định luật 2 Newton
   Tổng câu: 3  |  OK: 2  |  BAD: 1
   Chi tiết lỗi: Format2=0  NoAns=1  NoOpt=0
@@ -95,7 +95,7 @@ FILE: D:\EXE201\resource\word\Lớp 10\Lý\Chương 5_ Động lượng\Bài 28_
     Câu  12 [NO_ANS]: Câu 12: a) Xung lượng của lực gây ra tác dụng gì?  b) Một quả bóng khối lượng m đang bay ngang với t
     Câu  13 [FORMAT2]: Câu 13: Thủ môn khi bắt bóng không muốn đau tay và khỏi ngã thì phải co tay lại và lùi người một chú
 
-FILE: D:\EXE201\resource\word\Lớp 10\Toán\Chương 2_ Bất phương trình và hệ bất phương trình bậc nhất hai ẩn\Bài 4_ Hệ bất phương trình bậc nhất hai ẩn\10-bai-tap-ung-dung-he-bat-phuong-trinh-bac-nhat-hai-an-de-giai-bai-toan-kinh-te-co-loi-giai_2026_03_21.docx
+Done FILE: D:\EXE201\resource\word\Lớp 10\Toán\Chương 2_ Bất phương trình và hệ bất phương trình bậc nhất hai ẩn\Bài 4_ Hệ bất phương trình bậc nhất hai ẩn\10-bai-tap-ung-dung-he-bat-phuong-trinh-bac-nhat-hai-an-de-giai-bai-toan-kinh-te-co-loi-giai_2026_03_21.docx
   Lớp: 10  |  Môn: Toán  |  Chương: Chương 2_ Bất phương trình và hệ bất phương trình bậc nhất hai ẩn  |  Bài: Bài 4_ Hệ bất phương trình bậc nhất hai ẩn
   Tổng câu: 10  |  OK: 9  |  BAD: 1
   Chi tiết lỗi: Format2=0  NoAns=1  NoOpt=0
