@@ -76,6 +76,11 @@ public class WordImportServiceImpl implements WordImportService {
             for (XWPFParagraph paragraph : document.getParagraphs()) {
                 String text = parseParagraph(paragraph, imageMap);
                 if (!text.isBlank()) {
+                    // Style "example1" = đáp án được highlight = đáp án đúng
+                    String styleName = paragraph.getStyle();
+                    if ("example1".equalsIgnoreCase(styleName)) {
+                        text = "[[HL]]" + text + "[[HL]]";
+                    }
                     textBlocks.add(text);
                 }
             }
@@ -107,7 +112,7 @@ public class WordImportServiceImpl implements WordImportService {
             // Save all questions
             questions = questionBankRepository.saveAll(questions);
             log.info("Saved {} questions from Word file", questions.size());
-            activityLogService.log("Đã tạo "+questions+" câu hỏi từ file Word");
+            activityLogService.log("Đã tạo "+questions.size()+" câu hỏi từ file Word");
             // 4. AI classification if requested
             if (useAiClassification && !deepseekApiKey.isBlank() && !questions.isEmpty()) {
                 classifyQuestionsWithAI(questions);
@@ -249,8 +254,11 @@ public class WordImportServiceImpl implements WordImportService {
             } else if ("t".equals(localName)) {
                 String t = getNodeText(child);
                 if (t != null) {
-                    if (isSuperscript) t = "^{" + t + "}";
-                    else if (isSubscript) t = "_{" + t + "}";
+                    if (isSuperscript) {
+                        t = toSuperscript(t);
+                    } else if (isSubscript) {
+                        t = toSubscript(t);
+                    }
                     if (isHighlight) t = "[[HL]]" + t + "[[HL]]";
                     text.append(t);
                 }
@@ -648,39 +656,23 @@ public class WordImportServiceImpl implements WordImportService {
         Map<String, String> options = new LinkedHashMap<>();
         String cleanText = text.replaceAll("\\[\\[HL\\]\\]", "");
 
-        // Format 1 + 2 combined:
-        // Matches: optional bullet/dash, optional space, A/B/C/D, then . or ) or space, then text
-        // Stop at next option, answer, or explanation marker
+        // Match "A. text", "A) text", "A text" tại đầu dòng
+        // Stop tại option kế tiếp, Lời giải, Đáp án, hoặc hết dòng
         Pattern p = Pattern.compile(
-            "(?:^|\\n)\\s*[•\\-]?\\s*([A-D])[.)\\s]\\s*(.*?)(?=\\n\\s*[•\\-]?\\s*[A-D][.)\\s]|\\n\\s*(?:L\u1eddi gi\u1ea3i|\u0110\u00e1p \u00e1n|Ch\u1ecdn|Tr\u1ea3 l\u1eddi)|$)",
-            Pattern.DOTALL);
+                "(?:^|\\n)\\s*[•\\-]?\\s*([A-D])[.)\\s]\\s*([^\\n]+)",
+                Pattern.MULTILINE);
         Matcher m = p.matcher(cleanText);
         while (m.find()) {
             String letter = m.group(1).toUpperCase();
-            String optionText = m.group(2).trim();
-            // Remove any trailing newlines / bullet from option text
-            optionText = optionText.replaceAll("\\n.*", "").trim();
+            String optionText = m.group(2).trim()
+                    // Bỏ trailing trailing dấu chấm phẩy/ nhiều space
+                    .replaceAll("\\s+$", "");
             if (!optionText.isEmpty()) {
                 options.put(letter, optionText);
             }
         }
-
-        // Fallback: no-space bullet format "•A.text" or "A.text" at start of line
-        if (options.isEmpty()) {
-            Pattern p2 = Pattern.compile(
-                "(?:^|\\n)\\s*[•\\-]?\\s*([A-D])\\.([^\\n]+)");
-            Matcher m2 = p2.matcher(cleanText);
-            while (m2.find()) {
-                String letter = m2.group(1).toUpperCase();
-                String optionText = m2.group(2).trim();
-                if (!optionText.isEmpty()) {
-                    options.put(letter, optionText);
-                }
-            }
-        }
         return options;
     }
-
     /**
      * Extract the correct answer LETTER (A, B, C, D) without resolving to option text.
      * Supports both Format 1 ("Đáp án: X") and Format 2 ("Đáp án cần chọn là: X").
@@ -771,8 +763,8 @@ public class WordImportServiceImpl implements WordImportService {
 
     private String extractOptionText(String text, String letter) {
         Pattern p = Pattern.compile(
-                "\\b" + letter + "[.)\\s]\\s*(.*?)(?=\\s*\\b[A-D][.)\\s]|\\s*Lời giải:|\\s*Đáp án:|\\s*Chọn|$)",
-                Pattern.DOTALL);
+                "(?:^|\\n)\\s*" + letter + "[.)\\s]\\s*([^\\n]+)",
+                Pattern.MULTILINE);
         Matcher m = p.matcher(text);
         if (m.find()) {
             return m.group(1).trim();
@@ -787,14 +779,16 @@ public class WordImportServiceImpl implements WordImportService {
      *           → captures body, strips the trailing answer line
      */
     private String extractExplanation(String text) {
-        // Try "Lời giải:" (both formats)
-        Matcher loiGiaiM = Pattern.compile("L\u1eddi gi\u1ea3i[:\\s]*(.*)", Pattern.DOTALL).matcher(text);
+        Matcher loiGiaiM = Pattern.compile("Lời giải[:\\s]*(.*)", Pattern.DOTALL).matcher(text);
         if (loiGiaiM.find()) {
             String body = loiGiaiM.group(1).trim();
-            // Remove leading "Trả lời:" line (Format 2)
-            body = body.replaceFirst("^Tr\u1ea3 l\u1eddi[:\\s]*\\n?", "").trim();
-            // Strip trailing "Đáp án cần chọn là: X" line
-            body = body.replaceAll("(?m)\\n?\\s*\u0110\u00e1p \u00e1n c\u1ea7n ch\u1ecdn l\u00e0.*$", "").trim();
+            body = body.replaceFirst("^Trả lời[:\\s]*\\n?", "").trim();
+            body = body.replaceAll("(?m)\\n?\\s*Đáp án cần chọn là.*$", "").trim();
+
+            // FIX: Xoá dòng "Chọn đáp án X" hoặc "Chọn X" - đây là answer indicator, không phải explanation
+            body = body.replaceAll("(?mi)^\\s*Chọn\\s+(?:đáp án\\s+)?[A-D]\\.?\\s*$", "").trim();
+            body = body.replaceAll("(?mi)^\\s*Đáp án\\s+đúng\\s+là[:\\s]*[A-D]?\\.?\\s*$", "").trim();
+
             return body.isEmpty() ? "" : body;
         }
         return "";
@@ -814,8 +808,8 @@ public class WordImportServiceImpl implements WordImportService {
             }
             // Remove A./B./C./D. option lines — keep only lines BEFORE the first option
             Matcher optionStart = Pattern.compile(
-                "(?:^|\\n)\\s*[•\\-]?\\s*[A-D][.)]",
-                Pattern.MULTILINE).matcher(text);
+                    "(?:^|\\n)\\s*[•\\-]?\\s*[A-D][.)\\s]",
+                    Pattern.MULTILINE).matcher(text);
             if (optionStart.find()) {
                 text = text.substring(0, optionStart.start());
             }
@@ -1057,5 +1051,73 @@ public class WordImportServiceImpl implements WordImportService {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();
+    }
+    private String toSuperscript(String input) {
+        Map<Character, Character> map = Map.ofEntries(
+                Map.entry('0','⁰'), Map.entry('1','¹'), Map.entry('2','²'),
+                Map.entry('3','³'), Map.entry('4','⁴'), Map.entry('5','⁵'),
+                Map.entry('6','⁶'), Map.entry('7','⁷'), Map.entry('8','⁸'),
+                Map.entry('9','⁹'),
+
+                Map.entry('+','⁺'), Map.entry('-','⁻'), Map.entry('=','⁼'),
+                Map.entry('(','⁽'), Map.entry(')','⁾'),
+
+                Map.entry('n','ⁿ'), Map.entry('i','ⁱ'),
+                Map.entry('a','ᵃ'), Map.entry('b','ᵇ'), Map.entry('c','ᶜ'),
+                Map.entry('d','ᵈ'), Map.entry('e','ᵉ'), Map.entry('f','ᶠ'),
+                Map.entry('g','ᵍ'), Map.entry('h','ʰ'), Map.entry('j','ʲ'),
+                Map.entry('k','ᵏ'), Map.entry('l','ˡ'), Map.entry('m','ᵐ'),
+                Map.entry('o','ᵒ'), Map.entry('p','ᵖ'), Map.entry('r','ʳ'),
+                Map.entry('s','ˢ'), Map.entry('t','ᵗ'), Map.entry('u','ᵘ'),
+                Map.entry('v','ᵛ'), Map.entry('w','ʷ'), Map.entry('x','ˣ'),
+                Map.entry('y','ʸ'), Map.entry('z','ᶻ')
+        );
+
+        StringBuilder unicode = new StringBuilder();
+        boolean fullSupport = true;
+
+        for (char c : input.toCharArray()) {
+            Character mapped = map.get(c);
+            if (mapped == null) {
+                fullSupport = false;
+                break;
+            }
+            unicode.append(mapped);
+        }
+
+        // fallback nếu có ký tự không hỗ trợ
+        return fullSupport ? unicode.toString() : "^{" + input + "}";
+    }
+    private String toSubscript(String input) {
+        Map<Character, Character> map = Map.ofEntries(
+                Map.entry('0','₀'), Map.entry('1','₁'), Map.entry('2','₂'),
+                Map.entry('3','₃'), Map.entry('4','₄'), Map.entry('5','₅'),
+                Map.entry('6','₆'), Map.entry('7','₇'), Map.entry('8','₈'),
+                Map.entry('9','₉'),
+
+                Map.entry('+','₊'), Map.entry('-','₋'), Map.entry('=','₌'),
+                Map.entry('(','₍'), Map.entry(')','₎'),
+
+                Map.entry('a','ₐ'), Map.entry('e','ₑ'), Map.entry('h','ₕ'),
+                Map.entry('i','ᵢ'), Map.entry('j','ⱼ'), Map.entry('k','ₖ'),
+                Map.entry('l','ₗ'), Map.entry('m','ₘ'), Map.entry('n','ₙ'),
+                Map.entry('o','ₒ'), Map.entry('p','ₚ'), Map.entry('r','ᵣ'),
+                Map.entry('s','ₛ'), Map.entry('t','ₜ'), Map.entry('u','ᵤ'),
+                Map.entry('v','ᵥ'), Map.entry('x','ₓ')
+        );
+
+        StringBuilder unicode = new StringBuilder();
+        boolean fullSupport = true;
+
+        for (char c : input.toCharArray()) {
+            Character mapped = map.get(c);
+            if (mapped == null) {
+                fullSupport = false;
+                break;
+            }
+            unicode.append(mapped);
+        }
+
+        return fullSupport ? unicode.toString() : "_{" + input + "}";
     }
 }

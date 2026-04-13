@@ -11,7 +11,7 @@
  * - Real-time violation alerts to teacher
  */
 import { useEffect, useRef, useCallback, useState } from 'react';
-import SockJS from 'sockjs-client';
+import SockJS from 'sockjs-client/dist/sockjs';
 import { Client } from '@stomp/stompjs';
 import { API } from '../constants/api';
 

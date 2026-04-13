@@ -4,7 +4,7 @@ import {
     Shield, AlertTriangle, Eye, EyeOff, Wifi, WifiOff,
     Maximize, Users, Clock, RefreshCw, X, Activity, Bell
 } from 'lucide-react';
-import SockJS from 'sockjs-client';
+import SockJS from 'sockjs-client/dist/sockjs';
 import { Client } from '@stomp/stompjs';
 import { API } from '../../constants/api';
 import examAssignmentService from '../../services/examAssignmentService';
