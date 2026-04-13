@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,25 +69,32 @@ public class WordImportServiceImpl implements WordImportService {
         try (InputStream is = file.getInputStream();
              XWPFDocument document = new XWPFDocument(is)) {
 
-            // 1. Build image mapping: rId -> MinIO URL
+            // 1. Build image mapping: partName -> MinIO URL
             Map<String, String> imageMap = extractAndUploadImages(document);
 
-            // 2. Parse paragraphs to text with LaTeX math
+            // 2. Parse body elements in document order: paragraphs AND tables
             List<String> textBlocks = new ArrayList<>();
-            for (XWPFParagraph paragraph : document.getParagraphs()) {
-                String text = parseParagraph(paragraph, imageMap);
-                if (!text.isBlank()) {
-                    // Style "example1" = đáp án được highlight = đáp án đúng
-                    String styleName = paragraph.getStyle();
-                    if ("example1".equalsIgnoreCase(styleName)) {
-                        text = "[[HL]]" + text + "[[HL]]";
+            for (IBodyElement element : document.getBodyElements()) {
+                if (element instanceof XWPFParagraph paragraph) {
+                    String text = parseParagraph(paragraph, imageMap);
+                    if (!text.isBlank()) {
+                        String styleName = paragraph.getStyle();
+                        if ("example1".equalsIgnoreCase(styleName)) {
+                            text = "[[HL]]" + text + "[[HL]]";
+                        }
+                        textBlocks.add(text);
                     }
-                    textBlocks.add(text);
+                } else if (element instanceof XWPFTable table) {
+                    // Bảng → convert sang HTML <table>
+                    String tableHtml = parseTableToHtml(table, imageMap);
+                    if (!tableHtml.isBlank()) {
+                        textBlocks.add(tableHtml);
+                    }
                 }
             }
 
             String fullContent = String.join("\n", textBlocks);
-            log.info("Parsed {} text blocks from Word document", textBlocks.size());
+            log.info("Parsed {} body blocks from Word document", textBlocks.size());
 
             // 3. Split by "Câu N:" pattern
             String[] rawQuestions = fullContent.split("(?=Câu\\s+\\d+[:.])");
@@ -164,6 +172,46 @@ public class WordImportServiceImpl implements WordImportService {
         }
 
         return imageMap;
+    }
+
+    // ======================== TABLE PARSING ========================
+
+    /**
+     * Chuyển XWPFTable thành chuỗi HTML &lt;table&gt; để embed vào questionText.
+     * Ảnh trong ô bảng được upload lên MinIO và thay thế bằng [IMG:url].
+     */
+    private String parseTableToHtml(XWPFTable table, Map<String, String> imageMap) {
+        StringBuilder html = new StringBuilder();
+        html.append("<table border=\"1\" style=\"border-collapse:collapse;width:100%;\">");
+
+        for (XWPFTableRow row : table.getRows()) {
+            html.append("<tr>");
+            for (XWPFTableCell cell : row.getTableCells()) {
+                html.append("<td style=\"padding:4px 8px;vertical-align:top;\">");
+
+                // Mỗi cell chứa nhiều paragraph
+                for (XWPFParagraph para : cell.getParagraphs()) {
+                    String text = parseParagraph(para, imageMap);
+                    if (!text.isBlank()) {
+                        // [IMG:url] → <img> tag
+                        text = text.replaceAll("\\[IMG:([^\\]]+)\\]",
+                                "<img src=\"${API_BASE}/files/$1\" style=\"max-width:200px;\" />");
+                        html.append(text);
+                    }
+                }
+
+                // Cell còn có thể chứa nested tables
+                for (XWPFTable nested : cell.getTables()) {
+                    html.append(parseTableToHtml(nested, imageMap));
+                }
+
+                html.append("</td>");
+            }
+            html.append("</tr>");
+        }
+
+        html.append("</table>");
+        return html.toString();
     }
 
     // ======================== PARAGRAPH PARSING ========================

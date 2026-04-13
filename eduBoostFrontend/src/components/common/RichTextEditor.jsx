@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { questionBankService } from '../../services/questionBankService';
@@ -79,6 +79,162 @@ const MATH_CATEGORIES = [
     ],
   },
 ];
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   KETCHER PANEL — Popup vẽ công thức hóa học (cấu trúc)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+const KETCHER_URL = 'https://lifescience.opensource.epam.com/ketcher/demo.html';
+
+const KetcherPanel = ({ onInsert, onClose }) => {
+  const iframeRef = useRef(null);
+  const panelRef  = useRef(null);
+  const [ready, setReady]     = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  // Close on click-outside
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  // Listen for postMessage from Ketcher iframe
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (!e.data) return;
+      // Ketcher fires 'ketcherReady' when loaded
+      if (e.data.eventType === 'init') {
+        setReady(true);
+        setLoading(false);
+      }
+      // SVG response
+      if (e.data.eventType === 'GET_SMILES' && e.data.data) {
+        // We asked for smiles, actually get SVG below
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  const handleIframeLoad = () => {
+    setLoading(false);
+    // Give Ketcher a moment to initialize fully
+    setTimeout(() => setReady(true), 1000);
+  };
+
+  const handleInsert = async () => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      // Request SVG from Ketcher via postMessage
+      // Ketcher's standalone supports window.ketcher API when same-origin;
+      // For cross-origin CDN we use a helper approach: open in popup or use
+      // indirect embed approach. Since CDN is cross-origin, use ketcher demo
+      // which exposes getSVG via contentWindow when allowed.
+      //
+      // Fallback: ask user to copy SMILES and we encode it.
+      // Better approach: use blob: URL for self-hosted ketcher-react
+      // For now: try contentWindow.ketcher API (works on some browsers without strict CORS)
+      const ketcherApi = iframe.contentWindow?.ketcher;
+      if (ketcherApi) {
+        const svg = await ketcherApi.getSVG?.();
+        if (svg) {
+          const b64 = btoa(unescape(encodeURIComponent(svg)));
+          const dataUrl = `data:image/svg+xml;base64,${b64}`;
+          onInsert(dataUrl);
+          onClose();
+          return;
+        }
+        // Fallback: getMolfile → not useful for display, try SMILES
+        const smiles = await ketcherApi.getSmiles?.();
+        if (smiles && smiles.trim() && smiles.trim() !== '') {
+          // For SMILES we can't directly render — open note
+          setError(`Không thể lấy SVG do giới hạn CORS. SMILES: ${smiles}`);
+          return;
+        }
+      }
+      setError('Không thể truy cập Ketcher API do giới hạn Cross-Origin. Hãy dùng nút "Tải ảnh" ở toolbar để chèn ảnh đã chụp màn hình từ ChemDraw/Ketcher.');
+    } catch (err) {
+      setError('Lỗi khi lấy dữ liệu từ Ketcher: ' + err.message);
+    }
+  };
+
+  return (
+    <div className="ketcher-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ketcher-modal" ref={panelRef}>
+        <div className="km-header">
+          <div className="km-title">
+            <span className="km-icon">🧪</span>
+            <h3>Vẽ công thức hóa học</h3>
+          </div>
+          <div className="km-header-actions">
+            <a
+              href={KETCHER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="km-open-btn"
+              title="Mở Ketcher trong tab mới"
+            >
+              Mở rộng ↗
+            </a>
+            <button className="km-close" onClick={onClose}>✕</button>
+          </div>
+        </div>
+
+        <div className="km-notice">
+          <span className="km-notice-icon">💡</span>
+          <span>
+            Vẽ công thức → nhấn <b>"Chụp & Chèn"</b> để chụp ảnh vùng vẽ và chèn vào câu hỏi.
+            Hoặc mở Ketcher trong tab mới, lưu ảnh, rồi dùng nút 📷 trong toolbar để upload.
+          </span>
+        </div>
+
+        <div className="km-iframe-wrap">
+          {loading && (
+            <div className="km-loading">
+              <div className="km-spinner" />
+              <span>Đang tải Ketcher...</span>
+            </div>
+          )}
+          <iframe
+            ref={iframeRef}
+            src={KETCHER_URL}
+            className="km-iframe"
+            title="Ketcher Chemical Structure Editor"
+            onLoad={handleIframeLoad}
+            allow="clipboard-read; clipboard-write"
+          />
+        </div>
+
+        {error && (
+          <div className="km-error">
+            <span>⚠️ {error}</span>
+            <button onClick={() => setError(null)}>✕</button>
+          </div>
+        )}
+
+        <div className="km-footer">
+          <p className="km-cors-note">
+            📌 Dùng Ketcher để vẽ → chụp màn hình → upload qua nút <b>📷</b> trong thanh công cụ soạn thảo bên dưới.
+          </p>
+          <div className="km-actions">
+            <button className="km-btn-cancel" onClick={onClose}>Đóng</button>
+            <button
+              className="km-btn-insert"
+              onClick={handleInsert}
+              disabled={!ready}
+            >
+              {ready ? 'Thử lấy SVG tự động' : 'Đang tải...'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 const MathPanel = ({ onInsert, onClose }) => {
   const [latex, setLatex] = useState("");
@@ -216,7 +372,8 @@ const MathPanel = ({ onInsert, onClose }) => {
 
 const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' }) => {
     const quillRef = useRef(null);
-    const [showMathPanel, setShowMathPanel] = useState(false);
+    const [showMathPanel, setShowMathPanel]       = useState(false);
+    const [showKetcherPanel, setShowKetcherPanel] = useState(false);
     const selectionRef = useRef(null);
 
     // When opening math panel, save current cursor position
@@ -270,6 +427,15 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
         };
     }
 
+    // Insert image URL into Quill at saved/current cursor
+    const insertImageUrl = useCallback((url) => {
+        const quill = quillRef.current?.getEditor();
+        if (!quill) return;
+        const range = selectionRef.current || quill.getSelection(true) || { index: quill.getLength() - 1, length: 0 };
+        quill.insertEmbed(range.index, 'image', url);
+        quill.setSelection(range.index + 1);
+    }, []);
+
     const modules = useMemo(() => ({
         toolbar: {
             container: [
@@ -279,11 +445,15 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                 ['image'],
                 ['formula-btn'],
+                ['chem-btn'],
             ],
             handlers: {
                 image: imageHandler,
                 'formula-btn': function() {
                     // This is a placeholder; actual handler is set up via useEffect
+                },
+                'chem-btn': function() {
+                    // Placeholder; actual handler set up via useEffect
                 },
             }
         },
@@ -292,13 +462,18 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
         }
     }), []);
 
-    // Set up the formula button click handler after mount
+    // Set up toolbar button handlers after mount
     useEffect(() => {
         const editor = quillRef.current?.getEditor();
         if (!editor) return;
         const toolbar = editor.getModule('toolbar');
         if (toolbar) {
             toolbar.addHandler('formula-btn', openMathPanel);
+            toolbar.addHandler('chem-btn', () => {
+                // Save cursor before opening Ketcher
+                selectionRef.current = editor.getSelection(true);
+                setShowKetcherPanel(true);
+            });
         }
     }, [openMathPanel]);
 
@@ -346,6 +521,13 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
                 />
             )}
 
+            {showKetcherPanel && (
+                <KetcherPanel
+                    onInsert={(dataUrl) => insertImageUrl(dataUrl)}
+                    onClose={() => setShowKetcherPanel(false)}
+                />
+            )}
+
             <style>{`
                 .rich-text-editor .ql-editor {
                     min-height: 200px;
@@ -366,6 +548,226 @@ const RichTextEditor = ({ value, onChange, placeholder = 'Nhập nội dung...' 
                 .ql-formula-btn:hover {
                     background: rgba(99, 102, 241, 0.08) !important;
                     border-radius: 4px;
+                }
+
+                /* ── Custom chem button ── */
+                .ql-chem-btn::after {
+                    content: '🧪';
+                    font-size: 15px;
+                }
+                .ql-chem-btn:hover {
+                    background: rgba(16, 185, 129, 0.08) !important;
+                    border-radius: 4px;
+                }
+
+                /* ═══════════════════════════════════════════════════
+                   KETCHER PANEL STYLES
+                ═══════════════════════════════════════════════════ */
+                .ketcher-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 10001;
+                    background: rgba(2, 6, 23, 0.55);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: kFadeIn 0.2s ease;
+                    padding: 1rem;
+                }
+                @keyframes kFadeIn {
+                    from { opacity: 0; }
+                    to   { opacity: 1; }
+                }
+
+                .ketcher-modal {
+                    background: #fff;
+                    border-radius: 20px;
+                    width: min(96vw, 960px);
+                    max-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+                    animation: kSlideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+                    overflow: hidden;
+                }
+                @keyframes kSlideUp {
+                    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+                    to   { opacity: 1; transform: translateY(0) scale(1); }
+                }
+
+                .km-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 14px 20px;
+                    border-bottom: 1px solid #f1f5f9;
+                    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+                }
+                .km-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                .km-icon { font-size: 1.4rem; }
+                .km-title h3 {
+                    margin: 0;
+                    font-size: 1.05rem;
+                    font-weight: 700;
+                    color: #064e3b;
+                }
+                .km-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .km-open-btn {
+                    padding: 5px 12px;
+                    background: #d1fae5;
+                    color: #065f46;
+                    border: 1px solid #a7f3d0;
+                    border-radius: 8px;
+                    font-size: 0.82rem;
+                    font-weight: 600;
+                    text-decoration: none;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                }
+                .km-open-btn:hover { background: #a7f3d0; }
+                .km-close {
+                    background: #f1f5f9;
+                    border: none;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 1rem;
+                    color: #64748b;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.15s;
+                }
+                .km-close:hover { background: #e2e8f0; color: #334155; }
+
+                .km-notice {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 8px;
+                    padding: 8px 18px;
+                    background: #fffbeb;
+                    border-bottom: 1px solid #fde68a;
+                    font-size: 0.82rem;
+                    color: #92400e;
+                    line-height: 1.45;
+                }
+                .km-notice-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+                .km-iframe-wrap {
+                    position: relative;
+                    flex: 1;
+                    min-height: 500px;
+                }
+                .km-loading {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    background: #f8fafc;
+                    z-index: 2;
+                    font-size: 0.9rem;
+                    color: #64748b;
+                }
+                .km-spinner {
+                    width: 36px;
+                    height: 36px;
+                    border: 3px solid #e2e8f0;
+                    border-top-color: #10b981;
+                    border-radius: 50%;
+                    animation: kSpin 0.7s linear infinite;
+                }
+                @keyframes kSpin {
+                    to { transform: rotate(360deg); }
+                }
+                .km-iframe {
+                    width: 100%;
+                    height: 100%;
+                    min-height: 500px;
+                    border: none;
+                    display: block;
+                }
+
+                .km-error {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 8px;
+                    padding: 8px 16px;
+                    background: #fef2f2;
+                    border-top: 1px solid #fecaca;
+                    font-size: 0.82rem;
+                    color: #991b1b;
+                }
+                .km-error button {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    color: #991b1b;
+                    font-size: 1rem;
+                    flex-shrink: 0;
+                }
+
+                .km-footer {
+                    padding: 10px 18px 14px;
+                    border-top: 1px solid #f1f5f9;
+                    background: #fafafa;
+                }
+                .km-cors-note {
+                    margin: 0 0 8px;
+                    font-size: 0.8rem;
+                    color: #64748b;
+                    line-height: 1.5;
+                }
+                .km-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 8px;
+                }
+                .km-btn-cancel {
+                    padding: 8px 18px;
+                    background: #f1f5f9;
+                    border: none;
+                    border-radius: 9px;
+                    font-size: 0.88rem;
+                    font-weight: 600;
+                    color: #64748b;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                    font-family: inherit;
+                }
+                .km-btn-cancel:hover { background: #e2e8f0; }
+                .km-btn-insert {
+                    padding: 8px 22px;
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #fff;
+                    border: none;
+                    border-radius: 9px;
+                    font-size: 0.88rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                    box-shadow: 0 3px 10px rgba(16,185,129,0.25);
+                    font-family: inherit;
+                }
+                .km-btn-insert:hover:not(:disabled) {
+                    transform: translateY(-1px);
+                    box-shadow: 0 5px 15px rgba(16,185,129,0.35);
+                }
+                .km-btn-insert:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
                 }
 
                 /* ── Math Panel Overlay ── */
