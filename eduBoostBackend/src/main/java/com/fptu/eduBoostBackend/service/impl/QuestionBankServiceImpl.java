@@ -132,10 +132,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
         // Tính duplicate % so với các câu cùng lesson đã tồn tại
         List<QuestionBank> existing = questionBankRepository.findByLessonId(lesson.getId());
-        existing.removeIf(q -> q.getId().equals(question.getId())); // bỏ chính nó
+        final QuestionBank savedQ = question; // effectively final cho lambda
+        existing.removeIf(q -> q.getId().equals(savedQ.getId()));
         if (!existing.isEmpty()) {
             double maxSim = existing.stream()
-                    .mapToDouble(q -> jaccardSimilarity(tokenize(question.getQuestionText()), tokenize(q.getQuestionText())))
+                    .mapToDouble(q -> jaccardSimilarity(tokenize(savedQ.getQuestionText()), tokenize(q.getQuestionText())))
                     .max().orElse(0.0);
             question.setDuplicatePercentage(Math.round(maxSim * 1000.0) / 10.0);
             question = questionBankRepository.save(question);
