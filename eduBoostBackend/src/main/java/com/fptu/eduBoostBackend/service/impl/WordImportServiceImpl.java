@@ -121,11 +121,19 @@ public class WordImportServiceImpl implements WordImportService {
             questions = questionBankRepository.saveAll(questions);
             log.info("Saved {} questions from Word file", questions.size());
             activityLogService.log("Đã tạo "+questions.size()+" câu hỏi từ file Word");
+
             // 4. AI classification if requested
             if (useAiClassification && !deepseekApiKey.isBlank() && !questions.isEmpty()) {
                 classifyQuestionsWithAI(questions);
-                questions = questionBankRepository.saveAll(questions);
             }
+
+            // 5. Tính duplicate percentage cho từng câu (so sánh nội bộ batch + DB cùng lesson)
+            if (questions.size() > 1) {
+                computeDuplicatePercentages(questions);
+            }
+
+            // Save lại sau AI + duplicate
+            questions = questionBankRepository.saveAll(questions);
 
             return questions.stream().map(this::mapToResponse).collect(Collectors.toList());
 
@@ -916,6 +924,64 @@ public class WordImportServiceImpl implements WordImportService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining("\n"));
+    }
+
+    // ======================== DUPLICATE PERCENTAGE ========================
+
+    /**
+     * Tính % trùng lặp cho mỗi câu hỏi so với các câu còn lại trong batch.
+     * Dùng Jaccard similarity trên tập từ (word tokens) — không cần AI, chạy nhanh.
+     *
+     * duplicatePercentage = max similarity với bất kỳ câu nào khác trong batch.
+     * Ví dụ: câu A giống câu B 80% → duplicatePercentage = 80.0
+     */
+    private void computeDuplicatePercentages(List<QuestionBank> questions) {
+        // Tách token cho từng câu (lowercase, bỏ ký tự đặc biệt)
+        List<Set<String>> tokenSets = questions.stream()
+                .map(q -> tokenize(q.getQuestionText()))
+                .toList();
+
+        for (int i = 0; i < questions.size(); i++) {
+            double maxSim = 0.0;
+            Set<String> tokensI = tokenSets.get(i);
+            if (tokensI.isEmpty()) {
+                questions.get(i).setDuplicatePercentage(0.0);
+                continue;
+            }
+            for (int j = 0; j < questions.size(); j++) {
+                if (i == j) continue;
+                double sim = jaccardSimilarity(tokensI, tokenSets.get(j));
+                if (sim > maxSim) maxSim = sim;
+            }
+            // Nhân 100 để lưu dạng phần trăm (0-100)
+            questions.get(i).setDuplicatePercentage(Math.round(maxSim * 1000.0) / 10.0);
+        }
+
+        log.info("Computed duplicate percentages for {} questions", questions.size());
+    }
+
+    /** Tách văn bản thành tập từ (word set), lowercase, bỏ ký hiệu toán/đặc biệt */
+    private Set<String> tokenize(String text) {
+        if (text == null || text.isBlank()) return Set.of();
+        // Bỏ LaTeX markers, HTML tags, ký hiệu đặc biệt
+        String clean = text
+                .replaceAll("\\$[^$]*\\$", " ")   // bỏ LaTeX $...$
+                .replaceAll("<[^>]+>", " ")         // bỏ HTML tags
+                .replaceAll("[^\\p{L}\\p{N}\\s]", " ") // chỉ giữ chữ và số
+                .toLowerCase()
+                .trim();
+        if (clean.isBlank()) return Set.of();
+        return new HashSet<>(Arrays.asList(clean.split("\\s+")));
+    }
+
+    /** Jaccard similarity = |A ∩ B| / |A ∪ B| */
+    private double jaccardSimilarity(Set<String> a, Set<String> b) {
+        if (a.isEmpty() || b.isEmpty()) return 0.0;
+        Set<String> intersection = new HashSet<>(a);
+        intersection.retainAll(b);
+        Set<String> union = new HashSet<>(a);
+        union.addAll(b);
+        return (double) intersection.size() / union.size();
     }
 
     // ======================== AI CLASSIFICATION ========================

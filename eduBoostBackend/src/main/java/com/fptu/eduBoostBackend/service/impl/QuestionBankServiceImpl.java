@@ -1,9 +1,6 @@
 package com.fptu.eduBoostBackend.service.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -132,6 +129,18 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .build();
 
         question = questionBankRepository.save(question);
+
+        // Tính duplicate % so với các câu cùng lesson đã tồn tại
+        List<QuestionBank> existing = questionBankRepository.findByLessonId(lesson.getId());
+        existing.removeIf(q -> q.getId().equals(question.getId())); // bỏ chính nó
+        if (!existing.isEmpty()) {
+            double maxSim = existing.stream()
+                    .mapToDouble(q -> jaccardSimilarity(tokenize(question.getQuestionText()), tokenize(q.getQuestionText())))
+                    .max().orElse(0.0);
+            question.setDuplicatePercentage(Math.round(maxSim * 1000.0) / 10.0);
+            question = questionBankRepository.save(question);
+        }
+
         activityLogService.log("Đã tạo câu hỏi thủ công");
         return mapToResponse(question);
     }
@@ -290,11 +299,52 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                     .build();
         }).collect(Collectors.toList());
         questions = questionBankRepository.saveAll(questions);
+
+        // Tính duplicate % nội bộ batch
+        if (questions.size() > 1) {
+            List<Set<String>> tokenSets = questions.stream()
+                    .map(q -> tokenize(q.getQuestionText()))
+                    .toList();
+            for (int i = 0; i < questions.size(); i++) {
+                Set<String> tokI = tokenSets.get(i);
+                double maxSim = 0.0;
+                for (int j = 0; j < questions.size(); j++) {
+                    if (i == j) continue;
+                    double s = jaccardSimilarity(tokI, tokenSets.get(j));
+                    if (s > maxSim) maxSim = s;
+                }
+                questions.get(i).setDuplicatePercentage(Math.round(maxSim * 1000.0) / 10.0);
+            }
+            questions = questionBankRepository.saveAll(questions);
+        }
+
         activityLogService.log("Đã import "+questions.size()+" câu hỏi");
 
         return questions.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    // ======================== DUPLICATE HELPERS ========================
+
+    private Set<String> tokenize(String text) {
+        if (text == null || text.isBlank()) return Set.of();
+        String clean = text
+                .replaceAll("\\$[^$]*\\$", " ")
+                .replaceAll("<[^>]+>", " ")
+                .replaceAll("[^\\p{L}\\p{N}\\s]", " ")
+                .toLowerCase().trim();
+        if (clean.isBlank()) return Set.of();
+        return new HashSet<>(Arrays.asList(clean.split("\\s+")));
+    }
+
+    private double jaccardSimilarity(Set<String> a, Set<String> b) {
+        if (a.isEmpty() || b.isEmpty()) return 0.0;
+        Set<String> intersection = new HashSet<>(a);
+        intersection.retainAll(b);
+        Set<String> union = new HashSet<>(a);
+        union.addAll(b);
+        return (double) intersection.size() / union.size();
     }
 
     private QuestionBankResponse mapToResponse(QuestionBank question) {
