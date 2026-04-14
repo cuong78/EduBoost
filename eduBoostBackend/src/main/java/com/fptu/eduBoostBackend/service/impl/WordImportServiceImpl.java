@@ -821,26 +821,69 @@ public class WordImportServiceImpl implements WordImportService {
     }
 
     /**
-     * Extract explanation text.
-     * Format 1: "Lời giải: ..."
-     * Format 2: "Lời giải:\nTrả lời:\n...<body>\nĐáp án cần chọn là: X"
-     *           → captures body, strips the trailing answer line
+     * Extract explanation text — CHỈ lưu nội dung giải thích thật sự.
+     *
+     * Quy tắc:
+     *  - Lấy phần sau "Lời giải:" hoặc "Giải:"
+     *  - Xóa bỏ HOÀN TOÀN các dòng chỉ nhắc lại đáp án (không có giá trị giải thích):
+     *      - "Đáp án D", "Đáp án: D", "Đáp án đúng: D", "Đáp án đúng là D"
+     *      - "Đáp án cần chọn là: D", "Đáp án cần chọn là D"
+     *      - "Chọn D", "Chọn đáp án D"
+     *      - "Trả lời:", "Trả lời: D"
+     *  - Nếu sau khi xóa các dòng đó còn lại nội dung → lưu explanation
+     *  - Nếu không còn gì → trả về "" (không lưu)
+     *
+     * Câu 2 (có giải thích toán học) → lưu explanation
+     * Câu 3 (chỉ "Đáp án B")         → trả về ""
      */
     private String extractExplanation(String text) {
-        Matcher loiGiaiM = Pattern.compile("Lời giải[:\\s]*(.*)", Pattern.DOTALL).matcher(text);
-        if (loiGiaiM.find()) {
-            String body = loiGiaiM.group(1).trim();
-            body = body.replaceFirst("^Trả lời[:\\s]*\\n?", "").trim();
-            body = body.replaceAll("(?m)\\n?\\s*Đáp án cần chọn là.*$", "").trim();
+        // Tìm "Lời giải:" hoặc "Giải:"
+        Matcher loiGiaiM = Pattern.compile(
+            "(?:Lời giải|Giải)[:\\s]*(.*)",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE
+        ).matcher(text);
 
-            // FIX: Xoá dòng "Chọn đáp án X" hoặc "Chọn X" - đây là answer indicator, không phải explanation
-            body = body.replaceAll("(?mi)^\\s*Chọn\\s+(?:đáp án\\s+)?[A-D]\\.?\\s*$", "").trim();
-            body = body.replaceAll("(?mi)^\\s*Đáp án\\s+đúng\\s+là[:\\s]*[A-D]?\\.?\\s*$", "").trim();
+        if (!loiGiaiM.find()) return "";
 
-            return body.isEmpty() ? "" : body;
-        }
-        return "";
+        String body = loiGiaiM.group(1).trim();
+
+        // Regex nhận dạng dòng CHỈ nhắc lại đáp án (không phải giải thích)
+        // Khớp toàn bộ dòng (per-line mode)
+        String answerOnlyLine =
+            "(?mi)^\\s*" +
+            "(?:" +
+                // "Đáp án [cần chọn là / đúng / đúng là / :] X [.]"
+                "(?:Đáp án|Đáp án đúng|Đáp án đúng là|Đáp án cần chọn là)" +
+                "[:\\s]*[A-D]?[.)]?\\s*" +
+            "|" +
+                // "Chọn X" / "Chọn đáp án X"
+                "Chọn(?:\\s+đáp án)?\\s+[A-D][.)]?\\s*" +
+            "|" +
+                // "Trả lời: X" hoặc chỉ "Trả lời:"
+                "Trả lời[:\\s]*[A-D]?[.)]?\\s*" +
+            "|" +
+                // Chỉ là chữ cái đáp án đứng một mình: "A.", "B)", "D"
+                "[A-D][.)\\s]*" +
+            ")$";
+
+        // Xóa từng dòng là answer-only
+        String cleaned = body
+                .replaceAll(answerOnlyLine, "")
+                .trim();
+
+        // Chuẩn hóa: bỏ dòng trắng thừa
+        cleaned = Arrays.stream(cleaned.split("\\n"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.joining("\n"))
+                .trim();
+
+        // Chỉ lưu nếu còn nội dung thật sự (hơn 3 ký tự, không chỉ là dấu chấm)
+        if (cleaned.length() <= 3) return "";
+
+        return cleaned;
     }
+
 
     private String cleanQuestionText(String text, QuestionType type) {
         // Remove highlight markers
