@@ -7,27 +7,38 @@ import com.fptu.eduBoostBackend.dto.request.UpdateClassRequest;
 import com.fptu.eduBoostBackend.entities.GradeLevel;
 import com.fptu.eduBoostBackend.entities.SchoolClass;
 import com.fptu.eduBoostBackend.entities.Teacher;
+import com.fptu.eduBoostBackend.exception.exceptions.BadRequestException;
 import com.fptu.eduBoostBackend.exception.exceptions.ResourceNotFoundException;
 import com.fptu.eduBoostBackend.repositories.ClassRepository;
 import com.fptu.eduBoostBackend.repositories.GradeLevelRepository;
 import com.fptu.eduBoostBackend.repositories.TeacherRepository;
 import com.fptu.eduBoostBackend.service.ActivityLogService;
 import com.fptu.eduBoostBackend.service.ClassService;
+import com.fptu.eduBoostBackend.service.QRCodeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClassServiceImpl implements ClassService {
 
     private final ClassRepository classRepository;
     private final GradeLevelRepository gradeLevelRepository;
     private final TeacherRepository teacherRepository;
+    private final QRCodeService qrCodeService;
     private final ActivityLogService activityLogService;
+
     @Override
     public List<ClassResponse> getAllClasses() {
         List<SchoolClass> classes = classRepository.findAll();
@@ -37,6 +48,7 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
+    @Cacheable(value = "classes", key = "#classId")
     public ClassResponse getClassById(String classId) {
         SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("SchoolClass", "classId", classId));
@@ -56,6 +68,7 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "classes", allEntries = true)
     public ClassResponse createClass(CreateClassRequest request) {
         GradeLevel gradeLevel = gradeLevelRepository.findById(request.getGradeLevelId())
                 .orElseThrow(() -> new ResourceNotFoundException("GradeLevel", "gradeLevelId", request.getGradeLevelId()));
@@ -66,14 +79,12 @@ public class ClassServiceImpl implements ClassService {
                     .orElseThrow(() -> new ResourceNotFoundException("Teacher", "teacherId", request.getTeacherId()));
         }
 
-        // Check if class code already exists
-        if (classRepository.existsByClassCode(request.getClassCode())) {
-            throw new IllegalArgumentException("Class code already exists: " + request.getClassCode());
-        }
+        // Generate guaranteed unique class code
+        String finalClassCode = generateUniqueClassCode(request.getClassCode(), request.getClassName(), request.getSchoolYear());
 
         SchoolClass schoolClass = SchoolClass.builder()
                 .className(request.getClassName())
-                .classCode(request.getClassCode())
+                .classCode(finalClassCode)
                 .gradeLevel(gradeLevel)
                 .teacher(teacher)
                 .schoolYear(request.getSchoolYear())
@@ -82,12 +93,25 @@ public class ClassServiceImpl implements ClassService {
                 .build();
 
         SchoolClass savedClass = classRepository.save(schoolClass);
+
+        // Generate QR code for class enrollment
+        try {
+            byte[] qrBytes = qrCodeService.generateClassQRCode(savedClass.getClassId());
+            savedClass.setQrCodeData(qrBytes);
+            savedClass.setQrCodeGeneratedAt(LocalDateTime.now());
+            classRepository.save(savedClass);
+        } catch (Exception e) {
+            log.error("Failed to generate QR code for class: {}", savedClass.getClassId(), e);
+            // Không throw exception để không block class creation
+        }
+
         activityLogService.log("Tạo lớp mới: " + schoolClass.getClassName() );
         return convertToClassResponse(savedClass);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "classes", allEntries = true)
     public ClassResponse updateClass(String classId, UpdateClassRequest request) {
         SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("SchoolClass", "classId", classId));
@@ -188,6 +212,60 @@ public class ClassServiceImpl implements ClassService {
                 .description(schoolClass.getDescription())
                 .status(schoolClass.getStatus())
                 .studentCount(studentCount)
+                .qrCodeUrl("/api/classes/" + schoolClass.getClassId() + "/qr-code")
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public byte[] getClassQRCode(String classId) {
+        SchoolClass schoolClass = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("SchoolClass", "classId", classId));
+        if (schoolClass.getQrCodeData() == null) {
+            try {
+                byte[] qrBytes = qrCodeService.generateClassQRCode(schoolClass.getClassId());
+                schoolClass.setQrCodeData(qrBytes);
+                schoolClass.setQrCodeGeneratedAt(LocalDateTime.now());
+                classRepository.save(schoolClass);
+            } catch (Exception e) {
+                log.error("Failed to generate QR code for class: {}", classId, e);
+                throw new BadRequestException("Failed to generate QR code for class: " + e.getMessage());
+            }
+        }
+        return schoolClass.getQrCodeData();
+    }
+
+    private String generateUniqueClassCode(String providedCode, String className, String schoolYear) {
+        String baseCode;
+        if (providedCode != null && !providedCode.isBlank()) {
+            baseCode = providedCode.trim();
+        } else {
+            String cleanName = className.replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
+            String cleanYear = (schoolYear != null ? schoolYear.replaceAll("[^a-zA-Z0-9]", "") : "");
+            baseCode = cleanName + (cleanYear.isEmpty() ? "" : "-" + cleanYear);
+        }
+
+        if (baseCode.length() > 40) {
+            baseCode = baseCode.substring(0, 40);
+        }
+
+        String candidateCode = baseCode;
+        int attempts = 0;
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        while (classRepository.existsByClassCode(candidateCode)) {
+            attempts++;
+            StringBuilder suffix = new StringBuilder("-");
+            for (int i = 0; i < 4; i++) {
+                suffix.append(chars.charAt(random.nextInt(chars.length())));
+            }
+            candidateCode = (baseCode.length() > 40 ? baseCode.substring(0, 40) : baseCode) + suffix;
+            if (attempts > 50) {
+                candidateCode = (baseCode.length() > 35 ? baseCode.substring(0, 35) : baseCode) + "-" + (System.currentTimeMillis() % 100000);
+                break;
+            }
+        }
+        return candidateCode;
     }
 }

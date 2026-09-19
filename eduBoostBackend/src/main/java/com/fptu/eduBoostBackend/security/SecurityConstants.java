@@ -20,6 +20,9 @@ public class SecurityConstants {
             "/api/subscriptions/plans",   // Public pricing page — no auth needed
             "/api/token_generate",        // VietQR callback: get token
             "/bank/api/transaction-sync", // VietQR callback: payment notification
+            "/api/enroll/**",             // Public enrollment endpoints (form + Google)
+            "/api/classes/*/qr-code",     // Public QR code image for class enrollment
+            "/api/classes/*/public-info", // Public class info for student enrollment
             "/api/admin/**",  // TODO: Remove after fixing role check
             "/api/files/**",  // Public file serving from MinIO (images in questions)
             "/ws/**",         // SockJS WebSocket handshake

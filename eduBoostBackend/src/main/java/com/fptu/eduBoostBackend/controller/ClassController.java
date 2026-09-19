@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -85,11 +86,33 @@ public class ClassController {
     }
 
     @GetMapping("/teachers")
-    @Operation(summary = "Get all available teachers", 
+    @Operation(summary = "Get all available teachers",
                description = "Returns a list of all teachers available for class assignment")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<TeacherSimpleResponse>> getAllAvailableTeachers() {
         List<TeacherSimpleResponse> teachers = classService.getAllAvailableTeachers();
         return ResponseEntity.ok(teachers);
+    }
+
+    @GetMapping("/{classId}/public-info")
+    @Operation(summary = "Get public class info for enrollment",
+               description = "Returns basic public class information for student QR code enrollment")
+    public ResponseEntity<ClassResponse> getClassPublicInfo(
+            @Parameter(description = "Class ID", required = true)
+            @PathVariable String classId) {
+        ClassResponse classResponse = classService.getClassById(classId);
+        return ResponseEntity.ok(classResponse);
+    }
+
+    @GetMapping("/{classId}/qr-code")
+    @Operation(summary = "Get class QR code",
+               description = "Returns the QR code image for class enrollment")
+    public ResponseEntity<byte[]> getClassQRCode(
+            @Parameter(description = "Class ID", required = true)
+            @PathVariable String classId) {
+        byte[] qrCode = classService.getClassQRCode(classId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(qrCode);
     }
 }

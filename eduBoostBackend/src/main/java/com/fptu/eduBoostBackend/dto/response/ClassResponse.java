@@ -27,4 +27,5 @@ public class ClassResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer studentCount;
+    private String qrCodeUrl;
 }

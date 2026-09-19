@@ -20,6 +20,7 @@ import ParentLogin from "./pages/parent/ParentLogin";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import ResetPassword from "./pages/auth/ResetPassword";
+import EnrollPage from "./pages/EnrollPage";
 
 // Layouts
 import StudentLayout from "./layouts/StudentLayout";
@@ -129,6 +130,9 @@ function App() {
             <Route path="/features/offline" element={<OfflineExam />} />
             <Route path="/features/question-bank" element={<QuestionBankFeature />} />
           </Route>
+
+          {/* Standalone enrollment page — no header navigation */}
+          <Route path="/enroll" element={<EnrollPage />} />
 
           {/* Authentication Pages - Redirect if already logged in */}
           <Route element={<RedirectIfAuthenticated />}>

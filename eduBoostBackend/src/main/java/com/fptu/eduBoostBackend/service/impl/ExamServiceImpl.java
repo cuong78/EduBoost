@@ -53,7 +53,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class ExamServiceImpl implements ExamService {
 
     private final ExamRepository examRepository;
@@ -122,6 +121,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public ExamResponse createExam(ExamRequest request) {
         User currentUser = getCurrentUser();
         
@@ -185,6 +185,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public ExamResponse updateExam(Long id, ExamRequest request) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
@@ -209,6 +210,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public void deleteExam(Long id) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
@@ -701,6 +703,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public ExamQuestionResponse addQuestionToExam(Long examId, AddQuestionToExamRequest request) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -766,6 +769,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public ExamQuestionResponse editExamQuestion(Long examId, Long examQuestionId, EditExamQuestionRequest request) {
         ExamQuestion eq = examQuestionRepository.findById(examQuestionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam question not found"));
@@ -819,6 +823,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public void deleteExamQuestion(Long examId, Long examQuestionId) {
         ExamQuestion eq = examQuestionRepository.findById(examQuestionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam question not found"));

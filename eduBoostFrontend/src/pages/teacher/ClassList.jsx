@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { GraduationCap, Plus, Users, Loader2 } from "lucide-react";
+import { GraduationCap, Plus, Users, Loader2, QrCode } from "lucide-react";
 import { teacherService } from "../../services/teacherService";
 import { gradeLevelService } from "../../services/gradeLevelService";
 import { showSuccessToast, showErrorToast } from "../../utils/show-toast";
 import ConfirmModal from "../../components/ui/ConfirmModal";
+import QRCodeModal from "../../components/ui/QRCodeModal";
 
 export default function ClassList() {
   const [classes, setClasses] = useState([]);
@@ -20,6 +21,8 @@ export default function ClassList() {
     description: "",
   });
   const [errors, setErrors] = useState({});
+
+  const [selectedQrClass, setSelectedQrClass] = useState(null);
 
   const loadClasses = async () => {
     setLoading(true);
@@ -52,23 +55,13 @@ export default function ClassList() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => {
-      const newForm = { ...prev, [name]: value };
-      if (name === "className" || name === "schoolYear") {
-        newForm.classCode = (newForm.className || "") + (newForm.schoolYear || "");
-      }
-      return newForm;
-    });
+    setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
-    if ((name === "className" || name === "schoolYear") && errors.classCode) {
-      setErrors((prev) => ({ ...prev, classCode: "" }));
-    }
   };
 
   const validate = () => {
     const next = {};
     if (!form.className?.trim()) next.className = "Tên lớp không được để trống";
-    if (!form.classCode?.trim()) next.classCode = "Mã lớp không được để trống";
     if (!form.gradeLevelId) next.gradeLevelId = "Khối lớp không được để trống";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -144,12 +137,24 @@ export default function ClassList() {
               <p className="class-count">
                 <Users size={16} /> {c.studentCount ?? 0} học sinh
               </p>
-              <Link
-                to={`/teacher/classes/${c.classId}/students`}
-                className="btn btn-primary btn-sm full-width"
-              >
-                Xem học sinh
-              </Link>
+              <div className="card-actions-row">
+                <Link
+                  to={`/teacher/classes/${c.classId}/students`}
+                  className="btn btn-primary btn-sm flex-1"
+                  style={{ textAlign: "center" }}
+                >
+                  Xem học sinh
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSelectedQrClass(c)}
+                  className="btn-qr-action"
+                  title="Mã QR ghi danh lớp"
+                >
+                  <QrCode size={16} />
+                  <span>Mã QR</span>
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -204,22 +209,6 @@ export default function ClassList() {
                 )}
               </div>
               <div className="form-group">
-                <label>
-                  Mã lớp <span className="required">*</span>
-                </label>
-                <input
-                  name="classCode"
-                  value={form.classCode}
-                  readOnly
-                  placeholder="Tự động tạo (Tên lớp + Năm học)"
-                  className={errors.classCode ? "error" : ""}
-                  style={{ opacity: 0.7, cursor: "not-allowed" }}
-                />
-                {errors.classCode && (
-                  <span className="error-message">{errors.classCode}</span>
-                )}
-              </div>
-              <div className="form-group">
                 <label>Năm học</label>
                 <input
                   name="schoolYear"
@@ -260,6 +249,12 @@ export default function ClassList() {
         </div>
       )}
 
+      <QRCodeModal
+        isOpen={!!selectedQrClass}
+        onClose={() => setSelectedQrClass(null)}
+        schoolClass={selectedQrClass}
+      />
+
       <style>{`
                 .class-list-page { max-width: 1200px; }
                 .page-header {
@@ -288,7 +283,25 @@ export default function ClassList() {
                 .class-card-header h3 { font-size: 1.25rem; margin: 0; }
                 .class-code { font-size: 0.875rem; color: var(--color-text-secondary); }
                 .class-meta, .class-count { font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
-                .class-card .btn { margin-top: 1rem; }
+                .card-actions-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+                .btn-qr-action {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.375rem;
+                    padding: 0.5rem 0.875rem;
+                    background: #eff6ff;
+                    color: #2563eb;
+                    border: 1px solid #bfdbfe;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    font-size: 0.8125rem;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .btn-qr-action:hover {
+                    background: #dbeafe;
+                    color: #1d4ed8;
+                }
                 .empty-state {
                     text-align: center;
                     padding: 3rem 2rem;

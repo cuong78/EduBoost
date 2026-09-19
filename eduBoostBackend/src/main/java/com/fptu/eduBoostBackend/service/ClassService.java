@@ -15,4 +15,5 @@ public interface ClassService {
     ClassResponse updateClass(String classId, UpdateClassRequest request);
     void deleteClass(String classId);
     List<TeacherSimpleResponse> getAllAvailableTeachers();
+    byte[] getClassQRCode(String classId);
 }

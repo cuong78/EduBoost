@@ -83,6 +83,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Autowired
     private ActivityLogService activityLogService;
+
+    @Autowired
+    private GoogleIdTokenVerifier googleIdTokenVerifier;
     @Override
     @Transactional
     public User register(UserRegistrationRequest request) {
@@ -454,17 +457,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 throw new BadRequestException("ID token is required");
             }
 
-            if (googleClientId == null || googleClientId.isEmpty()) {
-                log.error("Google Client ID is not configured");
-                throw new BadRequestException("Google OAuth is not configured");
-            }
-
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                    new NetHttpTransport(),
-                    GsonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(googleClientId))
-                    .build();
-            GoogleIdToken googleIdToken = verifier.verify(idToken);
+            GoogleIdToken googleIdToken = googleIdTokenVerifier.verify(idToken);
             if (googleIdToken == null) {
                 throw new BadRequestException("Invalid Google token: Token verification failed");
             }
@@ -503,19 +496,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             } else {
                 isNewGoogleUser = true;
 
-                String username = email.split("@")[0];
-                String baseUsername = username;
-                int counter = 1;
-
-                while (userRepository.existsByUsername(username)) {
-                    username = baseUsername + counter;
-                    counter++;
-                }
-
+                String baseUsername = email.split("@")[0];
+                String username = baseUsername + "_" + (System.currentTimeMillis() % 100000);
                 String phonePlaceholder = "GOOGLE_" + UUID.randomUUID().toString().substring(0, 8);
-                while (userRepository.existsByPhone(phonePlaceholder)) {
-                    phonePlaceholder = "GOOGLE_" + UUID.randomUUID().toString().substring(0, 8);
-                }
 
                 user = User.builder()
                         .username(username)

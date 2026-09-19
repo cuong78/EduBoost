@@ -43,4 +43,10 @@ public class SchoolClass {
 
     @Column(name = "status", length = 20)
     private String status;
+
+    @Column(name = "qr_code_data")
+    private byte[] qrCodeData;
+
+    @Column(name = "qr_code_generated_at")
+    private LocalDateTime qrCodeGeneratedAt;
 }

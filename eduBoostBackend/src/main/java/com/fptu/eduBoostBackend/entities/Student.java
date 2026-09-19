@@ -24,14 +24,14 @@ public class Student {
     @Column(name = "student_id", length = 36)
     private String studentId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "student_code", nullable = false, unique = true, length = 20)
     private String studentCode;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id")
     private SchoolClass schoolClass;
 
