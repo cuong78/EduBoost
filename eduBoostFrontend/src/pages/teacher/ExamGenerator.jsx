@@ -85,6 +85,59 @@ const shuffleAnswers = (correct, wrong1, wrong2, wrong3, seed) => {
   return shuffled;
 };
 
+// Auto recommend exam title based on exam type, subject, grade, and chapter
+const generateRecommendedTitle = ({
+  gradeLevel,
+  examType,
+  examTypes,
+  subjectId,
+  subjects,
+  chapterId,
+  chapters,
+}) => {
+  if (!gradeLevel && !examType && !subjectId) return "";
+
+  // 1. Exam Type Name
+  let typeName = "";
+  if (examType) {
+    const foundType =
+      (examTypes || []).find((t) => t.typeCode === examType || t.value === examType) ||
+      DEFAULT_EXAM_TYPES.find((t) => t.value === examType);
+    typeName = foundType?.typeName || foundType?.label || "";
+  }
+
+  // 2. Subject Name
+  let subjectText = "";
+  if (subjectId) {
+    const foundSub = (subjects || []).find((s) => String(s.id) === String(subjectId));
+    let subName = foundSub?.subjectName || foundSub?.name || "";
+    if (subName) {
+      if (!subName.toLowerCase().startsWith("môn ")) {
+        subName = `Môn ${subName}`;
+      }
+      subjectText = gradeLevel ? `${subName} ${gradeLevel}` : subName;
+    }
+  } else if (gradeLevel) {
+    subjectText = `Khối ${gradeLevel}`;
+  }
+
+  // 3. Chapter Name (if 15MIN / 45MIN and chapter is selected)
+  let chapterText = "";
+  if (chapterId && (examType === "15MIN" || examType === "45MIN" || !examType)) {
+    const foundChap = (chapters || []).find((c) => String(c.id) === String(chapterId));
+    if (foundChap?.chapterName || foundChap?.name) {
+      chapterText = foundChap.chapterName || foundChap.name;
+    }
+  }
+
+  const parts = [];
+  if (typeName) parts.push(typeName);
+  if (subjectText) parts.push(subjectText);
+  if (chapterText) parts.push(chapterText);
+
+  return parts.join(" - ");
+};
+
 const ExamGenerator = () => {
   const [step, setStep] = useState(1);
 
@@ -94,6 +147,8 @@ const ExamGenerator = () => {
   const [examType, setExamType] = useState("");
   const [examTypes, setExamTypes] = useState([]);
   const [examTitle, setExamTitle] = useState("");
+  const lastAutoTitleRef = useRef("");
+  const isTitleManuallyEditedRef = useRef(false);
 
   const [chapters, setChapters] = useState([]);
   const [chapterId, setChapterId] = useState("");
@@ -423,6 +478,33 @@ const ExamGenerator = () => {
     loadLessons().catch(() => setLessons([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId]);
+
+  // Auto-recommend exam title when grade, exam type, subject, or chapter changes
+  useEffect(() => {
+    // If editing/viewing existing exam from backend, don't overwrite title
+    if (searchParams.get("examId")) return;
+
+    if (gradeLevel || examType || subjectId) {
+      const rec = generateRecommendedTitle({
+        gradeLevel,
+        examType,
+        examTypes,
+        subjectId,
+        subjects,
+        chapterId,
+        chapters,
+      });
+
+      if (rec) {
+        // Only update if user hasn't typed custom title or current title was auto-generated or is empty
+        if (!isTitleManuallyEditedRef.current || !examTitle.trim() || examTitle === lastAutoTitleRef.current) {
+          setExamTitle(rec);
+          lastAutoTitleRef.current = rec;
+          isTitleManuallyEditedRef.current = false;
+        }
+      }
+    }
+  }, [gradeLevel, examType, subjectId, chapterId, subjects, examTypes, chapters]);
 
   // Support manual wheel scrolling while native dragging
   useEffect(() => {
@@ -1079,11 +1161,45 @@ const ExamGenerator = () => {
               </div>
             </div>
             <div className="field">
-              <label>Tên đề thi</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ margin: 0 }}>Tên đề thi</label>
+                {(gradeLevel || examType || subjectId) && (
+                  <button
+                    type="button"
+                    style={{
+                      background: 'none', border: 'none', color: '#6366f1',
+                      fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', borderRadius: 6
+                    }}
+                    onClick={() => {
+                      const rec = generateRecommendedTitle({
+                        gradeLevel,
+                        examType,
+                        examTypes,
+                        subjectId,
+                        subjects,
+                        chapterId,
+                        chapters,
+                      });
+                      if (rec) {
+                        setExamTitle(rec);
+                        lastAutoTitleRef.current = rec;
+                        isTitleManuallyEditedRef.current = false;
+                      }
+                    }}
+                    title="Tự động gợi ý lại tên đề"
+                  >
+                    <Sparkles size={13} /> Gợi ý lại
+                  </button>
+                )}
+              </div>
               <input
                 value={examTitle}
-                onChange={(e) => setExamTitle(e.target.value)}
-                placeholder="Ví dụ: Kiểm tra 15 phút - Chương 1"
+                onChange={(e) => {
+                  setExamTitle(e.target.value);
+                  isTitleManuallyEditedRef.current = true;
+                }}
+                placeholder="Ví dụ: Kiểm tra 15 phút - Môn Toán 6"
               />
             </div>
             <div className="field">
@@ -1559,6 +1675,7 @@ const ExamGenerator = () => {
                   className="btn btn-primary"
                   onClick={handlePublish}
                   disabled={publishingExam || !currentExam?.id}
+                  title="Khi công bố, đề thi này sẽ được chia sẻ cho các giáo viên khác tham khảo"
                 >
                   {publishingExam
                     ? <><RefreshCw size={16} className="spin" /> Đang công bố...</>
@@ -1568,17 +1685,18 @@ const ExamGenerator = () => {
                 <button
                   className="btn btn-outline"
                   style={{ borderColor: "var(--ds-warning)", color: "var(--ds-warning)" }}
+                  title="Ngừng chia sẻ đề thi này với cộng đồng giáo viên"
                   onClick={async () => {
                     try {
-                      await examService.changeExamStatus(currentExam.id, { newStatus: "USED" });
-                      showSuccessToast("Đã ngừng xuất bản — đề thi và các đề trộn chuyển sang trạng thái Đã dùng");
+                      await examService.changeExamStatus(currentExam.id, { newStatus: "DRAFT" });
+                      showSuccessToast("Đã ngừng công bố — đề thi đã chuyển về trạng thái trước đó");
                       await refreshExam(currentExam.id);
                     } catch (e) {
-                      showErrorToast(e?.response?.data?.message || "Không thể ngừng xuất bản");
+                      showErrorToast(e?.response?.data?.message || "Không thể ngừng công bố");
                     }
                   }}
                 >
-                  <Clock size={16} /> Ngừng xuất bản
+                  <Clock size={16} /> Ngừng công bố
                 </button>
               ) : null}
 

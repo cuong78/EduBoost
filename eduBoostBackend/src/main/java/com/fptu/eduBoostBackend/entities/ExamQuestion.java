@@ -32,7 +32,7 @@ public class ExamQuestion {
     @Column(name = "order_number", nullable = false)
     private Integer orderNumber;
 
-    @Column(name = "points", nullable = false, precision = 3, scale = 1)
+    @Column(name = "points", nullable = false, precision = 5, scale = 2)
     private BigDecimal points;
 
     @Enumerated(EnumType.STRING)

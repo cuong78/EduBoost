@@ -59,7 +59,7 @@ public class Exam {
     @Column(name = "total_questions", nullable = false)
     private Integer totalQuestions;
 
-    @Column(name = "total_points", nullable = false, precision = 4, scale = 1)
+    @Column(name = "total_points", nullable = false, precision = 5, scale = 2)
     private BigDecimal totalPoints;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -69,6 +69,10 @@ public class Exam {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     private ExamStatus status = ExamStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "previous_status", length = 20)
+    private ExamStatus previousStatus;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

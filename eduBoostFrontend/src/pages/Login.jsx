@@ -88,7 +88,7 @@ const Login = () => {
         // Determine redirect URL based on role priority: STUDENT > PARENT > TEACHER > ADMIN
         let redirectUrl = "/dashboard";
         if (hasRole("STUDENT") || hasRole("ROLE_STUDENT")) {
-          redirectUrl = "/student/chat";
+          redirectUrl = "/student/exams";
         } else if (hasRole("PARENT") || hasRole("ROLE_PARENT")) {
           redirectUrl = "/parent";
         } else if (hasRole("TEACHER") || hasRole("ROLE_TEACHER")) {

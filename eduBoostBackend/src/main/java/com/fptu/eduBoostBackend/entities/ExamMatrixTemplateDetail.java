@@ -29,10 +29,10 @@ public class ExamMatrixTemplateDetail {
     @Column(name = "number_of_questions", nullable = false)
     private Integer numberOfQuestions;
 
-    @Column(name = "points_per_question", nullable = false, precision = 3, scale = 1)
+    @Column(name = "points_per_question", nullable = false, precision = 5, scale = 2)
     private BigDecimal pointsPerQuestion;
 
-    @Column(name = "total_points", nullable = false, precision = 4, scale = 1)
+    @Column(name = "total_points", nullable = false, precision = 5, scale = 2)
     private BigDecimal totalPoints;
 }
 

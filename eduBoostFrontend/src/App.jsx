@@ -155,7 +155,7 @@ function App() {
           {/* Student Dashboard Routes */}
           <Route path="/student" element={<StudentLayout />}>
             <Route index element={<Navigate to="exams" replace />} />
-            <Route path="chat" element={<AIChat />} />
+            <Route path="chat" element={<Navigate to="/student/exams" replace />} />
             <Route path="forum" element={<Forum />} />
             <Route path="exams" element={<ExamList />} />
             <Route path="profile" element={<UserProfile />} />

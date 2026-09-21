@@ -246,17 +246,24 @@ const TakeExam = () => {
                 </div>
 
                 <style>{`
-                    .exam-auth-container { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-                    .auth-card { max-width: 440px; width: 100%; padding: 2.5rem; border-radius: 24px; text-align: center; background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.08); }
+                    .exam-auth-container { min-height: 85vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 1.5rem 1rem; width: 100%; }
+                    .auth-card { box-sizing: border-box; max-width: 440px; width: 100%; padding: 2.25rem 1.5rem; border-radius: 24px; text-align: center; background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.08); }
                     .auth-icon-wrapper { width: 72px; height: 72px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
-                    .auth-card h2 { margin: 0 0 0.5rem; font-size: 1.6rem; }
-                    .auth-card p { color: #64748b; margin-bottom: 1.5rem; }
+                    .auth-card h2 { margin: 0 0 0.5rem; font-size: 1.6rem; font-weight: 800; color: #0f172a; }
+                    .auth-card p { color: #64748b; margin-bottom: 1.5rem; font-size: 0.92rem; }
                     .auth-input { width: 100%; box-sizing: border-box; padding: 0.9rem 1rem; border-radius: 12px; border: 2px solid #e2e8f0; margin-bottom: 1rem; font-size: 1rem; outline: none; transition: border-color 0.2s; }
                     .auth-input:focus { border-color: #6366f1; }
                     .code-input { font-size: 2rem; font-weight: 800; letter-spacing: 8px; text-align: center; font-family: monospace; }
-                    .error-message { color: #dc2626; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
+                    .error-message { color: #dc2626; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; font-weight: 600; }
                     .warning-info { display: flex; align-items: flex-start; gap: 8px; background: #fefce8; border: 1px solid #fde047; border-radius: 10px; padding: 10px 12px; margin-bottom: 1rem; font-size: 0.82rem; color: #713f12; text-align: left; }
                     .full-width { width: 100%; }
+
+                    @media (max-width: 480px) {
+                        .exam-auth-container { padding: 1rem 0.75rem; min-height: 80vh; }
+                        .auth-card { padding: 1.75rem 1.15rem; border-radius: 20px; }
+                        .auth-card h2 { font-size: 1.35rem; }
+                        .code-input { font-size: 1.6rem; letter-spacing: 5px; }
+                    }
                 `}</style>
             </div>
         );
@@ -269,7 +276,7 @@ const TakeExam = () => {
             <div className="exam-result-container">
                 <div className="result-card">
                     <div className={`result-icon-wrapper ${isPass ? 'pass' : 'fail'}`}>
-                        {isPass ? <CheckCircle size={52} /> : <XCircle size={52} />}
+                        {isPass ? <CheckCircle size={48} /> : <XCircle size={48} />}
                     </div>
                     <h2>{isSubmitting ? 'Đang nộp bài...' : 'Đã nộp bài thành công!'}</h2>
                     <p className="subtitle">Hệ thống đã ghi nhận câu trả lời của bạn.</p>
@@ -293,7 +300,7 @@ const TakeExam = () => {
                                 <div className="score-divider"></div>
                                 <div className="score-item">
                                     <span className="label">Kết quả</span>
-                                    <span className={`value ${isPass ? 'text-green' : 'text-red'}`} style={{fontSize:'1.2rem'}}>
+                                    <span className={`value ${isPass ? 'text-green' : 'text-red'}`}>
                                         {isPass ? '✅ ĐẠT' : '❌ CHƯA ĐẠT'}
                                     </span>
                                 </div>
@@ -335,24 +342,48 @@ const TakeExam = () => {
                 </div>
 
                 <style>{`
-                    .exam-result-container { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-                    .result-card { max-width: 520px; width: 100%; padding: 2.5rem; border-radius: 24px; text-align: center; background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.08); }
-                    .result-icon-wrapper { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+                    .exam-result-container {
+                        min-height: 100vh; box-sizing: border-box; display: flex; align-items: center;
+                        justify-content: center; padding: 1.5rem 1rem; width: 100%; max-width: 100vw;
+                        overflow-x: hidden; background: #f8fafc;
+                    }
+                    .result-card {
+                        box-sizing: border-box; max-width: 520px; width: 100%; padding: 2.25rem 1.75rem;
+                        border-radius: 24px; text-align: center; background: white;
+                        box-shadow: 0 20px 50px rgba(0,0,0,0.08); border: 1px solid #f1f5f9; margin: auto;
+                    }
+                    .result-icon-wrapper { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
                     .pass { background: #dcfce7; color: #16a34a; }
                     .fail { background: #fee2e2; color: #dc2626; }
-                    .result-card h2 { margin-bottom: 0.5rem; font-size: 1.7rem; }
-                    .subtitle { color: #64748b; margin-bottom: 2rem; }
-                    .score-box { display: flex; background: #f8fafc; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; justify-content: space-around; align-items: center; gap: 1rem; }
-                    .score-item { display: flex; flex-direction: column; gap: 0.25rem; }
-                    .score-item .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-                    .score-item .value { font-size: 2rem; font-weight: 800; color: #1e293b; }
-                    .score-divider { width: 1px; height: 40px; background: #e2e8f0; }
+                    .result-card h2 { margin: 0 0 0.5rem; font-size: 1.5rem; font-weight: 800; color: #0f172a; }
+                    .subtitle { color: #64748b; margin-bottom: 1.5rem; font-size: 0.95rem; }
+                    .score-box {
+                        box-sizing: border-box; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+                        background: #f8fafc; border-radius: 18px; padding: 1.25rem 0.85rem; margin-bottom: 1.5rem;
+                        align-items: center; gap: 0.5rem; border: 1px solid #e2e8f0;
+                    }
+                    .score-item { display: flex; flex-direction: column; gap: 0.25rem; align-items: center; min-width: 0; }
+                    .score-item .label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+                    .score-item .value { font-size: 1.4rem; font-weight: 800; color: #1e293b; white-space: nowrap; }
+                    .score-divider { width: 1px; height: 36px; background: #e2e8f0; }
                     .text-green { color: #16a34a; }
                     .text-red { color: #dc2626; }
                     .ai-advice { background: linear-gradient(135deg,#f0f9ff,#e0f2fe); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: left; }
                     .ai-advice-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: #0369a1; }
                     .ai-advice p { font-size: 0.9rem; line-height: 1.6; margin: 0; color: #1e293b; }
                     .full-width { width: 100%; margin-bottom: 0.5rem; }
+
+                    @media (max-width: 480px) {
+                        .exam-result-container { padding: 1rem 0.75rem; }
+                        .result-card { padding: 1.75rem 1.15rem; border-radius: 20px; }
+                        .result-card h2 { font-size: 1.3rem; }
+                        .result-icon-wrapper { width: 68px; height: 68px; margin-bottom: 1rem; }
+                        .score-box { grid-template-columns: 1fr; gap: 0.75rem; padding: 1rem; }
+                        .score-divider { width: 100%; height: 1px; }
+                        .score-item { flex-direction: row; justify-content: space-between; width: 100%; }
+                        .score-item .value { font-size: 1.2rem; }
+                        .ai-advice { padding: 1rem; }
+                    }
                 `}</style>
             </div>
         );
@@ -592,6 +623,19 @@ const TakeExam = () => {
                 @media (max-width: 900px) {
                     .exam-layout { flex-direction: column; padding: 1rem; }
                     .question-palette { width: 100%; position: static; }
+                }
+                @media (max-width: 600px) {
+                    .exam-header-bar { padding: 0.75rem 1rem; }
+                    .exam-info h1 { font-size: 1rem; }
+                    .timer-display { font-size: 1.1rem; padding: 0.35rem 0.75rem; }
+                    .exam-layout { padding: 0.75rem; gap: 1rem; }
+                    .question-area { padding: 1.25rem 1rem; border-radius: 16px; }
+                    .question-text { font-size: 1.1rem; }
+                    .options-list { gap: 0.65rem; margin-bottom: 1.5rem; }
+                    .option-btn { padding: 0.75rem 0.85rem; border-radius: 12px; }
+                    .option-label { width: 30px; height: 30px; font-size: 0.85rem; margin-right: 0.65rem; }
+                    .question-palette { padding: 1rem; border-radius: 16px; }
+                    .palette-grid { grid-template-columns: repeat(5, 1fr); gap: 0.45rem; }
                 }
             `}</style>
         </div>

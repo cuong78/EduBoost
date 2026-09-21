@@ -17,7 +17,7 @@ import "./ExamManagement.css";
 /* ─────────────────────────── constants ─────────────────────────── */
 const EXAM_STATUS = {
   DRAFT:     { label: "Nháp",       color: "var(--ds-text-secondary)", bg: "var(--ds-border-light)", icon: <Clock     size={13}/> },
-  USED:      { label: "Đã dùng",    color: "var(--ds-warning)", bg: "var(--ds-warning-bg)", icon: <CheckCircle size={13}/> },
+  USED:      { label: "Đã tải về", color: "var(--ds-warning)", bg: "var(--ds-warning-bg)", icon: <CheckCircle size={13}/> },
   PUBLISHED: { label: "Đã xuất bản",color: "var(--ds-info)", bg: "#dbeafe", icon: <Globe    size={13}/> },
 };
 const GRADE_OPTIONS = [6,7,8,9,10,11,12];
@@ -328,7 +328,12 @@ const ExamManagement = () => {
               return (
                 <div className="em-community-grid">
                   {list.map(exam => (
-                    <div key={exam.id} className="em-comm-card">
+                    <div
+                      key={exam.id}
+                      className="em-comm-card"
+                      onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}
+                      style={{ cursor: "pointer" }}
+                    >
                       <div className="em-comm-card-top">
                         <div className="em-comm-code">{exam.examCode}</div>
                         <StatusBadge status={exam.status}/>
@@ -339,7 +344,7 @@ const ExamManagement = () => {
                       {exam.matrixTemplateName && (
                         <div className="em-comm-matrix"><LayoutGrid size={12}/> {exam.matrixTemplateName}</div>
                       )}
-                      <div className="em-comm-actions">
+                      <div className="em-comm-actions" onClick={(e) => e.stopPropagation()}>
                         <button className="em-btn em-btn-secondary" style={{ flex: 1 }} onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}>
                           <Eye size={14}/> Xem đề
                         </button>
@@ -422,7 +427,12 @@ const ExamManagement = () => {
                   {filtered.map(exam => {
                     const busy = !!actionLoading[exam.id];
                     return (
-                      <tr key={exam.id} className={busy ? "em-row-busy" : ""}>
+                      <tr
+                        key={exam.id}
+                        className={busy ? "em-row-busy" : ""}
+                        onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}
+                        style={{ cursor: "pointer" }}
+                      >
                         <td className="em-code">{exam.examCode}</td>
                         <td className="em-name">
                           <span>{exam.examTitle}</span>
@@ -435,7 +445,7 @@ const ExamManagement = () => {
                         <td className="center">{fmtPoints(exam.totalPoints)}</td>
                         <td><StatusBadge status={exam.status}/></td>
                         <td className="em-date">{fmtDate(exam.createdAt)}</td>
-                        <td>
+                        <td onClick={(e) => e.stopPropagation()}>
                           <div className="em-actions">
                             <button className="em-icon-btn" title="Xem đề" onClick={() => navigate(`/teacher/create-exam?examId=${exam.id}&mode=view`)}><Eye size={15}/></button>
                             <button className="em-icon-btn" title="Thống kê" onClick={() => openStats(exam)}><BarChart2 size={15}/></button>

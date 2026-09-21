@@ -5,6 +5,7 @@ import java.util.List;
 public class SecurityConstants {
 
     public static final List<String> PUBLIC_ENDPOINTS = List.of(
+            "/actuator/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",

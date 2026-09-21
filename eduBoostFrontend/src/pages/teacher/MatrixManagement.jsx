@@ -527,13 +527,18 @@ const MatrixManagement = () => {
                 const isMine = t.createdById === user?.userId;
                 return (
                 <>
-                  <tr key={t.id}>
+                  <tr
+                    key={t.id}
+                    onClick={() => handleView(t)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td className="template-name">
                       <button
                         className="expand-btn"
-                        onClick={() =>
-                          setExpandedRows((r) => ({ ...r, [t.id]: !r[t.id] }))
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedRows((r) => ({ ...r, [t.id]: !r[t.id] }));
+                        }}
                       >
                         {expandedRows[t.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
@@ -548,7 +553,7 @@ const MatrixManagement = () => {
                     </td>
                     {activeTab === "community" && <td>{t.createdByName || "—"}</td>}
                     <td>{fmtDate(t.createdAt)}</td>
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <div className="action-buttons">
                         <button className="btn-icon" title="Xem chi tiết" onClick={() => handleView(t)}><Eye size={15} /></button>
                         {/* Owner buttons: edit + delete */}
@@ -1010,7 +1015,10 @@ const MatrixManagement = () => {
         .matrix-table { width: 100%; border-collapse: collapse; }
         .matrix-table th { text-align: left; padding: 0.75rem 1rem; border-bottom: 2px solid rgba(0,0,0,0.08); font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 700; text-transform: uppercase; }
         .matrix-table td { padding: 0.7rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.04); }
-        .matrix-table tr:hover td { background: rgba(99,102,241,0.03); }
+        .matrix-table tbody tr { transition: all 0.12s ease; }
+        .matrix-table tbody tr:hover td { background: rgba(99,102,241,0.06); }
+        .matrix-table tbody tr.expand-row { cursor: default; }
+        .matrix-table tbody tr.expand-row:hover td { background: rgba(99,102,241,0.03); }
         .template-name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
         .expand-btn { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 2px; display: flex; align-items: center; }
         .center { text-align: center; }

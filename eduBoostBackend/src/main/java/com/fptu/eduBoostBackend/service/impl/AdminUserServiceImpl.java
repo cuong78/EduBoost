@@ -34,6 +34,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final ClassRepository classRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<AdminUserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
         return users.stream()
@@ -42,6 +43,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AdminUserResponse getUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));

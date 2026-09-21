@@ -77,6 +77,7 @@ public class ExamServiceImpl implements ExamService {
     private static final String DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ExamResponse> getExams(Long subjectId, Integer gradeLevel, Long examTypeId,
                                         ExamStatus status, Long createdById, Pageable pageable) {
         // Security: always scope to current user's exams.
@@ -92,6 +93,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ExamResponse getExamById(Long id) {
         Exam exam = examRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
@@ -236,6 +238,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public AutoSelectQuestionsResponse autoSelectQuestions(Long examId) {
         Exam exam = examRepository.findByIdWithDetails(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -264,7 +267,9 @@ public class ExamServiceImpl implements ExamService {
             // Sync totalQuestions + totalPoints onto exam from matrix
             int matrixTotal = details.stream().mapToInt(ExamMatrixTemplateDetail::getNumberOfQuestions).sum();
             BigDecimal matrixPoints = details.stream()
-                    .map(d -> d.getPointsPerQuestion().multiply(BigDecimal.valueOf(d.getNumberOfQuestions())))
+                    .map(d -> d.getTotalPoints() != null && d.getTotalPoints().compareTo(BigDecimal.ZERO) > 0
+                            ? d.getTotalPoints()
+                            : d.getPointsPerQuestion().multiply(BigDecimal.valueOf(d.getNumberOfQuestions())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             exam.setTotalQuestions(matrixTotal);
             exam.setTotalPoints(matrixPoints);
@@ -441,6 +446,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public AutoSelectQuestionsResponse autoSelectQuestionsWithConfig(Long examId, AutoSelectQuestionsRequest request) {
         Exam exam = examRepository.findByIdWithDetails(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -807,6 +813,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public ExamQuestionResponse regenerateWrongAnswers(Long examId, Long examQuestionId) {
         ExamQuestion eq = examQuestionRepository.findById(examQuestionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam question not found"));
@@ -852,6 +859,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public void reorderQuestions(Long examId, ReorderQuestionsRequest request) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -866,6 +874,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional
     public ExamResponse changeExamStatus(Long examId, ChangeExamStatusRequest request) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -887,13 +896,21 @@ public class ExamServiceImpl implements ExamService {
             throw new IllegalStateException("Chỉ chủ sở hữu đề thi mới có thể thay đổi trạng thái");
         }
         
-        // Validate status transition
-        validateStatusTransition(exam.getStatus(), request.getNewStatus());
+        ExamStatus targetStatus = request.getNewStatus();
         
-        exam.setStatus(request.getNewStatus());
-        
-        if (request.getNewStatus() == ExamStatus.PUBLISHED) {
+        if (targetStatus == ExamStatus.PUBLISHED) {
+            // Lưu trạng thái trước đó trước khi Công bố
+            if (exam.getStatus() != ExamStatus.PUBLISHED) {
+                exam.setPreviousStatus(exam.getStatus());
+            }
+            exam.setStatus(ExamStatus.PUBLISHED);
             exam.setPublishedAt(LocalDateTime.now());
+        } else if (exam.getStatus() == ExamStatus.PUBLISHED) {
+            // Ngừng công bố: Khôi phục trạng thái trước đó (DRAFT hoặc USED)
+            ExamStatus revertStatus = (exam.getPreviousStatus() != null) ? exam.getPreviousStatus() : targetStatus;
+            exam.setStatus(revertStatus);
+        } else {
+            exam.setStatus(targetStatus);
         }
         
         exam = examRepository.save(exam);
@@ -902,14 +919,15 @@ public class ExamServiceImpl implements ExamService {
         List<Exam> variants = examRepository.findByParentExamIdOrderByVariantNumber(examId);
         if (!variants.isEmpty()) {
             for (Exam variant : variants) {
-                variant.setStatus(request.getNewStatus());
-                if (request.getNewStatus() == ExamStatus.PUBLISHED) {
+                variant.setStatus(exam.getStatus());
+                variant.setPreviousStatus(exam.getPreviousStatus());
+                if (exam.getStatus() == ExamStatus.PUBLISHED) {
                     variant.setPublishedAt(LocalDateTime.now());
                 }
             }
             examRepository.saveAll(variants);
             log.info("Cascaded status {} to {} variants of exam {}", 
-                    request.getNewStatus(), variants.size(), exam.getExamCode());
+                    exam.getStatus(), variants.size(), exam.getExamCode());
         }
         
         log.info("Changed exam {} status from {} to {} by user: {}",
@@ -920,6 +938,7 @@ public class ExamServiceImpl implements ExamService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public ExamStatisticsResponse getExamStatistics(Long examId) {
         Exam exam = examRepository.findByIdWithDetails(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -969,6 +988,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamResponse> getMyExams() {
         User currentUser = getCurrentUser();
         List<Exam> exams = examRepository.findByCreatedById(currentUser.getUserId());
@@ -980,6 +1000,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamResponse> getPublishedExams(Long subjectId, Integer gradeLevel, Long examTypeId) {
         List<Exam> exams = examRepository.findPublishedByFilters(subjectId, gradeLevel, examTypeId);
         // Filter out variant exams
@@ -1222,6 +1243,7 @@ public class ExamServiceImpl implements ExamService {
         return builder.build();
     }
     @Override
+    @Transactional
     public byte[] exportExam(Long examId, String format) {
         try {
             Exam exam = examRepository.findById(examId)
@@ -1384,6 +1406,7 @@ public class ExamServiceImpl implements ExamService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public List<ExamResponse> getExamVariants(Long examId) {
         Exam original = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found: " + examId));

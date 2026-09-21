@@ -4,6 +4,8 @@ const examAssignmentService = {
     /** Teacher: create assignment(s) */
     createAssignment: (data) =>
         apiClient.post('/exam-assignments', data).then(r => r.data),
+    assignExam: (data) =>
+        apiClient.post('/exam-assignments', data).then(r => r.data),
 
     /** Teacher: list own assignments */
     getTeacherAssignments: () =>

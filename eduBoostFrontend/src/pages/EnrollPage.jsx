@@ -185,7 +185,7 @@ export default function EnrollPage() {
   const handleProceedToDashboard = () => {
     const hasToken = localStorage.getItem("token");
     if (hasToken) {
-      window.location.href = "/student/chat";
+      window.location.href = "/student/exams";
     } else {
       navigate("/login");
     }
